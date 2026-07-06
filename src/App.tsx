@@ -187,7 +187,7 @@ function HRMSApp() {
   const portal = getPortal();
   const portalMeta = PORTAL_META[portal];
   const isManagerView = portal !== 'employee';
-  const showAdminSection = portal === 'admin' || portal === 'manager';
+  const showAdminSection = portal === 'admin';
   const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
 
   return (

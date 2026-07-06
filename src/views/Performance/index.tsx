@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useRBACStore } from '../../store';
 import { DashboardTab } from './DashboardTab';
 import { ObjectivesTab } from './ObjectivesTab';
 import { ProductivityTab } from './ProductivityTab';
@@ -7,12 +6,10 @@ import { SkillsTab } from './SkillsTab';
 import { ReviewsTab } from './ReviewsTab';
 
 import { AICoachTab } from './AICoachTab';
-import { ManagerTab } from './ManagerTab';
 import { cn } from '../../utils';
-import { LayoutDashboard, Target, Zap, BookOpen, MessageSquare, Award, Brain, Users } from 'lucide-react';
+import { LayoutDashboard, Target, Zap, BookOpen, MessageSquare, Brain } from 'lucide-react';
 
 export function PerformanceView() {
-  const { viewMode } = useRBACStore();
   const [activeTab, setActiveTab] = useState('dashboard');
 
   const tabs = [
@@ -24,10 +21,6 @@ export function PerformanceView() {
     
     { id: 'ai-coach', label: 'AI Coach', icon: Brain },
   ];
-
-  if (viewMode === 'manager') {
-    tabs.push({ id: 'manager', label: 'Manager Dashboard', icon: Users });
-  }
 
   return (
     <div className="space-y-6">
@@ -71,7 +64,6 @@ export function PerformanceView() {
           {activeTab === 'reviews' && <ReviewsTab />}
           
           {activeTab === 'ai-coach' && <AICoachTab />}
-          {activeTab === 'manager' && viewMode === 'manager' && <ManagerTab />}
         </div>
       </div>
     </div>

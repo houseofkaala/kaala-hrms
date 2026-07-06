@@ -140,7 +140,7 @@ export default function LoginPage() {
           <div className="mt-6 px-2 text-[11px] text-white/40 space-y-2 font-light">
             <p className="font-accent uppercase tracking-widest text-white/25 text-[9px]">Other portals</p>
             <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {(['employee', 'manager', 'admin'] as Portal[]).filter(p => p !== portal).map(p => (
+              {(['employee', 'admin'] as Portal[]).filter(p => p !== portal).map(p => (
                 <a key={p} href={getPortalLoginUrl(p)} className="text-white/50 hover:text-white underline-offset-2 hover:underline">
                   {PORTAL_META[p].title}
                 </a>
@@ -148,8 +148,12 @@ export default function LoginPage() {
             </div>
             <p className="font-accent uppercase tracking-widest text-white/25 text-[9px] pt-2">Demo — this portal</p>
             {portal === 'employee' && <p>john.doe@kaala.io / Demo@123</p>}
-            {portal === 'manager' && <p>mike.m@kaala.io / Demo@123</p>}
-            {portal === 'admin' && <p>alice.a@kaala.io / Admin@123</p>}
+            {portal === 'admin' && (
+              <>
+                <p>mike.m@kaala.io / Demo@123 (Manager)</p>
+                <p>alice.a@kaala.io / Admin@123 (Admin)</p>
+              </>
+            )}
           </div>
         </div>
       </div>
