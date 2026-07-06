@@ -1,35 +1,39 @@
 #!/usr/bin/env bash
-# Hostinger DNS for bymarketingonly.com → kaala-hrms.onrender.com
+# Hostinger DNS — role-based subdomains for House of Kaala HRMS
 
 cat <<'EOF'
 
-HOSTINGER DNS — bymarketingonly.com
-===================================
+HOSTINGER DNS — bymarketingonly.com (3 portals)
+================================================
 
 1. Render dashboard → kaala-hrms → Settings → Custom Domains
-   → Add: bymarketingonly.com
-   → (Render also adds www.bymarketingonly.com automatically)
+   Add ALL of these:
+     • employee.bymarketingonly.com
+     • manager.bymarketingonly.com
+     • admin.bymarketingonly.com
 
 2. hpanel.hostinger.com → Domains → bymarketingonly.com → DNS / DNS Zone
 
-3. DELETE any existing A or AAAA records for @ if they conflict.
-   (Remove AAAA records — Render uses IPv4 only.)
+3. Remove conflicting A/AAAA records for subdomains if present.
 
-4. ADD these records:
+4. ADD these CNAME records (all point to Render):
 
-   | Type  | Name | Value                    | TTL  |
-   |-------|------|--------------------------|------|
-   | A     | @    | 216.24.57.1              | 3600 |
-   | CNAME | www  | kaala-hrms.onrender.com  | 3600 |
+   | Type  | Name     | Value                   | TTL  |
+   |-------|----------|-------------------------|------|
+   | CNAME | employee | kaala-hrms.onrender.com | 3600 |
+   | CNAME | manager  | kaala-hrms.onrender.com | 3600 |
+   | CNAME | admin    | kaala-hrms.onrender.com | 3600 |
 
-5. Render → Custom Domains → click VERIFY next to bymarketingonly.com
+5. Render → Custom Domains → VERIFY each subdomain
 
-6. Wait 10–30 min, then open: https://bymarketingonly.com
+6. Wait 10–30 min, then test:
 
-7. Render → Environment → confirm APP_URL = https://bymarketingonly.com
+   Employee: https://employee.bymarketingonly.com  (john.doe@kaala.io / Demo@123)
+   Manager:  https://manager.bymarketingonly.com   (mike.m@kaala.io / Demo@123)
+   Admin:    https://admin.bymarketingonly.com     (alice.a@kaala.io / Admin@123)
 
-Demo login: john.doe@kaala.io / Demo@123
+Each portal only accepts its role. Wrong portal → login blocked with redirect hint.
 
-Note: Free Render tier sleeps after 15 min idle. First visit may take ~60 sec.
+Local dev: http://localhost:3000?portal=employee|manager|admin
 
 EOF

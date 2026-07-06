@@ -67,6 +67,16 @@ export function registerRoutes(app: Express) {
   app.post('/api/auth/login', (req, res) => {
     const user = db().users.find(u => u.email === req.body.email && u.password === req.body.password);
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+
+    const portal = req.headers['x-portal'] || req.body.portal;
+    const rolePortal = user.role === 'admin' ? 'admin' : user.role === 'manager' ? 'manager' : 'employee';
+    if (portal && ['employee', 'manager', 'admin'].includes(portal) && portal !== rolePortal) {
+      return res.status(403).json({
+        error: `Wrong portal. Use the ${rolePortal} portal for this account.`,
+        correctPortal: rolePortal,
+      });
+    }
+
     const token = createSession(user.id);
     res.json({ token, user: sanitizeUser(user) });
   });

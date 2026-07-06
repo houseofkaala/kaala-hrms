@@ -1,16 +1,26 @@
 import { useState, useEffect, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { setToken, isAuthenticated } from '../auth';
 import type { User } from '../types';
 import { useRBACStore } from '../store';
+import { getPortal, getPortalLoginUrl, PORTAL_META, portalForRole, roleMatchesPortal, type Portal } from '../portal';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const portal = getPortal();
+  const meta = PORTAL_META[portal];
   const { setCurrentUser } = useRBACStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const mismatch = location.state as { portalMismatch?: boolean; correctPortal?: Portal; message?: string } | null;
+
+  useEffect(() => {
+    if (mismatch?.message) setError(mismatch.message);
+  }, [mismatch?.message]);
 
   useEffect(() => {
     if (isAuthenticated()) navigate('/dashboard', { replace: true });
@@ -23,16 +33,23 @@ export default function LoginPage() {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        headers: { 'Content-Type': 'application/json', 'X-Portal': portal },
+        body: JSON.stringify({ email, password, portal }),
       });
+      const body = await res.json();
       if (!res.ok) {
-        const body = await res.json();
+        if (body.correctPortal) {
+          throw new Error(`${body.error} Sign in at ${getPortalLoginUrl(body.correctPortal)}`);
+        }
         throw new Error(body.error || 'Login failed');
       }
-      const data = await res.json();
-      setToken(data.token);
-      setCurrentUser(data.user as User);
+      const user = body.user as User;
+      if (!roleMatchesPortal(user.role, portal)) {
+        const correct = portalForRole(user.role);
+        throw new Error(`This account belongs on the ${PORTAL_META[correct].title}.`);
+      }
+      setToken(body.token);
+      setCurrentUser(user);
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -75,10 +92,11 @@ export default function LoginPage() {
 
             <div className="flex items-start justify-between mb-10">
               <div>
-                <p className="font-accent text-[10px] uppercase tracking-[0.45em] text-maroon-500 mb-2">Atelier HRMS</p>
+                <p className="font-accent text-[10px] uppercase tracking-[0.45em] text-maroon-500 mb-2">{meta.title}</p>
                 <h1 className="font-display text-4xl font-semibold text-maroon-950 leading-none">
                   House of<br /><span className="italic font-normal text-maroon-700">Kaala</span>
                 </h1>
+                <p className="text-xs text-maroon-500/80 mt-2">{meta.subtitle}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-maroon-800 to-ink flex items-center justify-center font-display text-xl text-white font-bold shadow-lg">K</div>
             </div>
@@ -119,10 +137,19 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="mt-6 px-2 text-[11px] text-white/40 space-y-1 font-light">
-            <p className="font-accent uppercase tracking-widest text-white/25 text-[9px] mb-2">Demo access</p>
-            <p>john.doe@kaala.io · mike.m@kaala.io · alice.a@kaala.io</p>
-            <p>Password: Demo@123 / Admin@123</p>
+          <div className="mt-6 px-2 text-[11px] text-white/40 space-y-2 font-light">
+            <p className="font-accent uppercase tracking-widest text-white/25 text-[9px]">Other portals</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {(['employee', 'manager', 'admin'] as Portal[]).filter(p => p !== portal).map(p => (
+                <a key={p} href={getPortalLoginUrl(p)} className="text-white/50 hover:text-white underline-offset-2 hover:underline">
+                  {PORTAL_META[p].title}
+                </a>
+              ))}
+            </div>
+            <p className="font-accent uppercase tracking-widest text-white/25 text-[9px] pt-2">Demo — this portal</p>
+            {portal === 'employee' && <p>john.doe@kaala.io / Demo@123</p>}
+            {portal === 'manager' && <p>mike.m@kaala.io / Demo@123</p>}
+            {portal === 'admin' && <p>alice.a@kaala.io / Admin@123</p>}
           </div>
         </div>
       </div>

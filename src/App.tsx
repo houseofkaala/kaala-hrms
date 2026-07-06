@@ -10,7 +10,7 @@ import {
   Briefcase, LayoutDashboard, Store, Medal, LogOut, Bell, Settings, CheckCircle2, Clock,
   AlertCircle, ArrowRight, Users, Calendar, DollarSign, Monitor, FolderKanban, 
   CheckSquare, Activity, GraduationCap, MessageSquare, FileText, Map, PieChart, Gift, 
-  Sparkles, ShieldAlert, XCircle, ToggleLeft, ToggleRight, FolderOpen, Shield,
+  Sparkles, ShieldAlert, XCircle, FolderOpen, Shield,
   ClipboardList, Network, Timer, Receipt
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -45,6 +45,7 @@ import { AtelierPageHeader, RailNavItem, RailSection } from './components/Atelie
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import { useRBACStore, useTimerStore } from './store';
+import { getPortal, PORTAL_META } from './portal';
 
 export default function App() {
   return (
@@ -61,7 +62,7 @@ function HRMSApp() {
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const { currentUser, setCurrentUser, viewMode, setViewMode } = useRBACStore();
+  const { currentUser, setCurrentUser } = useRBACStore();
   
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -117,12 +118,6 @@ function HRMSApp() {
     clearToken();
     setCurrentUser(null);
     navigate('/login');
-  };
-
-  const toggleViewMode = () => {
-    if (currentUser?.role === 'admin' || currentUser?.role === 'manager') {
-      setViewMode(viewMode === 'manager' ? 'employee' : 'manager');
-    }
   };
 
   const triggerFridayCron = async () => {
@@ -189,7 +184,11 @@ function HRMSApp() {
   const myTasks = tasks.filter(t => t.ownerId === currentUser.id || t.claimedById === currentUser.id);
   const marketplaceTasks = tasks.filter(t => t.status === 'marketplace');
   const reviewTasks = tasks.filter(t => t.status === 'under_review');
-  const isManagerView = viewMode === 'manager';
+  const portal = getPortal();
+  const portalMeta = PORTAL_META[portal];
+  const isManagerView = portal !== 'employee';
+  const showAdminSection = portal === 'admin' || portal === 'manager';
+  const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
 
   return (
     <div className="flex h-screen kaala-mesh kaala-mesh-animated kaala-grain text-ink overflow-hidden relative">
@@ -199,14 +198,17 @@ function HRMSApp() {
       <aside className="atelier-rail w-64 shrink-0 flex flex-col items-stretch py-5 px-2 gap-0.5 relative z-20 overflow-y-auto hide-scrollbar">
         <Link to="/dashboard" className="mb-4 mx-1 px-3 py-3 rounded-2xl bg-white/10 border border-white/15 flex items-center gap-3 hover:bg-white/20 transition-colors">
           <span className="w-10 h-10 shrink-0 rounded-xl bg-white/10 flex items-center justify-center font-display text-lg font-bold text-white">K</span>
-          <span className="font-display text-sm font-semibold text-white leading-tight">House of Kaala</span>
+          <span className="min-w-0">
+            <span className="font-display text-sm font-semibold text-white leading-tight block truncate">House of Kaala</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/45 block truncate">{portalMeta.title}</span>
+          </span>
         </Link>
 
         <RailNavItem icon={LayoutDashboard} label="Dashboard" to="/dashboard" active={activeTab === 'dashboard'} />
 
-        {isManagerView && (
+        {showAdminSection && (
           <>
-            <RailSection label="Admin & HR" />
+            <RailSection label={portal === 'admin' ? 'Admin & HR' : 'Team Management'} />
             <RailNavItem icon={Users} label="Recruit" to="/recruit" active={activeTab === 'recruit'} />
             <RailNavItem icon={Users} label="Employee Management" to="/employees" active={activeTab === 'employees'} />
             <RailNavItem icon={ClipboardList} label="Onboarding" to="/onboarding" active={activeTab === 'onboarding'} />
@@ -218,7 +220,7 @@ function HRMSApp() {
             <RailNavItem icon={Map} label="Field Ops" to="/field" active={activeTab === 'field'} />
             <RailNavItem icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
             <RailNavItem icon={FileText} label="Reports" to="/reports" active={activeTab === 'reports'} />
-            {currentUser.role === 'admin' && (
+            {portal === 'admin' && currentUser.role === 'admin' && (
               <RailNavItem icon={Shield} label="Roles & Permissions" to="/roles" active={activeTab === 'roles'} />
             )}
           </>
@@ -266,22 +268,8 @@ function HRMSApp() {
         <div className="atelier-workspace flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="shrink-0 flex items-center justify-between gap-4 px-6 lg:px-8 py-4 border-b border-maroon-100/60">
             <div className="flex items-center gap-3 min-w-0">
-              {(currentUser.role === 'manager' || currentUser.role === 'admin') && (
-                <button
-                  onClick={toggleViewMode}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-accent font-semibold uppercase tracking-wider border transition-all"
-                  style={{
-                    background: isManagerView ? 'var(--color-ink)' : 'transparent',
-                    color: isManagerView ? 'white' : 'var(--color-maroon-700)',
-                    borderColor: isManagerView ? 'var(--color-ink)' : 'var(--color-maroon-200)',
-                  }}
-                >
-                  {isManagerView ? <ToggleRight className="w-3 h-3" /> : <ToggleLeft className="w-3 h-3" />}
-                  {isManagerView ? 'Mgr' : 'Emp'}
-                </button>
-              )}
               <span className="hidden sm:inline font-accent text-[10px] uppercase tracking-[0.35em] text-maroon-500/70 truncate">
-                House of Kaala — Atelier
+                {portalMeta.title}
               </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
@@ -374,7 +362,7 @@ function HRMSApp() {
               <span>Connected</span>
               <span className="text-maroon-300">·</span>
               <span>Active</span>
-              {currentUser.role === 'admin' && (
+              {showAdminCrons && (
                 <>
                   <span className="text-maroon-300">·</span>
                   <button onClick={triggerFridayCron} className="hover:text-maroon-800 transition-colors">Fri cron</button>

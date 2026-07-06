@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { User } from './types';
+import { getPortal, viewModeForPortal } from './portal';
 
 interface RBACState {
   currentUser: User | null;
@@ -10,11 +11,11 @@ interface RBACState {
 
 export const useRBACStore = create<RBACState>((set) => ({
   currentUser: null,
-  setCurrentUser: (user) => set((state) => ({ 
+  setCurrentUser: (user) => set({
     currentUser: user,
-    viewMode: user.role === 'admin' || user.role === 'manager' ? 'manager' : 'employee' 
-  })),
-  viewMode: 'employee',
+    viewMode: user ? viewModeForPortal(getPortal()) : 'employee',
+  }),
+  viewMode: viewModeForPortal(getPortal()),
   setViewMode: (mode) => set({ viewMode: mode }),
 }));
 
