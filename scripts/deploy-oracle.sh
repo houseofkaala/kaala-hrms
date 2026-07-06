@@ -10,6 +10,10 @@ cat <<'GUIDE'
   Live URL: https://bymarketingonly.com
 ================================================================
 
+⚠ A1 OUT OF CAPACITY? (common in Mumbai)
+  Run: ./scripts/oracle-capacity-workarounds.sh
+  Quick live alternative: ./scripts/deploy-hostinger-render.sh
+
 PART A — Push code to GitHub (on your Mac)
 ----------------------------------------
   cd /Users/bymarketingonly/Downloads/house-of-kaala-hrms
