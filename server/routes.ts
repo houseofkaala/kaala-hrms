@@ -77,9 +77,9 @@ export function registerRoutes(app: Express) {
     res.json({ success: true });
   });
 
-  app.use('/api', authMiddleware);
-
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', database: 'connected', uptime: process.uptime() }));
+
+  app.use('/api', authMiddleware);
 
   app.get('/api/me', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
