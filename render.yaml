@@ -1,0 +1,17 @@
+# Free deploy on Render — https://render.com/docs/blueprint-spec
+# Dashboard: New > Blueprint > connect this repo
+services:
+  - type: web
+    name: kaala-hrms
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/server.cjs
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_URL
+        value: https://bymarketingonly.com
+      - key: TZ
+        value: Asia/Kolkata

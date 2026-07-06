@@ -1,0 +1,6 @@
+{
+  "name": "House of Kaala HRMS",
+  "description": "Enterprise HRMS featuring a dynamic Reward Marketplace and Task Management system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
