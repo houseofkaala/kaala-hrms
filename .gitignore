@@ -6,6 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+data/store.json
 patch-*
 fix-server.patch
 assets/.aistudio

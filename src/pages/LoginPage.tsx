@@ -109,7 +109,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors placeholder:text-maroon-300"
-                  placeholder="you@kaala.io"
+                  placeholder="you@bymarketingonly.com"
                   required
                 />
               </div>
@@ -146,14 +146,9 @@ export default function LoginPage() {
                 </a>
               ))}
             </div>
-            <p className="font-accent uppercase tracking-widest text-white/25 text-[9px] pt-2">Demo — this portal</p>
-            {portal === 'employee' && <p>john.doe@kaala.io / Demo@123</p>}
-            {portal === 'admin' && (
-              <>
-                <p>mike.m@kaala.io / Demo@123 (Manager)</p>
-                <p>alice.a@kaala.io / Admin@123 (Admin)</p>
-              </>
-            )}
+            <p className="text-white/35 text-[10px] pt-1">
+              Use your company email and password. Contact your administrator if you need access.
+            </p>
           </div>
         </div>
       </div>

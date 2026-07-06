@@ -24,14 +24,12 @@ HOSTINGER DNS — bymarketingonly.com (2 portals)
 
 5. Render → Custom Domains → VERIFY each subdomain
 
-6. Test:
+6. Set passwords in Render → Environment (SEED_*_PASSWORD variables)
+
+7. Test with your real accounts:
 
    Employee: https://employee.bymarketingonly.com
-             john.doe@kaala.io / Demo@123
-
    Admin:    https://admin.bymarketingonly.com
-             mike.m@kaala.io / Demo@123  (Manager)
-             alice.a@kaala.io / Admin@123 (Admin)
 
 Local dev:
   ?portal=employee  or  ?portal=admin

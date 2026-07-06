@@ -125,11 +125,46 @@ export function registerRoutes(app: Express) {
   });
 
   app.post('/api/employees', requireRole('admin'), (req, res) => {
-    const { name, email, department, role, title } = req.body;
-    const newUser: UserRecord = { id: `u${Date.now()}`, name, email, department: department || 'General', role: role || 'employee', title: title || 'Employee', password: 'Demo@123', points: 1000, status: 'Active', phone: '', projects: [], joinDate: new Date().toISOString().split('T')[0] };
+    const { name, email, department, role, title, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    if (db().users.some(u => u.email === email)) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    const newUser: UserRecord = {
+      id: `u${Date.now()}`,
+      name,
+      email,
+      department: department || 'General',
+      role: role || 'employee',
+      title: title || 'Employee',
+      password,
+      points: 1000,
+      status: 'Active',
+      phone: '',
+      projects: [],
+      joinDate: new Date().toISOString().split('T')[0],
+      managerId: role === 'employee' ? 'mgr-1' : role === 'manager' ? 'admin-1' : null,
+    };
     db().users.push(newUser);
     saveDb();
     res.json({ success: true, employee: sanitizeUser(newUser) });
+  });
+
+  app.patch('/api/me/password', (req: AuthedRequest, res) => {
+    const user = getUserById(req.userId!);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword || String(newPassword).length < 8) {
+      return res.status(400).json({ error: 'Current password and new password (8+ chars) required' });
+    }
+    if (user.password !== currentPassword) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    user.password = newPassword;
+    saveDb();
+    res.json({ success: true });
   });
 
   // Leave

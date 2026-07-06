@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { getSeedUsers, syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
 
 const DB_PATH = path.join(process.cwd(), 'data', 'store.json');
 
@@ -40,14 +41,7 @@ export interface UserRecord {
 }
 
 function defaultDb() {
-  const users: UserRecord[] = [
-    { id: 'u1', name: 'John Doe', points: 1000, role: 'employee', department: 'Engineering', status: 'Active', email: 'john.doe@kaala.io', password: 'Demo@123', phone: '+1 (555) 123-4567', projects: ['Website Redesign', 'API Optimization'], title: 'Software Engineer', joinDate: '2023-03-15', employmentType: 'Full-Time', emergencyContact: 'Jane Doe (Spouse) - 555-0199', managerId: 'm1', address: '42 Oak Street, San Francisco', bankAccount: '****4521', preferences: { emailNotifications: true, timezone: 'Asia/Kolkata' } },
-    { id: 'u2', name: 'Jane Smith', points: 940, role: 'employee', department: 'Design', status: 'On Leave', email: 'jane.smith@kaala.io', password: 'Demo@123', phone: '+1 (555) 987-6543', projects: ['Q4 Marketing Campaign', 'Brand Refresh'], title: 'UI Designer', joinDate: '2022-08-01', employmentType: 'Full-Time', emergencyContact: 'Tom Smith - 555-0188', managerId: 'm1', preferences: { emailNotifications: true, timezone: 'Asia/Kolkata' } },
-    { id: 'u3', name: 'David Lee', points: 1000, role: 'employee', department: 'Marketing', status: 'Active', email: 'david.lee@kaala.io', password: 'Demo@123', phone: '+1 (555) 456-7890', projects: ['Q4 Marketing Campaign', 'Social Media Strategy'], title: 'Marketing Specialist', joinDate: '2024-01-10', employmentType: 'Full-Time', managerId: 'm2', preferences: { emailNotifications: true, timezone: 'Asia/Kolkata' } },
-    { id: 'u4', name: 'Sarah Chen', points: 1000, role: 'employee', department: 'Engineering', status: 'Active', email: 'sarah.chen@kaala.io', password: 'Demo@123', phone: '+1 (555) 234-5678', projects: ['Infrastructure Migration'], title: 'DevOps Engineer', joinDate: '2023-11-20', employmentType: 'Full-Time', managerId: 'm1', preferences: { emailNotifications: true, timezone: 'Asia/Kolkata' } },
-    { id: 'm1', name: 'Manager Mike', points: 1000, role: 'manager', department: 'Engineering', status: 'Active', email: 'mike.m@kaala.io', password: 'Demo@123', phone: '+1 (555) 345-6789', projects: ['Engineering Leadership', 'Infrastructure Migration'], title: 'Engineering Manager', joinDate: '2021-06-01', employmentType: 'Full-Time', managerId: 'm2', preferences: { emailNotifications: true, timezone: 'Asia/Kolkata' } },
-    { id: 'm2', name: 'Admin Alice', points: 1000, role: 'admin', department: 'Operations', status: 'Active', email: 'alice.a@kaala.io', password: 'Admin@123', phone: '+1 (555) 876-5432', projects: ['Office Expansion'], title: 'HR Administrator', joinDate: '2020-02-14', employmentType: 'Full-Time', managerId: null, preferences: { emailNotifications: true, timezone: 'Asia/Kolkata' } },
-  ];
+  const users: UserRecord[] = getSeedUsers();
 
   return {
     users,
@@ -233,10 +227,14 @@ export function loadDb() {
       db = { ...defaultDb(), ...JSON.parse(raw) };
     } else {
       db = defaultDb();
-      saveDb();
     }
+    db.users = syncSeedUsers(db.users);
+    migrateLegacyUserRefs(db);
+    saveDb();
   } catch {
     db = defaultDb();
+    db.users = syncSeedUsers(db.users);
+    migrateLegacyUserRefs(db);
     saveDb();
   }
 }

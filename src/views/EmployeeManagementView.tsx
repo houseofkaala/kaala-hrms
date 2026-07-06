@@ -16,7 +16,7 @@ export function EmployeeManagementView() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', department: 'Engineering', role: 'employee', title: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', department: 'Engineering', role: 'employee', title: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', department: '', role: '', title: '', phone: '', status: 'Active' });
 
@@ -36,7 +36,7 @@ export function EmployeeManagementView() {
     await fetcher('/api/employees', { method: 'POST', body: JSON.stringify(form) });
     queryClient.invalidateQueries({ queryKey: ['employees'] });
     setShowForm(false);
-    setForm({ name: '', email: '', department: 'Engineering', role: 'employee', title: '' });
+    setForm({ name: '', email: '', password: '', department: 'Engineering', role: 'employee', title: '' });
   };
 
   const startEdit = (emp: Employee) => {
@@ -85,7 +85,8 @@ export function EmployeeManagementView() {
       {showForm && currentUser?.role === 'admin' && (
         <form onSubmit={handleCreate} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4">
           <input required placeholder="Full name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
-          <input required type="email" placeholder="Email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+          <input required type="email" placeholder="Email (@bymarketingonly.com)" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+          <input required type="password" minLength={8} placeholder="Initial password (8+ characters)" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
           <input placeholder="Job title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
           <select value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
             <option>Engineering</option>
