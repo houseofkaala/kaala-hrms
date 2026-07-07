@@ -73,6 +73,7 @@ export function directoryUser(user: UserRecord) {
     points: safe.points,
     projects: safe.projects,
     joinDate: safe.joinDate,
+    hasProfileImage: Boolean(safe.profileImageKey),
   };
 }
 

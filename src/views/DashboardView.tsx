@@ -9,6 +9,7 @@ import {
 import { format } from 'date-fns';
 import { cn, fetcher } from '../utils';
 import { AtelierPageHeader } from '../components/AtelierChrome';
+import { UserPortrait } from '../components/UserPortrait';
 import { useRBACStore } from '../store';
 import type { Task, User } from '../types';
 
@@ -31,7 +32,7 @@ interface DashboardData {
     recent: { id: string; projectName: string; hours: number; status: string; date: string; employee?: string }[];
     mine: { id: string; projectName: string; hours: number; status: string; date: string }[];
   };
-  latestMembers: { id: string; name: string; title?: string; department: string; joinDate?: string; status: string }[];
+  latestMembers: { id: string; name: string; title?: string; department: string; joinDate?: string; status: string; hasProfileImage?: boolean }[];
   attendance: {
     presentToday: number;
     teamSize: number;
@@ -66,7 +67,7 @@ interface DashboardData {
     efficiency: number;
     items: { id: string; name: string; status: string; progress: number }[];
   };
-  team: { id: string; name: string; title?: string; department: string; status: string; joinDate?: string }[];
+  team: { id: string; name: string; title?: string; department: string; status: string; joinDate?: string; hasProfileImage?: boolean }[];
   todos: { id: string; title: string; type: string; status: string; dueDate: string | null; priority: string }[];
 }
 
@@ -145,18 +146,41 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
     <div className="space-y-6">
       <AtelierPageHeader activeTab="dashboard" />
 
-      {/* Hero + period toggle */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 studio-reveal">
-        <div className="studio-hero p-7 sm:p-8 relative z-[1] flex-1 max-w-2xl">
-          <p className="studio-kicker text-white/50">{greeting()}</p>
-          <p className="font-display text-3xl sm:text-4xl font-semibold mt-2 text-white">
-            {data?.greeting || currentUser?.name?.split(' ')[0] || 'there'}
-          </p>
-          <p className="text-sm text-white/55 mt-3 max-w-md leading-relaxed">
-            Your team overview — attendance, leaves, projects, and tasks at a glance.
-          </p>
+      {/* Hero with portrait + period toggle */}
+      <div className="flex flex-col gap-4 studio-reveal">
+        <div className="studio-hero p-6 sm:p-8 relative z-[1] overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
+            <div className="relative shrink-0">
+              <UserPortrait
+                userId={currentUser?.id || ''}
+                name={currentUser?.name || 'User'}
+                hasProfileImage={currentUser?.hasProfileImage}
+                size="hero"
+              />
+              <Link
+                to="/profile"
+                className="absolute -bottom-2 -right-2 bg-white/95 text-maroon-800 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg hover:bg-white transition-colors"
+              >
+                Edit photo
+              </Link>
+            </div>
+            <div className="flex-1 text-center sm:text-left pb-2">
+              <p className="studio-kicker text-white/50">{greeting()}</p>
+              <p className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold mt-2 text-white">
+                {currentUser?.name || data?.greeting || 'there'}
+              </p>
+              <p className="text-sm text-white/60 mt-2">
+                {currentUser?.title || currentUser?.role} · {currentUser?.department}
+              </p>
+              <p className="text-sm text-white/50 mt-3 max-w-lg leading-relaxed">
+                Your team overview — attendance, leaves, projects, and tasks at a glance.
+              </p>
+            </div>
+          </div>
         </div>
-        <PeriodToggle value={period} onChange={setPeriod} />
+        <div className="flex justify-end">
+          <PeriodToggle value={period} onChange={setPeriod} />
+        </div>
       </div>
 
       {/* Tabs */}
@@ -353,9 +377,7 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
               <div className="p-5 space-y-3">
                 {data.latestMembers.map(m => (
                   <div key={m.id} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-maroon-100 flex items-center justify-center text-maroon-700 font-semibold text-sm shrink-0">
-                      {m.name.charAt(0)}
-                    </div>
+                    <UserPortrait userId={m.id} name={m.name} hasProfileImage={m.hasProfileImage} size="small" framed={false} className="rounded-full !w-9 !h-9" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-maroon-900 truncate">{m.name}</p>
                       <p className="text-[10px] text-maroon-500 truncate">{m.title || m.department}</p>
@@ -468,9 +490,7 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
             <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {data.team.map(m => (
                 <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-maroon-100 hover:border-maroon-200 transition-colors">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-maroon-600 to-maroon-900 text-white flex items-center justify-center font-semibold shrink-0">
-                    {m.name.charAt(0)}
-                  </div>
+                  <UserPortrait userId={m.id} name={m.name} hasProfileImage={m.hasProfileImage} size="medium" framed={false} className="rounded-xl !w-10 !h-12" />
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-maroon-900 truncate">{m.name}</p>
                     <p className="text-[10px] text-maroon-500 truncate">{m.title || m.department}</p>

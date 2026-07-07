@@ -49,6 +49,7 @@ export interface UserRecord {
   managerId?: string | null;
   address?: string;
   bankAccount?: string;
+  profileImageKey?: string;
   preferences?: { emailNotifications: boolean; timezone: string };
 }
 
@@ -132,7 +133,10 @@ export function getDb() {
 
 export function sanitizeUser(user: UserRecord) {
   const { password, ...safe } = user;
-  return safe;
+  return {
+    ...safe,
+    hasProfileImage: Boolean(user.profileImageKey),
+  };
 }
 
 export function getUserById(id: string) {

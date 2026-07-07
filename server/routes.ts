@@ -6,6 +6,7 @@ import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSessio
 import { checkLoginRateLimit, clearLoginRateLimit } from './rate-limit';
 import { getAllowedModules, assertValidRoleChange } from './security';
 import { saveDocumentFile, getDocumentFilePath, deleteDocumentFile, mimeFromFilename } from './document-storage';
+import { saveAvatar, getAvatarPath, deleteAvatar, avatarMime } from './avatar-storage';
 import { buildDashboard, type DashboardPeriod } from './dashboard';
 import { registerExtraRoutes } from './extra-routes';
 import { registerProjectRoutes } from './project-routes';
@@ -266,6 +267,46 @@ export async function registerRoutes(app: Express) {
         message: `${newUser.name} can sign in now at the ${userRole === 'employee' ? 'Employee' : 'Admin'} portal.`,
       },
     });
+  });
+
+  app.post('/api/me/avatar', (req: AuthedRequest, res) => {
+    const user = getUserById(req.userId!);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const contentBase64 = String(req.body.contentBase64 || '');
+    if (!contentBase64) return res.status(400).json({ error: 'Photo data is required' });
+    try {
+      const mimeType = req.body.mimeType || 'image/jpeg';
+      if (user.profileImageKey) deleteAvatar(user.profileImageKey);
+      user.profileImageKey = saveAvatar(user.id, contentBase64, mimeType);
+      saveDb();
+      res.json({ success: true, user: sanitizeUser(user) });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Upload failed' });
+    }
+  });
+
+  app.delete('/api/me/avatar', (req: AuthedRequest, res) => {
+    const user = getUserById(req.userId!);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    deleteAvatar(user.profileImageKey);
+    user.profileImageKey = undefined;
+    saveDb();
+    res.json({ success: true, user: sanitizeUser(user) });
+  });
+
+  app.get('/api/users/:id/avatar', (req: AuthedRequest, res) => {
+    const target = getUserById(req.params.id);
+    if (!target?.profileImageKey) return res.status(404).json({ error: 'No profile photo' });
+    const me = getUserById(req.userId!);
+    if (req.params.id !== req.userId && !isManagerOrAdmin(me)) {
+      const sameDept = me?.department === target.department;
+      if (!sameDept) return res.status(403).json({ error: 'Forbidden' });
+    }
+    const filePath = getAvatarPath(target.profileImageKey);
+    if (!filePath) return res.status(404).json({ error: 'Photo not found' });
+    res.setHeader('Content-Type', avatarMime(target.profileImageKey));
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.sendFile(filePath);
   });
 
   app.patch('/api/me/password', (req: AuthedRequest, res) => {

@@ -11,6 +11,7 @@ export interface User {
   title?: string;
   joinDate?: string;
   allowedModules?: string[];
+  hasProfileImage?: boolean;
 }
 
 export interface Task {

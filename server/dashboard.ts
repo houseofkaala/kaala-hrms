@@ -81,6 +81,7 @@ function teamScope(userId: string) {
       status: u.status,
       joinDate: u.joinDate,
       phone: u.phone,
+      hasProfileImage: Boolean(u.profileImageKey),
     })),
   };
 }
@@ -113,7 +114,8 @@ export function buildDashboard(userId: string, period: DashboardPeriod = 'monthl
 
   const latestMembers = [...team]
     .sort((a, b) => new Date(b.joinDate || 0).getTime() - new Date(a.joinDate || 0).getTime())
-    .slice(0, 6);
+    .slice(0, 6)
+    .map(m => ({ ...m, hasProfileImage: Boolean(getUserById(m.id)?.profileImageKey) }));
 
   const teamLogs = db.attendanceLogs.filter(l =>
     teamIds.includes(l.userId) && inRange(l.clockIn, start, end),
