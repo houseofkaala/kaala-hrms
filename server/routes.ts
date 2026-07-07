@@ -4,6 +4,7 @@ import {
 } from './db';
 import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession } from './middleware';
 import { registerExtraRoutes } from './extra-routes';
+import { registerProjectRoutes } from './project-routes';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
 import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifications/registry';
 import { isEmailConfigured, sendEmail } from './email/transport';
@@ -665,9 +666,6 @@ export async function registerRoutes(app: Express) {
     res.json({ success: true, message: `Payroll run for ${period}` });
   });
 
-  // Projects
-  app.get('/api/projects', (_req, res) => res.json(db().projects));
-
   // Learning
   app.get('/api/learning/courses', (_req, res) => res.json(db().courses));
   app.post('/api/learning/enroll/:id', (req: AuthedRequest, res) => {
@@ -853,5 +851,6 @@ export async function registerRoutes(app: Express) {
     res.json(db().aiMessages[req.userId!] || []);
   });
 
+  registerProjectRoutes(app);
   registerExtraRoutes(app);
 }

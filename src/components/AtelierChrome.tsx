@@ -19,7 +19,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string; index: stri
   payroll: { title: 'Payroll', subtitle: 'Salary and payslips', index: '14' },
   expenses: { title: 'Expenses', subtitle: 'Claims and reimbursement', index: '15' },
   assets: { title: 'Assets', subtitle: 'Company equipment', index: '16' },
-  projects: { title: 'Projects', subtitle: 'Active initiatives', index: '17' },
+  projects: { title: 'Projects', subtitle: 'Project management', index: '17' },
   tasks: { title: 'Tasks', subtitle: 'Work tracking', index: '18' },
   performance: { title: 'Performance', subtitle: 'Goals and reviews', index: '19' },
   learning: { title: 'Learning', subtitle: 'Training courses', index: '20' },

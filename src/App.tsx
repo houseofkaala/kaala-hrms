@@ -329,7 +329,9 @@ function HRMSApp() {
 
           <main className="flex-1 overflow-auto px-6 lg:px-10 py-6 lg:py-8 relative">
             <div className="max-w-6xl mx-auto pb-10 kaala-content">
-              {activeTab !== 'dashboard' && <AtelierPageHeader activeTab={activeTab} />}
+              {activeTab !== 'dashboard' && !location.pathname.match(/^\/projects\/[^/]+/) && (
+                <AtelierPageHeader activeTab={activeTab} />
+              )}
               
               {/* VIEWS */}
               {activeTab === 'dashboard' && (

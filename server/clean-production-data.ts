@@ -24,6 +24,7 @@ export function purgeDemoOperationalData(db: Database & { dataVersion?: number }
   db.candidates = [];
   db.payrollRecords = [];
   db.projects = [];
+  if ('projectTasks' in db) (db as { projectTasks: unknown[] }).projectTasks = [];
   db.courses = [];
   db.surveys = [];
   db.fieldAgents = [];

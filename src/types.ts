@@ -34,3 +34,62 @@ export interface Transaction {
   timestamp: string;
 }
 
+export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'archived';
+export type ProjectPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type ProjectTaskStage = 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'done';
+
+export interface ProjectMilestone {
+  id: string;
+  title: string;
+  dueDate: string;
+  completed: boolean;
+}
+
+export interface ProjectMember {
+  id: string;
+  name: string;
+  title?: string;
+  department?: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  progress: number;
+  color: string;
+  client: string;
+  startDate: string;
+  endDate: string;
+  leadId: string;
+  memberIds: string[];
+  teamSize: number;
+  milestones: ProjectMilestone[];
+  taskCount?: number;
+  openTasks?: number;
+  members?: ProjectMember[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string;
+  stage: ProjectTaskStage;
+  priority: ProjectPriority;
+  assigneeId: string | null;
+  dueDate: string | null;
+  labels: string[];
+  order: number;
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface ProjectDetail extends Project {
+  tasks: ProjectTask[];
+}
+

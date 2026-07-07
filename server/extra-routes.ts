@@ -233,23 +233,6 @@ export function registerExtraRoutes(app: Express) {
     res.json({ ...pr, employee: emp ? { name: emp.name, email: emp.email, department: emp.department, title: emp.title } : null, company: db().orgSettings.companyName });
   });
 
-  // Projects CRUD
-  app.post('/api/projects', requireRole('manager', 'admin'), (req, res) => {
-    const p = { id: `p${Date.now()}`, name: req.body.name, progress: 0, teamSize: 1, memberIds: [req.body.leadId || (req as AuthedRequest).userId] };
-    db().projects.push(p);
-    saveDb();
-    res.json({ success: true, project: p });
-  });
-
-  app.patch('/api/projects/:id', requireRole('manager', 'admin'), (req, res) => {
-    const p = db().projects.find(x => x.id === req.params.id);
-    if (!p) return res.status(404).json({ error: 'Not found' });
-    if (req.body.progress !== undefined) p.progress = req.body.progress;
-    if (req.body.name) p.name = req.body.name;
-    saveDb();
-    res.json({ success: true, project: p });
-  });
-
   // Learning progress
   app.post('/api/learning/complete/:id', (req: AuthedRequest, res) => {
     const c = db().courses.find(x => x.id === req.params.id);

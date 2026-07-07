@@ -1,4 +1,5 @@
 import { syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
+import { ensureProjectSchema } from './project-management';
 import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
 import { mergeEmailSettings } from './notifications/registry';
@@ -66,6 +67,7 @@ function applyMigrations() {
   db.orgSettings.emailNotifications = mergeEmailSettings(db.orgSettings.emailNotifications);
   if (!db.emailDigestQueue) db.emailDigestQueue = [];
   if (!db.emailDigestMeta) db.emailDigestMeta = {};
+  ensureProjectSchema(db);
 }
 
 function hydrateStore(raw: Partial<Database> | null) {
