@@ -18,6 +18,8 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
   }, [initialUserId]);
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
+  const [sendError, setSendError] = useState('');
+  const [sending, setSending] = useState(false);
   const qc = useQueryClient();
 
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -32,11 +34,20 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
   });
 
   const send = async () => {
-    if (!message.trim() || !selectedId) return;
-    await fetcher(`/api/chat/${selectedId}/messages`, { method: 'POST', body: JSON.stringify({ content: message }) });
-    setMessage('');
-    qc.invalidateQueries({ queryKey: ['chat-messages', selectedId] });
-    qc.invalidateQueries({ queryKey: ['chat-conversations'] });
+    if (!message.trim() || !selectedId || sending) return;
+    setSending(true);
+    setSendError('');
+    const text = message.trim();
+    try {
+      await fetcher(`/api/chat/${selectedId}/messages`, { method: 'POST', body: JSON.stringify({ content: text }) });
+      setMessage('');
+      qc.invalidateQueries({ queryKey: ['chat-messages', selectedId] });
+      qc.invalidateQueries({ queryKey: ['chat-conversations'] });
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : 'Failed to send message');
+    } finally {
+      setSending(false);
+    }
   };
 
   const list: Conversation[] = conversations.length ? conversations : users.filter(u => u.id !== currentUser?.id).map(u => ({ userId: u.id, name: u.name, lastMessage: undefined }));
@@ -82,9 +93,10 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
               ))}
             </div>
             <div className="p-4 bg-white border-t border-gray-200">
+              {sendError && <p className="text-xs text-red-600 mb-2">{sendError}</p>}
               <div className="flex items-center gap-3">
-                <input value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} type="text" placeholder="Type a message..." className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 text-sm outline-none focus:border-gray-400" />
-                <button onClick={send} className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-gray-800 shrink-0"><Send className="w-4 h-4 ml-0.5" /></button>
+                <input value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} type="text" placeholder="Type a message..." className="flex-1 bg-gray-50 border border-gray-200 rounded-full px-5 py-2.5 text-sm outline-none focus:border-gray-400" disabled={sending} />
+                <button onClick={send} disabled={sending} className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-gray-800 shrink-0 disabled:opacity-50"><Send className="w-4 h-4 ml-0.5" /></button>
               </div>
             </div>
           </>

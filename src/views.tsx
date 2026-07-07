@@ -555,6 +555,8 @@ export function AttendanceView() {
   const [checkedIn, setCheckedIn] = useState(currentUser?.status === 'Active');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showEarlyRequest, setShowEarlyRequest] = useState(false);
+  const [earlyReason, setEarlyReason] = useState('');
 
   useEffect(() => {
     if (currentUser) {
@@ -580,7 +582,34 @@ export function AttendanceView() {
         setTimeout(() => setToastMessage(null), 5000);
       }
     } catch (e) {
-      setToastMessage(e instanceof Error ? e.message : 'Failed to update attendance status.');
+      const msg = e instanceof Error ? e.message : 'Failed to update attendance status.';
+      setToastMessage(msg);
+      if (msg.includes('admin approval') || msg.includes('early clock-out')) {
+        setShowEarlyRequest(true);
+      }
+      setTimeout(() => setToastMessage(null), 8000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const requestEarlyClockOut = async () => {
+    if (!earlyReason.trim()) {
+      setToastMessage('Please provide a reason for early clock-out.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await fetcher('/api/attendance/request-early-clockout', {
+        method: 'POST',
+        body: JSON.stringify({ reason: earlyReason.trim() }),
+      });
+      setShowEarlyRequest(false);
+      setEarlyReason('');
+      setToastMessage('Early clock-out request sent to admin.');
+      setTimeout(() => setToastMessage(null), 5000);
+    } catch (e) {
+      setToastMessage(e instanceof Error ? e.message : 'Request failed');
       setTimeout(() => setToastMessage(null), 5000);
     } finally {
       setIsLoading(false);
@@ -589,6 +618,24 @@ export function AttendanceView() {
 
   return (
     <div className="relative flex-1 min-w-0">
+      {showEarlyRequest && (
+        <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="studio-card w-full max-w-md p-6">
+            <h3 className="font-display text-lg font-semibold text-maroon-950 mb-2">Request early clock-out</h3>
+            <p className="text-sm text-maroon-600 mb-4">You need admin approval to clock out before completing a full day.</p>
+            <textarea
+              value={earlyReason}
+              onChange={e => setEarlyReason(e.target.value)}
+              className="input-field min-h-[80px] resize-none mb-4"
+              placeholder="Reason for leaving early…"
+            />
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={() => setShowEarlyRequest(false)} className="btn-secondary">Cancel</button>
+              <button type="button" onClick={requestEarlyClockOut} disabled={isLoading} className="btn-primary">Send request</button>
+            </div>
+          </div>
+        </div>
+      )}
       {toastMessage && (
         <div className="fixed top-4 right-4 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 z-50 transition-all">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />

@@ -6,11 +6,15 @@ import { SkillsTab } from './SkillsTab';
 import { ReviewsTab } from './ReviewsTab';
 
 import { AICoachTab } from './AICoachTab';
+import { ManagerTab } from './ManagerTab';
 import { cn } from '../../utils';
-import { LayoutDashboard, Target, Zap, BookOpen, MessageSquare, Brain } from 'lucide-react';
+import { useRBACStore } from '../../store';
+import { LayoutDashboard, Target, Zap, BookOpen, MessageSquare, Brain, Users } from 'lucide-react';
 
 export function PerformanceView() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { currentUser } = useRBACStore();
+  const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -18,7 +22,7 @@ export function PerformanceView() {
     { id: 'productivity', label: 'Productivity & Quality', icon: Zap },
     { id: 'skills', label: 'Skills & Learning', icon: BookOpen },
     { id: 'reviews', label: 'Reviews & Feedback', icon: MessageSquare },
-    
+    ...(isManager ? [{ id: 'manager', label: 'Team Reviews', icon: Users }] : []),
     { id: 'ai-coach', label: 'AI Coach', icon: Brain },
   ];
 
@@ -62,7 +66,7 @@ export function PerformanceView() {
           {activeTab === 'productivity' && <ProductivityTab />}
           {activeTab === 'skills' && <SkillsTab />}
           {activeTab === 'reviews' && <ReviewsTab />}
-          
+          {activeTab === 'manager' && isManager && <ManagerTab />}
           {activeTab === 'ai-coach' && <AICoachTab />}
         </div>
       </div>

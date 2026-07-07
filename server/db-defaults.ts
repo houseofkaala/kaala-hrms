@@ -22,6 +22,7 @@ export function createEmptyOperationalDb() {
     projectTasks: [] as import('./project-management').ProjectTaskRecord[],
     courses: [] as { id: string; title: string; duration: string; required: boolean; enrolled: string[] }[],
     surveys: [] as { id: string; title: string; description: string; dueIn: string; responses: string[] }[],
+    surveyResponses: [] as { id: string; surveyId: string; userId: string; rating: number; feedback: string; createdAt: string }[],
     fieldAgents: [] as { id: string; name: string; location: string; lat: number; lng: number; status: string }[],
     expenses: [] as { id: string; userId: string; title: string; amount: number; status: string; date: string }[],
     tickets: [] as { id: string; title: string; category: string; priority: string; status: string; date: string; userId: string; user: string }[],

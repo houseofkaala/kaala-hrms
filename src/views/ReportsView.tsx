@@ -21,11 +21,29 @@ export function ReportsView() {
 
   const downloadCsv = () => {
     if (!report) return;
-    const blob = new Blob([JSON.stringify(report.data, null, 2)], { type: 'text/csv' });
+    const d = report.data;
+    let csv = '';
+    if (activeReport === 'attendance') {
+      csv = `metric,value\nTotal Log Entries,${d.logs ?? 0}\nActive Today,${d.activeToday ?? 0}\n`;
+    } else if (activeReport === 'leave') {
+      csv = 'status,count\n';
+      csv += `Approved,${d.approved ?? 0}\nPending,${d.pending ?? 0}\n`;
+      const requests = (d.requests as { type?: string; status?: string; days?: number }[]) || [];
+      requests.forEach((r, i) => { csv += `request_${i + 1},${r.type || ''},${r.status || ''},${r.days ?? ''}\n`; });
+    } else if (activeReport === 'performance') {
+      csv = `metric,value\nAvg Rating,${d.avgRating ?? '—'}\n`;
+      const goals = (d.goals as unknown[]) || [];
+      csv += `Goals,${goals.length}\n`;
+    } else if (activeReport === 'attrition') {
+      csv = `metric,value\nHeadcount,${d.headcount ?? 0}\nOn Leave,${d.onLeave ?? 0}\nDepartures,${d.departures ?? 0}\n`;
+    } else {
+      csv = `key,value\n${Object.entries(d).map(([k, v]) => `${k},"${String(v).replace(/"/g, '""')}"`).join('\n')}\n`;
+    }
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${activeReport}-report.csv`;
+    a.download = `${activeReport}-report-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

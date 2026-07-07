@@ -728,7 +728,20 @@ export async function registerRoutes(app: Express) {
   app.post('/api/surveys/:id/respond', (req: AuthedRequest, res) => {
     const s = db().surveys.find(x => x.id === req.params.id);
     if (!s) return res.status(404).json({ error: 'Not found' });
-    if (!s.responses.includes(req.userId!)) s.responses.push(req.userId!);
+    if (s.responses.includes(req.userId!)) return res.status(400).json({ error: 'You have already completed this survey' });
+    const feedback = String(req.body.feedback || '').trim();
+    if (!feedback) return res.status(400).json({ error: 'Feedback is required' });
+    const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 4));
+    if (!db().surveyResponses) db().surveyResponses = [];
+    db().surveyResponses.push({
+      id: `sr${Date.now()}`,
+      surveyId: s.id,
+      userId: req.userId!,
+      rating,
+      feedback,
+      createdAt: new Date().toISOString(),
+    });
+    s.responses.push(req.userId!);
     saveDb();
     res.json({ success: true });
   });

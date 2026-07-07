@@ -67,6 +67,7 @@ function applyMigrations() {
   db.orgSettings.emailNotifications = mergeEmailSettings(db.orgSettings.emailNotifications);
   if (!db.emailDigestQueue) db.emailDigestQueue = [];
   if (!db.emailDigestMeta) db.emailDigestMeta = {};
+  if (!db.surveyResponses) db.surveyResponses = [];
   ensureProjectSchema(db);
 }
 

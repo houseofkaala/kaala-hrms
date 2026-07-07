@@ -16,22 +16,42 @@ export function DocumentsView() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('General');
+  const [fileSize, setFileSize] = useState('');
+  const [error, setError] = useState('');
 
   const { data: docs = [], isLoading } = useQuery<Document[]>({
     queryKey: ['documents'],
     queryFn: () => fetcher('/api/documents'),
   });
 
+  const handleFile = (file: File | null) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File must be under 10MB.');
+      return;
+    }
+    setError('');
+    setName(file.name);
+    setFileSize(file.size < 1024 * 1024 ? `${Math.round(file.size / 1024)} KB` : `${(file.size / (1024 * 1024)).toFixed(1)} MB`);
+  };
+
   const handleUpload = async (e: FormEvent) => {
     e.preventDefault();
-    await fetcher('/api/documents', {
-      method: 'POST',
-      body: JSON.stringify({ name, category }),
-    });
-    queryClient.invalidateQueries({ queryKey: ['documents'] });
-    setName('');
-    setCategory('General');
-    setShowForm(false);
+    if (!name.trim()) return;
+    setError('');
+    try {
+      await fetcher('/api/documents', {
+        method: 'POST',
+        body: JSON.stringify({ name: name.trim(), category, size: fileSize || '128 KB' }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      setName('');
+      setCategory('General');
+      setFileSize('');
+      setShowForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    }
   };
 
   return (
@@ -65,12 +85,15 @@ export function DocumentsView() {
               <option>Certification</option>
             </select>
           </div>
-          <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center text-gray-400">
+          <label className="border-2 border-dashed border-maroon-200 rounded-xl p-8 text-center text-maroon-400 cursor-pointer block hover:bg-maroon-50/50 transition-colors">
             <Upload className="w-8 h-8 mx-auto mb-2" />
-            <p className="text-sm">Drag and drop or click to browse</p>
-            <p className="text-xs mt-1">PDF, DOC, JPG up to 10MB</p>
-          </div>
-          <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700">Save Document</button>
+            <p className="text-sm">Click to select a file</p>
+            <p className="text-xs mt-1">PDF, DOC, JPG up to 10MB — stored as a secure record</p>
+            <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" className="hidden" onChange={e => handleFile(e.target.files?.[0] || null)} />
+          </label>
+          {fileSize && <p className="text-xs text-maroon-600">Selected: {name} ({fileSize})</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <button type="submit" className="btn-primary" disabled={!name.trim()}>Save Document Record</button>
         </form>
       )}
 
