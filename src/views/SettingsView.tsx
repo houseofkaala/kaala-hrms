@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Settings, Bell, Shield, Clock } from 'lucide-react';
 import { fetcher } from '../utils';
 import { useRBACStore } from '../store';
+import { EmailNotificationsSettings } from './EmailNotificationsSettings';
 
 interface OrgSettings {
   companyName: string;
@@ -77,10 +78,11 @@ export function SettingsView() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Bell className="w-4 h-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-900">Email Notifications</span>
+              <span className="text-sm font-medium text-gray-900">Email notifications</span>
             </div>
             <input type="checkbox" checked={empNotif} onChange={e => setEmpNotif(e.target.checked)} className="w-4 h-4" />
           </div>
+          <p className="text-xs text-gray-500 -mt-2">When enabled, you receive emails for important HR events (leave, payroll, security). Routine updates stay in the app only.</p>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Clock className="w-4 h-4 text-gray-500" />
@@ -188,6 +190,8 @@ export function SettingsView() {
           </button>
         )}
       </div>
+
+      {currentUser?.role === 'admin' && <EmailNotificationsSettings />}
     </div>
   );
 }

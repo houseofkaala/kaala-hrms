@@ -10,7 +10,7 @@ export function registerExtraRoutes(app: Express) {
     const r = db().attendanceRequests.find(x => x.id === req.params.id);
     if (!r) return res.status(404).json({ error: 'Not found' });
     r.status = req.body.status || r.status;
-    pushNotification(r.userId, `Attendance ${r.status.toLowerCase()}`, `Your ${r.type} request has been ${r.status.toLowerCase()}.`);
+    pushNotification(r.userId, `Attendance ${r.status.toLowerCase()}`, `Your ${r.type} request has been ${r.status.toLowerCase()}.`, { triggerId: 'attendance.regularization_decided' });
     saveDb();
     res.json({ success: true, request: r });
   });
@@ -58,7 +58,7 @@ export function registerExtraRoutes(app: Express) {
     }
     u.password = String(password);
     saveDb();
-    pushNotification(u.id, 'Password updated', 'Your login password was reset by an administrator.');
+    pushNotification(u.id, 'Password updated', 'Your login password was reset by an administrator.', { triggerId: 'security.password_changed' });
     const baseDomain = process.env.VITE_BASE_DOMAIN || 'bymarketingonly.com';
     const portal = u.role === 'employee' ? 'employee' : 'admin';
     res.json({
@@ -81,7 +81,7 @@ export function registerExtraRoutes(app: Express) {
   app.post('/api/expenses', (req: AuthedRequest, res) => {
     const e = { id: `ex${Date.now()}`, userId: req.userId!, title: req.body.title, amount: Number(req.body.amount), status: 'Pending', date: req.body.date || new Date().toISOString().split('T')[0], category: req.body.category || 'General' };
     db().expenses.unshift(e);
-    pushNotification(req.userId!, 'Expense submitted', `"${e.title}" ($${e.amount}) is pending approval.`);
+    pushNotification(req.userId!, 'Expense submitted', `"${e.title}" (₹${e.amount}) is pending approval.`, { triggerId: 'expenses.submitted' });
     saveDb();
     res.json({ success: true, expense: e });
   });
@@ -90,7 +90,9 @@ export function registerExtraRoutes(app: Express) {
     const e = db().expenses.find(x => x.id === req.params.id);
     if (!e) return res.status(404).json({ error: 'Not found' });
     e.status = req.body.status;
-    pushNotification(e.userId, `Expense ${req.body.status.toLowerCase()}`, `Your expense "${e.title}" has been ${req.body.status.toLowerCase()}.`);
+    const expStatus = String(req.body.status);
+    const expTrigger = expStatus === 'Approved' ? 'expenses.approved' : expStatus === 'Rejected' ? 'expenses.rejected' : 'expenses.reimbursed';
+    pushNotification(e.userId, `Expense ${expStatus.toLowerCase()}`, `Your expense "${e.title}" has been ${expStatus.toLowerCase()}.`, { triggerId: expTrigger });
     saveDb();
     res.json({ success: true, expense: e });
   });
@@ -143,7 +145,7 @@ export function registerExtraRoutes(app: Express) {
   app.post('/api/onboarding', requireRole('manager', 'admin'), (req, res) => {
     const t = { id: `ob${Date.now()}`, userId: req.body.userId, title: req.body.title, description: req.body.description || '', status: 'Pending', dueDate: req.body.dueDate, category: req.body.category || 'HR' };
     db().onboardingTasks.push(t);
-    pushNotification(req.body.userId, 'Onboarding task assigned', t.title);
+    pushNotification(req.body.userId, 'Onboarding task assigned', t.title, { triggerId: 'training.course_assigned' });
     saveDb();
     res.json({ success: true, task: t });
   });

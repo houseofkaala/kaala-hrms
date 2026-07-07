@@ -1,5 +1,6 @@
 import { getSeedUsers } from './seed-users';
 import type { TaskRecord } from './db';
+import { defaultEmailNotificationSettings } from './notifications/registry';
 
 export function createEmptyOperationalDb() {
   const users = getSeedUsers();
@@ -51,7 +52,10 @@ export function createEmptyOperationalDb() {
       fridayScanTime: '18:30',
       notificationsEnabled: true,
       twoFactorRequired: false,
+      emailNotifications: defaultEmailNotificationSettings(),
     },
+    emailDigestQueue: [] as { id: string; userId: string; triggerId: string; title: string; message: string; digestType: 'daily' | 'weekly' | 'monthly'; createdAt: string }[],
+    emailDigestMeta: {} as { lastDaily?: string; lastWeekly?: string; lastMonthly?: string },
     rolePermissions: {
       employee: { modules: ['dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart'], description: 'Standard employee access' },
       manager: { modules: ['*'], description: 'Team management and approvals' },

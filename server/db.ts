@@ -1,6 +1,7 @@
 import { syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
 import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
+import { mergeEmailSettings } from './notifications/registry';
 import {
   flushPersistence,
   getStorageBackend,
@@ -62,6 +63,9 @@ function applyMigrations() {
   db.users = syncSeedUsers(db.users);
   migrateLegacyUserRefs(db);
   purgeDemoOperationalData(db as Database & { dataVersion?: number });
+  db.orgSettings.emailNotifications = mergeEmailSettings(db.orgSettings.emailNotifications);
+  if (!db.emailDigestQueue) db.emailDigestQueue = [];
+  if (!db.emailDigestMeta) db.emailDigestMeta = {};
 }
 
 function hydrateStore(raw: Partial<Database> | null) {
@@ -129,7 +133,26 @@ export function getUserById(id: string) {
   return db.users.find(u => u.id === id);
 }
 
-export function pushNotification(userId: string, title: string, message: string) {
+export interface NotifyCallOptions {
+  triggerId?: string;
+  inAppOnly?: boolean;
+  emailContext?: Record<string, string>;
+}
+
+export function pushNotification(userId: string, title: string, message: string, options?: NotifyCallOptions) {
+  if (options?.triggerId) {
+    void import('./notifications/dispatcher').then(({ notify }) =>
+      notify({
+        triggerId: options.triggerId!,
+        userId,
+        title,
+        message,
+        inAppOnly: options.inAppOnly,
+        emailContext: options.emailContext,
+      }),
+    );
+    return;
+  }
   db.notifications.unshift({
     id: `n${Date.now()}`,
     userId,

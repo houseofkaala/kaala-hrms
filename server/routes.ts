@@ -5,6 +5,9 @@ import {
 import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession } from './middleware';
 import { registerExtraRoutes } from './extra-routes';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
+import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifications/registry';
+import { isEmailConfigured, sendEmail } from './email/transport';
+import { notify, notifyManager } from './notifications/dispatcher';
 
 export type { AuthedRequest } from './middleware';
 
@@ -192,6 +195,18 @@ export async function registerRoutes(app: Express) {
     const portalSubdomain = portalLoginPath(userRole);
 
     const loginUrl = `https://${portalSubdomain}.${baseDomain}/login`;
+    void notify({
+      triggerId: 'lifecycle.welcome',
+      userId: newUser.id,
+      title: 'Welcome to House of Kaala',
+      message: `Your account is ready.\n\nSign in at: ${loginUrl}\nEmail: ${normalizedEmail}\nTemporary password: ${String(password)}\n\nPlease change your password after first login.`,
+      emailContext: {
+        name: newUser.name,
+        email: normalizedEmail,
+        loginUrl,
+        password: String(password),
+      },
+    });
     res.status(201).json({
       success: true,
       employee: sanitizeUser(newUser),
@@ -249,6 +264,12 @@ export async function registerRoutes(app: Express) {
     const r = { id: `lr${Date.now()}`, userId: req.userId!, type, startDate, endDate, days, reason, status: 'Pending', createdAt: new Date().toISOString() };
     db().leaveRequests.unshift(r);
     pushNotification(req.userId!, 'Leave request submitted', `Your ${type} request (${days} days) is pending approval.`);
+    const employee = getUserById(req.userId!);
+    void notifyManager(req.userId!, {
+      triggerId: 'leave.submitted_manager',
+      title: 'Leave request submitted',
+      message: `${employee?.name} requested ${type} leave (${days} days) from ${startDate} to ${endDate}.`,
+    });
     saveDb();
     res.json({ success: true, request: r });
   });
@@ -257,7 +278,9 @@ export async function registerRoutes(app: Express) {
     const r = db().leaveRequests.find(l => l.id === req.params.id);
     if (!r) return res.status(404).json({ error: 'Not found' });
     r.status = req.body.status;
-    pushNotification(r.userId, `Leave ${req.body.status.toLowerCase()}`, `Your ${r.type} request has been ${req.body.status.toLowerCase()}.`);
+    const status = String(req.body.status);
+    const triggerId = status === 'Approved' ? 'leave.approved' : status === 'Rejected' ? 'leave.rejected' : 'leave.cancelled';
+    pushNotification(r.userId, `Leave ${status.toLowerCase()}`, `Your ${r.type} request has been ${status.toLowerCase()}.`, { triggerId });
     saveDb();
     res.json({ success: true, request: r });
   });
@@ -298,7 +321,42 @@ export async function registerRoutes(app: Express) {
 
   // Settings & roles
   app.get('/api/settings', requireRole('manager', 'admin'), (_req, res) => res.json(db().orgSettings));
-  app.patch('/api/settings', requireRole('admin'), (req, res) => { Object.assign(db().orgSettings, req.body); saveDb(); res.json({ success: true, settings: db().orgSettings }); });
+  app.patch('/api/settings', requireRole('admin'), (req, res) => {
+    const { emailNotifications, ...rest } = req.body;
+    Object.assign(db().orgSettings, rest);
+    if (emailNotifications) {
+      db().orgSettings.emailNotifications = mergeEmailSettings({
+        ...db().orgSettings.emailNotifications,
+        ...emailNotifications,
+        triggers: { ...db().orgSettings.emailNotifications?.triggers, ...emailNotifications.triggers },
+        digests: { ...db().orgSettings.emailNotifications?.digests, ...emailNotifications.digests },
+      });
+    }
+    saveDb();
+    res.json({ success: true, settings: db().orgSettings });
+  });
+
+  app.get('/api/settings/email-triggers', requireRole('admin'), (_req, res) => {
+    res.json({
+      triggers: EMAIL_TRIGGERS,
+      categories: TRIGGER_CATEGORIES,
+      config: mergeEmailSettings(db().orgSettings.emailNotifications),
+      smtpConfigured: isEmailConfigured(),
+    });
+  });
+
+  app.post('/api/admin/email/test', requireRole('admin'), async (req: AuthedRequest, res) => {
+    const admin = getUserById(req.userId!);
+    if (!admin?.email) return res.status(400).json({ error: 'Admin email not found' });
+    const settings = mergeEmailSettings(db().orgSettings.emailNotifications);
+    const result = await sendEmail({
+      to: req.body.email || admin.email,
+      subject: 'HRMS email test',
+      text: 'Email notifications are configured correctly for House of Kaala HRMS.',
+    }, settings);
+    if (!result.ok) return res.status(503).json({ error: result.error || 'Email send failed' });
+    res.json({ success: true, message: `Test email sent to ${req.body.email || admin.email}` });
+  });
   app.get('/api/roles', requireRole('admin'), (_req, res) => res.json(db().rolePermissions));
   app.get('/api/roles/users', requireRole('admin'), (_req, res) => res.json(db().users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, department: u.department }))));
   app.patch('/api/roles/users/:id', requireRole('admin'), (req, res) => {
@@ -321,6 +379,9 @@ export async function registerRoutes(app: Express) {
     if (!a) return res.status(404).json({ error: 'Not found' });
     const u = getUserById(req.body.userId);
     a.userId = req.body.userId; a.user = u?.name || null; a.status = 'Assigned';
+    if (req.body.userId) {
+      pushNotification(req.body.userId, 'Asset assigned', `${a.name} has been assigned to you.`, { triggerId: 'assets.assigned' });
+    }
     saveDb();
     res.json({ success: true, asset: a });
   });
@@ -329,7 +390,11 @@ export async function registerRoutes(app: Express) {
   app.get('/api/tasks', (_req, res) => res.json(db().tasks));
   app.post('/api/tasks', (req: AuthedRequest, res) => {
     const t = { id: `t${Date.now()}`, title: req.body.title, ownerId: req.userId!, status: 'pending', value: Number(req.body.value) || 10, deadline: req.body.deadline || new Date(Date.now() + 7 * 86400000).toISOString(), referenceLink: req.body.referenceLink, category: req.body.category, priority: req.body.priority || 'Normal' };
-    db().tasks.push(t); saveDb();
+    db().tasks.push(t);
+    if (req.body.assigneeId && req.body.assigneeId !== req.userId) {
+      pushNotification(req.body.assigneeId, 'Task assigned', `You have been assigned: "${t.title}"`, { triggerId: 'tasks.assigned' });
+    }
+    saveDb();
     res.json({ success: true, task: t });
   });
   app.put('/api/tasks/:id', (req: AuthedRequest, res) => {
@@ -359,7 +424,10 @@ export async function registerRoutes(app: Express) {
     if ((t.claimedById && t.claimedById !== req.userId) || (!t.claimedById && t.ownerId !== req.userId)) return res.status(400).json({ error: 'Forbidden' });
     if (t.status === 'in_progress' && t.timeStarted) { t.timeSpent = (t.timeSpent || 0) + Date.now() - new Date(t.timeStarted).getTime(); t.timeStarted = undefined; }
     t.status = 'under_review'; saveDb();
-    pushNotification('m1', 'Review required', `"${t.title}" is awaiting approval.`);
+    const managers = db().users.filter(u => (u.role === 'manager' || u.role === 'admin') && u.status !== 'Inactive');
+    for (const m of managers) {
+      pushNotification(m.id, 'Review required', `"${t.title}" is awaiting approval.`, { triggerId: 'tasks.review_required' });
+    }
     res.json({ success: true, task: t });
   });
   app.post('/api/tasks/approve', requireRole('manager', 'admin'), (req, res) => {
@@ -367,7 +435,7 @@ export async function registerRoutes(app: Express) {
     if (!t || t.status !== 'under_review') return res.status(400).json({ error: 'Invalid' });
     t.status = 'completed';
     const c = getUserById(t.claimedById);
-    if (c) { c.points += 10; addTransaction(c.id, 10, `Completed: "${t.title}"`); pushNotification(c.id, 'Task approved', `+10 KP for "${t.title}"`); }
+    if (c) { c.points += 10; addTransaction(c.id, 10, `Completed: "${t.title}"`); pushNotification(c.id, 'Task approved', `+10 KP for "${t.title}"`, { triggerId: 'tasks.approved' }); }
     saveDb();
     res.json({ success: true, task: t });
   });
@@ -427,7 +495,7 @@ export async function registerRoutes(app: Express) {
       if (t.status === 'pending') {
         t.status = 'marketplace'; t.value = 10;
         const o = getUserById(t.ownerId);
-        if (o) { o.points -= 10; addTransaction(o.id, -10, `SLA Breach: "${t.title}"`); pushNotification(o.id, 'Task to marketplace', `"${t.title}" moved (-10 KP)`); affected++; }
+        if (o) { o.points -= 10; addTransaction(o.id, -10, `SLA Breach: "${t.title}"`); pushNotification(o.id, 'Task to marketplace', `"${t.title}" moved (-10 KP)`, { triggerId: 'tasks.marketplace' }); affected++; }
       }
     });
     saveDb();
@@ -465,7 +533,7 @@ export async function registerRoutes(app: Express) {
   app.post('/api/attendance/request', (req: AuthedRequest, res) => {
     const r = { id: `ar${Date.now()}`, userId: req.userId!, type: req.body.type, date: req.body.date, hours: req.body.hours, reason: req.body.reason, location: req.body.location, time: req.body.time, status: 'Pending', createdAt: new Date().toISOString() };
     db().attendanceRequests.push(r);
-    pushNotification(req.userId!, 'Attendance request submitted', `Your ${req.body.type} request is pending review.`);
+    pushNotification(req.userId!, 'Attendance request submitted', `Your ${req.body.type} request is pending review.`, { triggerId: 'attendance.regularization_submitted' });
     saveDb();
     res.json({ success: true, request: r });
   });
@@ -513,7 +581,7 @@ export async function registerRoutes(app: Express) {
       const gross = salaryByRole[u.role] || 7500;
       const deductions = Math.round(gross * 0.15);
       db().payrollRecords.unshift({ id: `pr${Date.now()}_${u.id}`, userId: u.id, period, grossPay: gross, deductions, netPay: gross - deductions, status: 'Paid' });
-      pushNotification(u.id, 'Payroll processed', `Your ${period} payslip is ready.`);
+      pushNotification(u.id, 'Payroll processed', `Your ${period} payslip is ready.`, { triggerId: 'payroll.payslip_generated' });
     });
     saveDb();
     res.json({ success: true, message: `Payroll run for ${period}` });
@@ -568,14 +636,18 @@ export async function registerRoutes(app: Express) {
     const u = getUserById(req.userId!);
     const t = { id: `TKT-${Date.now()}`, title: req.body.title, category: req.body.category, priority: req.body.priority || 'Medium', status: 'Open', date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), userId: req.userId!, user: u?.name || 'Unknown', description: req.body.description };
     db().tickets.unshift(t);
-    pushNotification(req.userId!, 'Ticket created', `"${t.title}" has been submitted.`);
+    pushNotification(req.userId!, 'Ticket created', `"${t.title}" has been submitted.`, { triggerId: 'helpdesk.ticket_created' });
     saveDb();
     res.json({ success: true, ticket: t });
   });
   app.patch('/api/helpdesk/tickets/:id', requireRole('manager', 'admin'), (req, res) => {
     const t = db().tickets.find(x => x.id === req.params.id);
     if (!t) return res.status(404).json({ error: 'Not found' });
-    if (req.body.status) t.status = req.body.status;
+    if (req.body.status) {
+      t.status = req.body.status;
+      const triggerId = req.body.status === 'Resolved' ? 'helpdesk.ticket_resolved' : req.body.status === 'Closed' ? 'helpdesk.ticket_closed' : 'helpdesk.ticket_assigned';
+      pushNotification(t.userId, `Ticket ${req.body.status.toLowerCase()}`, `Your ticket "${t.title}" is now ${req.body.status.toLowerCase()}.`, { triggerId });
+    }
     saveDb();
     res.json({ success: true, ticket: t });
   });
@@ -633,7 +705,7 @@ export async function registerRoutes(app: Express) {
   app.post('/api/performance/reviews', requireRole('manager', 'admin'), (req, res) => {
     const r = { id: `rv${Date.now()}`, userId: req.body.userId, reviewerId: (req as AuthedRequest).userId!, rating: req.body.rating, feedback: req.body.feedback, period: req.body.period || 'Current', status: 'Completed' };
     db().performanceReviews.unshift(r);
-    pushNotification(req.body.userId, 'Performance review', 'A new performance review has been submitted.');
+    pushNotification(req.body.userId, 'Performance review', 'A new performance review has been submitted.', { triggerId: 'performance.review_completed' });
     saveDb();
     res.json({ success: true, review: r });
   });

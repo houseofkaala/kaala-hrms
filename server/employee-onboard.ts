@@ -1,5 +1,4 @@
 import type { UserRecord } from './db';
-import { pushNotification } from './db';
 
 export function provisionNewEmployee(db: {
   onboardingTasks: { id: string; userId: string; title: string; description: string; status: string; dueDate: string; category: string }[];
@@ -29,11 +28,6 @@ export function provisionNewEmployee(db: {
     });
   }
 
-  pushNotification(
-    user.id,
-    'Welcome to House of Kaala',
-    `Your account is ready. Sign in at the ${user.role === 'employee' ? 'Employee' : 'Admin'} portal with your work email.`,
-  );
 }
 
 export function portalLoginPath(role: UserRecord['role']) {
