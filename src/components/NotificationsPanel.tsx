@@ -26,7 +26,8 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
   const { data } = useQuery<{ data: Notification[]; unread: number }>({
     queryKey: ['notifications'],
     queryFn: () => fetcher('/api/notifications'),
-    refetchInterval: 10000,
+    refetchInterval: open ? 30_000 : false,
+    staleTime: 20_000,
   });
 
   const notifications = data?.data || [];

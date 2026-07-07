@@ -60,7 +60,8 @@ export async function readPostgresStore(): Promise<Database | null> {
 export function writeFileStore(data: Database) {
   const dir = path.dirname(DB_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2));
+  const compact = process.env.NODE_ENV === 'production';
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, compact ? 0 : 2));
 }
 
 async function writePostgresStore(data: Database) {
@@ -73,13 +74,18 @@ async function writePostgresStore(data: Database) {
   );
 }
 
-export function persistStore(data: Database) {
-  if (backend === 'postgres') {
-    saveChain = saveChain
-      .then(() => writePostgresStore(data))
-      .catch((err) => console.error('[HRMS] PostgreSQL save failed:', err));
-    return;
+let fileSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingFileData: Database | null = null;
+const FILE_SAVE_DEBOUNCE_MS = 500;
+
+function flushFileStoreNow() {
+  if (fileSaveTimer) {
+    clearTimeout(fileSaveTimer);
+    fileSaveTimer = null;
   }
+  if (!pendingFileData) return;
+  const data = pendingFileData;
+  pendingFileData = null;
   try {
     writeFileStore(data);
   } catch (err) {
@@ -87,6 +93,22 @@ export function persistStore(data: Database) {
   }
 }
 
+export function persistStore(data: Database) {
+  if (backend === 'postgres') {
+    saveChain = saveChain
+      .then(() => writePostgresStore(data))
+      .catch((err) => console.error('[HRMS] PostgreSQL save failed:', err));
+    return;
+  }
+  pendingFileData = data;
+  if (fileSaveTimer) return;
+  fileSaveTimer = setTimeout(() => {
+    fileSaveTimer = null;
+    flushFileStoreNow();
+  }, FILE_SAVE_DEBOUNCE_MS);
+}
+
 export async function flushPersistence() {
+  flushFileStoreNow();
   await saveChain;
 }

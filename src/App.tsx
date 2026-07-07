@@ -72,39 +72,56 @@ function HRMSApp() {
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState<{ status: string; uptime: number } | null>(null);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      const user = await fetcher<User>('/api/me');
-      setCurrentUser(user);
-      const allTasks = await fetcher<Task[]>('/api/tasks');
-      setTasks(allTasks);
+      const [user, allTasks, allUsersRes] = await Promise.all([
+        fetcher<User>('/api/me'),
+        fetcher<Task[]>('/api/tasks'),
+        fetcher<User[]>('/api/users'),
+      ]);
       const tx = await fetcher<Transaction[]>(`/api/transactions/${user.id}`);
+      setCurrentUser(user);
+      setTasks(allTasks);
       setTransactions(tx);
-      const allUsersRes = await fetcher<User[]>('/api/users');
       setAllUsers(allUsersRes);
     } catch (err) {
       console.error('Failed to load data', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate('/login');
-      return;
     }
+  }, [navigate]);
+
+  useEffect(() => {
     if (location.pathname === '/') {
       navigate('/dashboard', { replace: true });
     }
-    loadData();
+  }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated()) return;
+    loadData(false);
     fetcher<{ status: string; uptime: number }>('/api/health').then(setHealth).catch(() => setHealth(null));
-    const interval = setInterval(() => {
-      loadData();
-      fetcher<{ status: string; uptime: number }>('/api/health').then(setHealth).catch(() => setHealth(null));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [navigate, location.pathname]);
+
+    const refresh = () => {
+      if (document.visibilityState === 'visible') loadData(true);
+    };
+    const interval = setInterval(refresh, 60_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadData(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   const formatUptime = (seconds: number) => {
     const d = Math.floor(seconds / 86400);
@@ -193,7 +210,7 @@ function HRMSApp() {
   const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
 
   return (
-    <div className="flex h-screen kaala-mesh kaala-mesh-animated kaala-grain text-ink overflow-hidden relative">
+    <div className="flex h-screen kaala-mesh kaala-grain text-ink overflow-hidden relative">
       <div className="atelier-watermark" aria-hidden>K</div>
 
       {/* Sidebar navigation */}

@@ -34,6 +34,14 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`House of Kaala HRMS running on port ${PORT}`);
   });
+
+  const shutdown = async () => {
+    const { flushDb } = await import('./server/db');
+    await flushDb();
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => { shutdown().catch(() => process.exit(1)); });
+  process.on('SIGINT', () => { shutdown().catch(() => process.exit(1)); });
 }
 
 startServer().catch((err) => {
