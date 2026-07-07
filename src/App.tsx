@@ -41,6 +41,8 @@ import { HolidaysView } from './views/HolidaysView';
 import { TimesheetsView } from './views/TimesheetsView';
 import { PoliciesView } from './views/PoliciesView';
 import { NotificationsPanel } from './components/NotificationsPanel';
+import { AttendanceHeaderButton } from './components/AttendanceHeaderButton';
+import { FloatingChatWidget } from './components/FloatingChatWidget';
 import { AtelierPageHeader, RailNavItem, RailSection } from './components/AtelierChrome';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
@@ -273,6 +275,7 @@ function HRMSApp() {
               </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-4">
+              <AttendanceHeaderButton onStatusChange={loadData} />
               <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-maroon-50/80 border border-maroon-100">
                 <span className="w-1.5 h-1.5 rounded-full bg-maroon-600 animate-pulse" />
                 <span className="font-accent text-[10px] uppercase tracking-widest text-maroon-700/70">Live</span>
@@ -374,6 +377,8 @@ function HRMSApp() {
           </footer>
         </div>
       </div>
+
+      <FloatingChatWidget users={allUsers.length ? allUsers : [currentUser]} currentUser={currentUser} />
     </div>
   );
 }

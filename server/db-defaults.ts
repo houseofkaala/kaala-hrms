@@ -14,7 +14,7 @@ export function createEmptyOperationalDb() {
     leaveRequests: [] as { id: string; userId: string; type: string; startDate: string; endDate: string; days: number; reason: string; status: string; createdAt: string }[],
     documents: [] as { id: string; userId: string; name: string; category: string; uploadedAt: string; size: string }[],
     notifications: [] as { id: string; userId: string; title: string; message: string; read: boolean; createdAt: string }[],
-    attendanceLogs: [] as { id: string; userId: string; clockIn: string; clockOut: string | null; date: string }[],
+    attendanceLogs: [] as { id: string; userId: string; clockIn: string; clockOut: string | null; date: string; earlyClockOutApproved?: boolean }[],
     attendanceRequests: [] as { id: string; userId: string; type: string; date: string; hours?: string; reason?: string; location?: string; time?: string; status: string; createdAt: string }[],
     candidates: [] as { id: string; name: string; role: string; stage: string }[],
     payrollRecords: [] as { id: string; userId: string; period: string; grossPay: number; deductions: number; netPay: number; status: string }[],

@@ -8,6 +8,7 @@ import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
 import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifications/registry';
 import { isEmailConfigured, sendEmail } from './email/transport';
 import { notify, notifyManager } from './notifications/dispatcher';
+import { attendanceStatusPayload, evaluateClockOut, MIN_CLOCK_OUT_HOURS, FULL_DAY_HOURS } from './attendance-rules';
 
 export type { AuthedRequest } from './middleware';
 
@@ -516,18 +517,95 @@ export async function registerRoutes(app: Express) {
   });
 
   // Attendance
+  app.get('/api/attendance/status', (req: AuthedRequest, res) => {
+    const user = getUserById(req.userId!);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    const active = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
+    const checkedIn = Boolean(active) || user.status === 'Active';
+    res.json(attendanceStatusPayload(active, checkedIn));
+  });
+
   app.post('/api/attendance/toggle', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'Not found' });
     const active = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
     let checkedIn = false;
-    if (active) { active.clockOut = new Date().toISOString(); user.status = 'Offline'; }
-    else {
-      db().attendanceLogs.push({ id: `att_${Date.now()}`, userId: req.userId!, clockIn: new Date().toISOString(), clockOut: null, date: new Date().toISOString().split('T')[0] });
-      user.status = 'Active'; checkedIn = true;
+
+    if (active) {
+      const ev = evaluateClockOut(active);
+      if (!ev.allowed) {
+        return res.status(403).json({
+          error: ev.message,
+          code: ev.code,
+          needsAdminApproval: ev.needsAdminApproval,
+          hoursWorked: ev.hoursWorked,
+          minHours: MIN_CLOCK_OUT_HOURS,
+          fullDayHours: FULL_DAY_HOURS,
+        });
+      }
+      active.clockOut = new Date().toISOString();
+      user.status = 'Offline';
+    } else {
+      db().attendanceLogs.push({
+        id: `att_${Date.now()}`,
+        userId: req.userId!,
+        clockIn: new Date().toISOString(),
+        clockOut: null,
+        date: new Date().toISOString().split('T')[0],
+        earlyClockOutApproved: false,
+      });
+      user.status = 'Active';
+      checkedIn = true;
     }
     saveDb();
     res.json({ success: true, user: sanitizeUser(user), checkedIn });
+  });
+
+  app.post('/api/attendance/request-early-clockout', (req: AuthedRequest, res) => {
+    const user = getUserById(req.userId!);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    const active = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
+    if (!active) return res.status(400).json({ error: 'You are not clocked in.' });
+
+    const ev = evaluateClockOut(active);
+    if (ev.hoursWorked < MIN_CLOCK_OUT_HOURS) {
+      return res.status(400).json({ error: `Minimum ${MIN_CLOCK_OUT_HOURS} hours must be completed before requesting early clock-out.` });
+    }
+    if (ev.hoursWorked >= FULL_DAY_HOURS) {
+      return res.status(400).json({ error: 'You can clock out directly after a full work day.' });
+    }
+    if (active.earlyClockOutApproved) {
+      return res.status(400).json({ error: 'Early clock-out is already approved.' });
+    }
+
+    const pending = db().attendanceRequests.find(
+      r => r.userId === req.userId && r.type === 'early_clock_out' && r.status === 'Pending',
+    );
+    if (pending) return res.status(409).json({ error: 'You already have a pending early clock-out request.' });
+
+    const reason = String(req.body.reason || '').trim();
+    if (!reason) return res.status(400).json({ error: 'Reason is required.' });
+
+    const r = {
+      id: `ar${Date.now()}`,
+      userId: req.userId!,
+      type: 'early_clock_out',
+      date: new Date().toISOString().split('T')[0],
+      hours: String(Math.round(ev.hoursWorked * 10) / 10),
+      reason,
+      status: 'Pending',
+      createdAt: new Date().toISOString(),
+      attendanceLogId: active.id,
+    };
+    db().attendanceRequests.push(r);
+    pushNotification(req.userId!, 'Early clock-out requested', 'Your request is pending admin approval.', { triggerId: 'attendance.regularization_submitted' });
+
+    for (const a of db().users.filter(u => (u.role === 'admin' || u.role === 'manager') && u.status !== 'Inactive')) {
+      pushNotification(a.id, 'Early clock-out request', `${user.name} requested early clock-out (${ev.hoursWorked.toFixed(1)}h): ${reason}`, { triggerId: 'attendance.regularization_submitted' });
+    }
+
+    saveDb();
+    res.json({ success: true, request: r });
   });
 
   app.post('/api/attendance/request', (req: AuthedRequest, res) => {

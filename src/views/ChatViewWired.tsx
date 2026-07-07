@@ -8,7 +8,7 @@ import type { User } from '../types';
 interface Message { id: string; fromId: string; toId: string; content: string; createdAt: string }
 interface Conversation { userId: string; name: string; lastMessage?: string }
 
-export function ChatViewWired({ users, currentUser }: { users: User[]; currentUser: User | null }) {
+export function ChatViewWired({ users, currentUser, compact = false }: { users: User[]; currentUser: User | null; compact?: boolean }) {
   const location = useLocation();
   const initialUserId = (location.state as { userId?: string } | null)?.userId;
   const [selectedId, setSelectedId] = useState(initialUserId || users.find(u => u.id !== currentUser?.id)?.id || '');
@@ -44,14 +44,16 @@ export function ChatViewWired({ users, currentUser }: { users: User[]; currentUs
   const partner = users.find(u => u.id === selectedId);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex h-[700px] overflow-hidden">
-      <div className="w-72 border-r border-gray-200 flex flex-col bg-gray-50/30">
-        <div className="p-4 border-b border-gray-200">
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input value={search} onChange={e => setSearch(e.target.value)} type="text" placeholder="Search chats..." className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-gray-400 shadow-sm" />
+    <div className={compact ? 'flex h-full overflow-hidden bg-white' : 'bg-white border border-gray-200 rounded-2xl shadow-sm flex h-[700px] overflow-hidden'}>
+      <div className={compact ? 'w-36 sm:w-44 border-r border-gray-200 flex flex-col bg-gray-50/30 shrink-0' : 'w-72 border-r border-gray-200 flex flex-col bg-gray-50/30'}>
+        {!compact && (
+          <div className="p-4 border-b border-gray-200">
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input value={search} onChange={e => setSearch(e.target.value)} type="text" placeholder="Search chats..." className="w-full bg-white border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-gray-400 shadow-sm" />
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex-1 overflow-y-auto">
           {filtered.map(c => (
             <button key={c.userId} onClick={() => setSelectedId(c.userId)} className={`w-full p-4 border-b border-gray-100 flex items-center gap-3 hover:bg-gray-50 text-left ${selectedId === c.userId ? 'bg-gray-100' : ''}`}>

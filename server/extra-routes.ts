@@ -10,7 +10,16 @@ export function registerExtraRoutes(app: Express) {
     const r = db().attendanceRequests.find(x => x.id === req.params.id);
     if (!r) return res.status(404).json({ error: 'Not found' });
     r.status = req.body.status || r.status;
-    pushNotification(r.userId, `Attendance ${r.status.toLowerCase()}`, `Your ${r.type} request has been ${r.status.toLowerCase()}.`, { triggerId: 'attendance.regularization_decided' });
+
+    if (r.type === 'early_clock_out' && r.status === 'Approved') {
+      const logId = (r as { attendanceLogId?: string }).attendanceLogId;
+      const log = logId
+        ? db().attendanceLogs.find(l => l.id === logId)
+        : db().attendanceLogs.find(l => l.userId === r.userId && !l.clockOut);
+      if (log) log.earlyClockOutApproved = true;
+    }
+
+    pushNotification(r.userId, `Attendance ${r.status.toLowerCase()}`, `Your ${r.type.replace(/_/g, ' ')} request has been ${r.status.toLowerCase()}.`, { triggerId: 'attendance.regularization_decided' });
     saveDb();
     res.json({ success: true, request: r });
   });

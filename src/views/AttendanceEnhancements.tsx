@@ -111,6 +111,50 @@ export function AttendanceRegularization() {
   );
 }
 
+export function EarlyClockOutApprovals() {
+  const { currentUser } = useRBACStore();
+  const qc = useQueryClient();
+  const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
+  const { data: requests = [] } = useAttendanceRequests('early_clock_out');
+
+  const review = async (id: string, status: string) => {
+    await fetcher(`/api/attendance/requests/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    qc.invalidateQueries({ queryKey: ['attendance-requests'] });
+  };
+
+  if (!isManager) return null;
+
+  const pending = requests.filter(r => r.status === 'Pending');
+
+  return (
+    <div className="bg-white p-5 border border-amber-200 rounded-2xl shadow-sm space-y-4">
+      <div>
+        <h3 className="font-semibold text-gray-900">Early Clock-Out Requests</h3>
+        <p className="text-xs text-gray-500 mt-1">Approve employees leaving before 8 hours (after minimum 4h).</p>
+      </div>
+      {pending.length === 0 ? (
+        <p className="text-xs text-gray-400">No pending early clock-out requests</p>
+      ) : (
+        <div className="space-y-3">
+          {pending.map(r => (
+            <div key={r.id} className="p-3 border border-amber-100 bg-amber-50/50 rounded-xl flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900">{r.employee?.name || 'Employee'}</p>
+                <p className="text-xs text-gray-600 mt-0.5">{r.reason}</p>
+                <p className="text-[10px] text-gray-500 mt-1">{r.hours}h worked · {r.date}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => review(r.id, 'Approved')} className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 text-white rounded-lg">Approve</button>
+                <button onClick={() => review(r.id, 'Rejected')} className="px-2.5 py-1 text-xs font-semibold bg-white border border-gray-200 text-gray-700 rounded-lg">Reject</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ShiftRequests() {
   const { currentUser } = useRBACStore();
   const qc = useQueryClient();

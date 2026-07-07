@@ -486,7 +486,7 @@ function LeaveQuickView() {
   );
 }
 
-import { AttendanceRegularization, ShiftRequests, OTDashboard, RemoteWorkRequests, BiometricDevices, AttendancePolicies } from './views/AttendanceEnhancements';
+import { AttendanceRegularization, ShiftRequests, OTDashboard, RemoteWorkRequests, BiometricDevices, AttendancePolicies, EarlyClockOutApprovals } from './views/AttendanceEnhancements';
 
 function AttendanceClock({ checkedIn, onToggle, isLoading }: { checkedIn: boolean, onToggle: () => void, isLoading?: boolean }) {
   const [time, setTime] = useState(new Date());
@@ -577,11 +577,11 @@ export function AttendanceView() {
         } else {
           setToastMessage('Failed to update attendance status.');
         }
-        setTimeout(() => setToastMessage(null), 3000);
+        setTimeout(() => setToastMessage(null), 5000);
       }
     } catch (e) {
-      setToastMessage('Failed to update attendance status.');
-      setTimeout(() => setToastMessage(null), 3000);
+      setToastMessage(e instanceof Error ? e.message : 'Failed to update attendance status.');
+      setTimeout(() => setToastMessage(null), 5000);
     } finally {
       setIsLoading(false);
     }
@@ -606,6 +606,7 @@ export function AttendanceView() {
           <AttendanceLogs viewMode={viewMode} checkedIn={checkedIn} />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <OTDashboard />
+            <EarlyClockOutApprovals />
             <ShiftRequests />
             <AttendanceRegularization />
             <RemoteWorkRequests />
