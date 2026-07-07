@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetcher } from '../utils';
 import { useRBACStore } from '../store';
@@ -131,7 +131,7 @@ Please change your password after first login in Settings.`;
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setFormError('');
     if (!form.name.trim() || !form.email.trim() || !form.password || form.password.length < 8) {
