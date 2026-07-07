@@ -66,6 +66,10 @@ function applyMigrations() {
 
 function hydrateStore(raw: Partial<Database> | null) {
   db = { ...defaultDb(), ...(raw || {}) };
+  // Do not treat default dataVersion as "already migrated" when loading legacy stores.
+  if (!raw?.dataVersion) {
+    delete (db as Database & { dataVersion?: number }).dataVersion;
+  }
   applyMigrations();
   persistStore(db);
 }

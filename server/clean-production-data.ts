@@ -1,6 +1,6 @@
 import type { Database } from './db';
 
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
 
 /** Remove seeded demo records; keep real users and company settings. */
 export function purgeDemoOperationalData(db: Database & { dataVersion?: number }) {
@@ -60,5 +60,5 @@ export function purgeDemoOperationalData(db: Database & { dataVersion?: number }
   };
 
   db.dataVersion = DATA_VERSION;
-  console.log('[HRMS] Demo operational data cleared (dataVersion 2)');
+  console.log(`[HRMS] Demo operational data cleared (dataVersion ${DATA_VERSION})`);
 }

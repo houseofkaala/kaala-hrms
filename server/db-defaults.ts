@@ -75,6 +75,6 @@ export function createEmptyOperationalDb() {
     timesheets: [] as { id: string; userId: string; projectId: string; projectName: string; date: string; hours: number; description: string; status: string }[],
     biometricDevices: [] as { id: string; name: string; location: string; status: string; lastSync: string }[],
     courseProgress: {} as Record<string, Record<string, number>>,
-    dataVersion: 2,
+    dataVersion: 3,
   };
 }
