@@ -261,7 +261,10 @@ export async function initDb() {
   }
 
   initialized = true;
-  console.log(`[HRMS] Storage: ${getStorageBackend()}${getStorageBackend() === 'file' ? ' (data may be lost on Render redeploy — set DATABASE_URL)' : ''}`);
+  const fileHint = getStorageBackend() === 'file'
+    ? ' (local file — persistent on VPS; set DATABASE_URL if using Render)'
+    : '';
+  console.log(`[HRMS] Storage: ${getStorageBackend()}${fileHint}`);
   return getStorageBackend();
 }
 
