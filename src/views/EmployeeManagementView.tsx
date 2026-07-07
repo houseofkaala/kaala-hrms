@@ -242,7 +242,7 @@ Please change your password after first login in Settings.`;
                 className="input-field"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Priya Sharma"
+                placeholder="Employee full name"
                 required
               />
             </div>
@@ -253,7 +253,7 @@ Please change your password after first login in Settings.`;
                 className="input-field"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="priya@bymarketingonly.com"
+                placeholder="employee@bymarketingonly.com"
                 required
               />
             </div>
@@ -294,7 +294,7 @@ Please change your password after first login in Settings.`;
                 className="input-field"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Senior Designer"
+                placeholder="Job title"
               />
             </div>
             <div>
@@ -303,7 +303,7 @@ Please change your password after first login in Settings.`;
                 className="input-field"
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
-                placeholder="Design"
+                placeholder="Department name"
               />
             </div>
             <div>

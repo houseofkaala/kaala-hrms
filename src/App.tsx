@@ -176,7 +176,7 @@ function HRMSApp() {
           <div className="w-20 h-20 rounded-[1.75rem] bg-gradient-to-br from-maroon-700 to-ink flex items-center justify-center font-display text-3xl text-white font-bold shadow-2xl shadow-maroon-950/40" style={{ animation: 'float-slow 4s ease-in-out infinite' }}>K</div>
           <div className="absolute -inset-4 rounded-[2rem] border border-maroon-300/30 animate-pulse" />
         </div>
-        <p className="font-accent text-xs uppercase tracking-[0.4em] text-maroon-600/60">Preparing atelier</p>
+        <p className="font-accent text-xs uppercase tracking-[0.4em] text-maroon-600/60">Loading dashboard</p>
       </div>
     );
   }

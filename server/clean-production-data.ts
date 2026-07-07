@@ -6,6 +6,13 @@ export const DATA_VERSION = 2;
 export function purgeDemoOperationalData(db: Database & { dataVersion?: number }) {
   if (db.dataVersion && db.dataVersion >= DATA_VERSION) return;
 
+  const LEGACY_DEMO_IDS = new Set(['u1', 'u2', 'u3', 'u4', 'm1', 'm2']);
+  for (const u of db.users) {
+    if (LEGACY_DEMO_IDS.has(u.id) || u.email.endsWith('@kaala.io')) {
+      u.status = 'Inactive';
+    }
+  }
+
   const activeUserIds = new Set(db.users.filter(u => u.status === 'Active').map(u => u.id));
 
   db.tasks = [];
