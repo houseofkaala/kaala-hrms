@@ -77,21 +77,32 @@ export function getSeedUsers(): UserRecord[] {
   ];
 }
 
+const SEED_ENV_KEY: Record<UserRecord['role'], string> = {
+  admin: 'SEED_ADMIN_PASSWORD',
+  manager: 'SEED_MANAGER_PASSWORD',
+  employee: 'SEED_EMPLOYEE_PASSWORD',
+};
+
 /** Upsert portal accounts and retire legacy demo users. */
 export function syncSeedUsers(users: UserRecord[]): UserRecord[] {
   const seeds = getSeedUsers();
   const next = [...users];
 
   for (const seed of seeds) {
+    const envPassword = process.env[SEED_ENV_KEY[seed.role]];
+    const seedUser = { ...seed };
+    // Only rotate password when explicitly configured in env; otherwise keep stored password.
+    if (!envPassword) delete (seedUser as Partial<UserRecord>).password;
+
     const idx = next.findIndex(u => u.role === seed.role && (u.email === seed.email || u.id === seed.id));
     if (idx >= 0) {
-      next[idx] = { ...next[idx], ...seed, id: next[idx].id };
+      next[idx] = { ...next[idx], ...seedUser, id: next[idx].id };
     } else {
       const roleIdx = next.findIndex(u => u.role === seed.role && u.status === 'Active');
       if (roleIdx >= 0) {
-        next[roleIdx] = { ...next[roleIdx], ...seed, id: next[roleIdx].id };
+        next[roleIdx] = { ...next[roleIdx], ...seedUser, id: next[roleIdx].id };
       } else {
-        next.push(seed);
+        next.push(seedUser.password ? seedUser : { ...seedUser, password: seed.password });
       }
     }
   }
