@@ -6,6 +6,7 @@ import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSessio
 import { checkLoginRateLimit, clearLoginRateLimit } from './rate-limit';
 import { getAllowedModules, assertValidRoleChange } from './security';
 import { saveDocumentFile, getDocumentFilePath, deleteDocumentFile, mimeFromFilename } from './document-storage';
+import { buildDashboard, type DashboardPeriod } from './dashboard';
 import { registerExtraRoutes } from './extra-routes';
 import { registerProjectRoutes } from './project-routes';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
@@ -135,6 +136,14 @@ export async function registerRoutes(app: Express) {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ ...sanitizeUser(user), allowedModules: getAllowedModules(user.role) });
+  });
+
+  app.get('/api/dashboard', (req: AuthedRequest, res) => {
+    const raw = String(req.query.period || 'monthly');
+    const period: DashboardPeriod = ['daily', 'weekly', 'monthly'].includes(raw)
+      ? (raw as DashboardPeriod)
+      : 'monthly';
+    res.json(buildDashboard(req.userId!, period));
   });
 
   app.patch('/api/me', (req: AuthedRequest, res) => {
