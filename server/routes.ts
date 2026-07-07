@@ -10,6 +10,11 @@ import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifi
 import { isEmailConfigured, sendEmail } from './email/transport';
 import { notify, notifyManager } from './notifications/dispatcher';
 import { attendanceStatusPayload, evaluateClockOut, MIN_CLOCK_OUT_HOURS, FULL_DAY_HOURS } from './attendance-rules';
+import { verifyPassword, hashPassword, upgradePasswordIfNeeded } from './password';
+import {
+  activeUsers, assertManager, assertSelfOrManager, canAccessTask, canAccessKanbanTask,
+  directoryUser, isManagerOrAdmin,
+} from './security';
 
 export type { AuthedRequest } from './middleware';
 
@@ -71,8 +76,16 @@ export async function registerRoutes(app: Express) {
   const db = () => getDb();
 
   app.post('/api/auth/login', (req, res) => {
-    const user = db().users.find(u => u.email === req.body.email && u.password === req.body.password);
-    if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+    const user = db().users.find(u => u.email?.toLowerCase() === email);
+    if (!user || !verifyPassword(password, user.password)) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    if (user.status === 'Inactive') {
+      return res.status(403).json({ error: 'Account is inactive. Contact HR.' });
+    }
+    if (upgradePasswordIfNeeded(user, password)) saveDb();
 
     const rawPortal = req.headers['x-portal'] || req.body.portal;
     const portal = rawPortal === 'manager' ? 'admin' : rawPortal;
@@ -126,12 +139,24 @@ export async function registerRoutes(app: Express) {
     res.json(sanitizeUser(user));
   });
 
-  app.get('/api/users', (_req, res) => res.json(db().users.map(sanitizeUser)));
+  app.get('/api/users', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    const list = activeUsers();
+    if (isManagerOrAdmin(me)) {
+      return res.json(list.map(sanitizeUser));
+    }
+    res.json(list.map(directoryUser));
+  });
 
-  app.get('/api/users/:id', (req, res) => {
+  app.get('/api/users/:id', (req: AuthedRequest, res) => {
+    if (!assertSelfOrManager(req, res, req.params.id)) return;
     const user = getUserById(req.params.id);
-    if (!user) return res.status(404).json({ error: 'Not found' });
-    res.json({ ...sanitizeUser(user), employmentType: user.employmentType, emergencyContact: user.emergencyContact });
+    if (!user || user.status === 'Inactive') return res.status(404).json({ error: 'Not found' });
+    const me = getUserById(req.userId!);
+    if (isManagerOrAdmin(me)) {
+      return res.json({ ...sanitizeUser(user), employmentType: user.employmentType, emergencyContact: user.emergencyContact });
+    }
+    res.json(directoryUser(user));
   });
 
   app.get('/api/employees', requireRole('manager', 'admin'), (req, res) => {
@@ -175,7 +200,7 @@ export async function registerRoutes(app: Express) {
       department: department || 'General',
       role: userRole,
       title: title?.trim() || 'Employee',
-      password: String(password),
+      password: hashPassword(String(password)),
       points: 1000,
       status: 'Active',
       phone: phone?.trim() || '',
@@ -229,10 +254,10 @@ export async function registerRoutes(app: Express) {
     if (!currentPassword || !newPassword || String(newPassword).length < 8) {
       return res.status(400).json({ error: 'Current password and new password (8+ chars) required' });
     }
-    if (user.password !== currentPassword) {
+    if (!verifyPassword(currentPassword, user.password)) {
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
-    user.password = newPassword;
+    user.password = hashPassword(String(newPassword));
     saveDb();
     res.json({ success: true });
   });
@@ -389,8 +414,16 @@ export async function registerRoutes(app: Express) {
   });
 
   // Marketplace tasks
-  app.get('/api/tasks', (_req, res) => res.json(db().tasks));
-  app.post('/api/tasks', (req: AuthedRequest, res) => {
+  app.get('/api/tasks', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    if (isManagerOrAdmin(me)) return res.json(db().tasks);
+    res.json(db().tasks.filter(t =>
+      t.ownerId === req.userId ||
+      t.claimedById === req.userId ||
+      t.status === 'marketplace',
+    ));
+  });
+  app.post('/api/tasks', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
     const t = { id: `t${Date.now()}`, title: req.body.title, ownerId: req.userId!, status: 'pending', value: Number(req.body.value) || 10, deadline: req.body.deadline || new Date(Date.now() + 7 * 86400000).toISOString(), referenceLink: req.body.referenceLink, category: req.body.category, priority: req.body.priority || 'Normal' };
     db().tasks.push(t);
     if (req.body.assigneeId && req.body.assigneeId !== req.userId) {
@@ -401,7 +434,10 @@ export async function registerRoutes(app: Express) {
   });
   app.put('/api/tasks/:id', (req: AuthedRequest, res) => {
     const t = db().tasks.find(x => x.id === req.params.id);
-    if (!t || t.ownerId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+    const me = getUserById(req.userId!);
+    if (!t || !me || !canAccessTask(t, req.userId!, me.role) || (t.ownerId !== req.userId && !isManagerOrAdmin(me))) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     Object.assign(t, { title: req.body.title ?? t.title, referenceLink: req.body.referenceLink ?? t.referenceLink, category: req.body.category ?? t.category });
     saveDb();
     res.json({ success: true, task: t });
@@ -414,7 +450,9 @@ export async function registerRoutes(app: Express) {
   });
   app.post('/api/tasks/timer', (req: AuthedRequest, res) => {
     const t = db().tasks.find(x => x.id === req.body.taskId);
-    if (!t) return res.status(404).json({ error: 'Not found' });
+    const me = getUserById(req.userId!);
+    if (!t || !me) return res.status(404).json({ error: 'Not found' });
+    if (!canAccessTask(t, req.userId!, me.role)) return res.status(403).json({ error: 'Forbidden' });
     if (req.body.action === 'start') { t.status = 'in_progress'; t.timeStarted = new Date().toISOString(); }
     else if (req.body.action === 'stop') { t.timeSpent = (t.timeSpent || 0) + req.body.durationMs; t.timeStarted = undefined; }
     saveDb();
@@ -449,16 +487,25 @@ export async function registerRoutes(app: Express) {
   });
 
   // Kanban
-  app.get('/api/kanban', (_req, res) => res.json(db().kanbanTasks));
-  app.post('/api/kanban', (req: AuthedRequest, res) => {
-    const t = { id: `KT-${Date.now()}`, title: req.body.title, stage: 'todo', priority: req.body.priority || 'Normal', assigneeId: req.userId! };
+  app.get('/api/kanban', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    if (isManagerOrAdmin(me)) return res.json(db().kanbanTasks);
+    res.json(db().kanbanTasks.filter(t => !t.assigneeId || t.assigneeId === req.userId));
+  });
+  app.post('/api/kanban', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
+    const assigneeId = req.body.assigneeId || req.userId!;
+    const t = { id: `KT-${Date.now()}`, title: req.body.title, stage: 'todo', priority: req.body.priority || 'Normal', assigneeId };
     db().kanbanTasks.push(t); saveDb();
     res.json({ success: true, task: t });
   });
-  app.patch('/api/kanban/:id', (req, res) => {
+  app.patch('/api/kanban/:id', (req: AuthedRequest, res) => {
     const t = db().kanbanTasks.find(x => x.id === req.params.id);
-    if (!t) return res.status(404).json({ error: 'Not found' });
+    const me = getUserById(req.userId!);
+    if (!t || !me) return res.status(404).json({ error: 'Not found' });
+    if (!canAccessKanbanTask(t, req.userId!, me.role)) return res.status(403).json({ error: 'Forbidden' });
     if (req.body.stage) t.stage = req.body.stage;
+    if (req.body.title) t.title = req.body.title;
+    if (req.body.priority) t.priority = req.body.priority;
     saveDb();
     res.json({ success: true, task: t });
   });
@@ -633,7 +680,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Recruit
-  app.get('/api/recruit/candidates', (_req, res) => res.json(db().candidates));
+  app.get('/api/recruit/candidates', requireRole('manager', 'admin'), (_req, res) => res.json(db().candidates));
   app.post('/api/recruit/candidates', requireRole('manager', 'admin'), (req, res) => {
     const c = { id: `c${Date.now()}`, name: req.body.name, role: req.body.role, stage: 'Applied' };
     db().candidates.push(c); saveDb();
@@ -687,10 +734,34 @@ export async function registerRoutes(app: Express) {
   });
 
   // Field
-  app.get('/api/field/agents', (_req, res) => res.json({ agents: db().fieldAgents, count: db().fieldAgents.filter(a => a.status === 'Active').length }));
+  app.get('/api/field/agents', requireRole('manager', 'admin'), (_req, res) => res.json({ agents: db().fieldAgents, count: db().fieldAgents.filter(a => a.status === 'Active').length }));
+  app.post('/api/field/agents', requireRole('manager', 'admin'), (req, res) => {
+    const a = {
+      id: `fa${Date.now()}`,
+      name: req.body.name || 'Field Agent',
+      location: req.body.location || '',
+      lat: Number(req.body.lat) || 12.97,
+      lng: Number(req.body.lng) || 77.59,
+      status: req.body.status || 'Active',
+    };
+    db().fieldAgents.push(a);
+    saveDb();
+    res.json({ success: true, agent: a });
+  });
+  app.patch('/api/field/agents/:id', requireRole('manager', 'admin'), (req, res) => {
+    const a = db().fieldAgents.find(x => x.id === req.params.id);
+    if (!a) return res.status(404).json({ error: 'Not found' });
+    if (req.body.name) a.name = req.body.name;
+    if (req.body.location) a.location = req.body.location;
+    if (req.body.status) a.status = req.body.status;
+    if (req.body.lat !== undefined) a.lat = Number(req.body.lat);
+    if (req.body.lng !== undefined) a.lng = Number(req.body.lng);
+    saveDb();
+    res.json({ success: true, agent: a });
+  });
 
   // Finance
-  app.get('/api/finance/summary', (_req, res) => {
+  app.get('/api/finance/summary', requireRole('manager', 'admin'), (_req, res) => {
     const payroll = db().payrollRecords.reduce((s, p) => s + p.netPay, 0);
     const approvedExpenses = db().expenses.filter(e => e.status === 'Approved').reduce((s, e) => s + e.amount, 0);
     res.json({
@@ -743,29 +814,38 @@ export async function registerRoutes(app: Express) {
     res.json({ success: true, likes: p.likes });
   });
   app.post('/api/community/polls/:id/vote', (req: AuthedRequest, res) => {
-    const poll = db().polls.find(x => x.id === req.params.id);
+    const poll = db().polls.find(x => x.id === req.params.id) as { id: string; question: string; options: { label: string; votes: number }[]; voters?: string[] };
     if (!poll) return res.status(404).json({ error: 'Not found' });
+    if (!poll.voters) poll.voters = [];
+    if (poll.voters.includes(req.userId!)) return res.status(400).json({ error: 'You have already voted' });
     const opt = poll.options.find(o => o.label === req.body.option);
-    if (opt) opt.votes++;
+    if (!opt) return res.status(400).json({ error: 'Invalid option' });
+    opt.votes++;
+    poll.voters.push(req.userId!);
     saveDb();
     res.json({ success: true, poll });
   });
 
   // Reports
-  app.get('/api/reports/:type', (req: AuthedRequest, res) => {
+  app.get('/api/reports/:type', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
     const type = req.params.type;
     let data: unknown = {};
     if (type === 'attendance') data = { logs: db().attendanceLogs.length, activeToday: db().users.filter(u => u.status === 'Active').length, chart: db().attendanceLogs.slice(-30) };
     else if (type === 'leave') data = { requests: db().leaveRequests, approved: db().leaveRequests.filter(l => l.status === 'Approved').length, pending: db().leaveRequests.filter(l => l.status === 'Pending').length };
     else if (type === 'performance') data = { goals: db().performanceGoals, reviews: db().performanceReviews, avgRating: 4.2 };
-    else if (type === 'attrition') data = { headcount: db().users.length, onLeave: db().users.filter(u => u.status === 'On Leave').length, departures: 2 };
+    else if (type === 'attrition') data = { headcount: activeUsers().length, onLeave: db().users.filter(u => u.status === 'On Leave').length, departures: db().users.filter(u => u.status === 'Inactive').length };
     else data = { message: 'Custom report generated', modules: Object.keys(db().rolePermissions) };
     res.json({ type, generatedAt: new Date().toISOString(), data });
   });
 
   // Performance
   app.get('/api/performance', (req: AuthedRequest, res) => {
-    const uid = req.query.userId as string || req.userId!;
+    const requested = req.query.userId as string | undefined;
+    const me = getUserById(req.userId!);
+    if (requested && requested !== req.userId && !isManagerOrAdmin(me)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const uid = requested || req.userId!;
     const completedTasks = db().tasks.filter(t => t.status === 'completed' && (t.claimedById === uid || t.ownerId === uid));
     const logs = db().attendanceLogs.filter(l => l.userId === uid && l.clockOut);
     const avgHours = logs.length ? Math.round(logs.reduce((s, l) => s + (new Date(l.clockOut!).getTime() - new Date(l.clockIn).getTime()) / 3600000, 0) / logs.length * 10) / 10 : 0;
@@ -806,7 +886,11 @@ export async function registerRoutes(app: Express) {
     res.json(msgs);
   });
   app.post('/api/chat/:userId/messages', (req: AuthedRequest, res) => {
-    const m = { id: `cm${Date.now()}`, fromId: req.userId!, toId: req.params.userId, content: req.body.content, createdAt: new Date().toISOString() };
+    const recipient = getUserById(req.params.userId);
+    if (!recipient || recipient.status === 'Inactive') return res.status(404).json({ error: 'Recipient not found' });
+    const content = String(req.body.content || '').trim();
+    if (!content) return res.status(400).json({ error: 'Message is required' });
+    const m = { id: `cm${Date.now()}`, fromId: req.userId!, toId: req.params.userId, content, createdAt: new Date().toISOString() };
     db().chatMessages.push(m);
     pushNotification(req.params.userId, 'New message', `${getUserById(req.userId!)?.name}: ${req.body.content.slice(0, 50)}`);
     saveDb();

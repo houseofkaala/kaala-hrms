@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import { getUserById } from './db';
 
+
 const sessions = new Map<string, string>();
 
 export interface AuthedRequest extends Request {
@@ -24,6 +25,10 @@ export function authMiddleware(req: AuthedRequest, res: Response, next: NextFunc
   const userId = sessions.get(authHeader.slice(7));
   if (!userId) return res.status(401).json({ error: 'Invalid or expired session' });
   req.userId = userId;
+  const user = getUserById(userId);
+  if (!user || user.status === 'Inactive') {
+    return res.status(403).json({ error: 'Account is inactive or not found' });
+  }
   next();
 }
 

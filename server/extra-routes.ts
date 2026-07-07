@@ -1,6 +1,7 @@
 import { Express } from 'express';
 import { getDb, saveDb, sanitizeUser, getUserById, pushNotification } from './db';
 import { AuthedRequest, requireRole } from './middleware';
+import { hashPassword } from './password';
 
 export function registerExtraRoutes(app: Express) {
   const db = () => getDb();
@@ -50,9 +51,13 @@ export function registerExtraRoutes(app: Express) {
     res.json({ success: true, employee: sanitizeUser(u) });
   });
 
-  app.delete('/api/employees/:id', requireRole('admin'), (req, res) => {
+  app.delete('/api/employees/:id', requireRole('admin'), (req: AuthedRequest, res) => {
     const u = getUserById(req.params.id);
     if (!u) return res.status(404).json({ error: 'Not found' });
+    if (u.id === req.userId) return res.status(400).json({ error: 'Cannot deactivate your own account' });
+    if (u.role === 'admin' && db().users.filter(x => x.role === 'admin' && x.status === 'Active').length <= 1) {
+      return res.status(400).json({ error: 'Cannot deactivate the last active admin' });
+    }
     u.status = 'Inactive';
     saveDb();
     res.json({ success: true });
@@ -65,7 +70,7 @@ export function registerExtraRoutes(app: Express) {
     if (!password || String(password).length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
-    u.password = String(password);
+    u.password = hashPassword(String(password));
     saveDb();
     pushNotification(u.id, 'Password updated', 'Your login password was reset by an administrator.', { triggerId: 'security.password_changed' });
     const baseDomain = process.env.VITE_BASE_DOMAIN || 'bymarketingonly.com';

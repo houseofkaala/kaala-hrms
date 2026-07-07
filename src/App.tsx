@@ -48,6 +48,33 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import { useRBACStore, useTimerStore } from './store';
 import { getPortal, PORTAL_META } from './portal';
+import { canAccessModule } from './rbac';
+import { ModuleGuard } from './components/ModuleGuard';
+import type { LucideIcon } from 'lucide-react';
+
+function VisibleNavItem({
+  route,
+  icon,
+  label,
+  to,
+  active,
+  badge,
+}: {
+  route: string;
+  icon: LucideIcon;
+  label: string;
+  to: string;
+  active: boolean;
+  badge?: number;
+}) {
+  const { currentUser } = useRBACStore();
+  if (!canAccessModule(currentUser, route)) return null;
+  return <RailNavItem icon={icon} label={label} to={to} active={active} badge={badge} />;
+}
+
+function GuardedView({ module, children }: { module: string; children: React.ReactNode }) {
+  return <ModuleGuard module={module}>{children}</ModuleGuard>;
+}
 
 export default function App() {
   return (
@@ -233,53 +260,53 @@ function HRMSApp() {
           </span>
         </Link>
 
-        <RailNavItem icon={LayoutDashboard} label="Dashboard" to="/dashboard" active={activeTab === 'dashboard'} />
+        <VisibleNavItem route="dashboard" icon={LayoutDashboard} label="Dashboard" to="/dashboard" active={activeTab === 'dashboard'} />
 
         {showAdminSection && (
           <>
             <RailSection label={portal === 'admin' ? 'Admin & HR' : 'Team Management'} />
-            <RailNavItem icon={Users} label="Recruit" to="/recruit" active={activeTab === 'recruit'} />
-            <RailNavItem icon={Users} label="Employees" to="/employees" active={activeTab === 'employees'} />
-            <RailNavItem icon={ClipboardList} label="Onboarding" to="/onboarding" active={activeTab === 'onboarding'} />
-            <RailNavItem icon={Network} label="Org Chart" to="/orgchart" active={activeTab === 'orgchart'} />
-            <RailNavItem icon={DollarSign} label="Payroll" to="/payroll" active={activeTab === 'payroll'} />
-            <RailNavItem icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
-            <RailNavItem icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
-            <RailNavItem icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
-            <RailNavItem icon={Map} label="Field Ops" to="/field" active={activeTab === 'field'} />
-            <RailNavItem icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
-            <RailNavItem icon={FileText} label="Reports" to="/reports" active={activeTab === 'reports'} />
+            <VisibleNavItem route="recruit" icon={Users} label="Recruit" to="/recruit" active={activeTab === 'recruit'} />
+            <VisibleNavItem route="employees" icon={Users} label="Employees" to="/employees" active={activeTab === 'employees'} />
+            <VisibleNavItem route="onboarding" icon={ClipboardList} label="Onboarding" to="/onboarding" active={activeTab === 'onboarding'} />
+            <VisibleNavItem route="orgchart" icon={Network} label="Org Chart" to="/orgchart" active={activeTab === 'orgchart'} />
+            <VisibleNavItem route="payroll" icon={DollarSign} label="Payroll" to="/payroll" active={activeTab === 'payroll'} />
+            <VisibleNavItem route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
+            <VisibleNavItem route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
+            <VisibleNavItem route="field" icon={Map} label="Field Ops" to="/field" active={activeTab === 'field'} />
+            <VisibleNavItem route="finance" icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
+            <VisibleNavItem route="reports" icon={FileText} label="Reports" to="/reports" active={activeTab === 'reports'} />
             {portal === 'admin' && currentUser.role === 'admin' && (
-              <RailNavItem icon={Shield} label="Roles & Permissions" to="/roles" active={activeTab === 'roles'} />
+              <VisibleNavItem route="roles" icon={Shield} label="Roles & Permissions" to="/roles" active={activeTab === 'roles'} />
             )}
           </>
         )}
 
         <RailSection label="My Work" />
-        <RailNavItem icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />
-        <RailNavItem icon={Calendar} label="Leave Management" to="/leave" active={activeTab === 'leave'} />
-        <RailNavItem icon={Calendar} label="Holidays" to="/holidays" active={activeTab === 'holidays'} />
-        <RailNavItem icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
-        <RailNavItem icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
-        <RailNavItem icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
-        <RailNavItem icon={Monitor} label="Assets" to="/assets" active={activeTab === 'assets'} />
-        <RailNavItem icon={Activity} label="Performance" to="/performance" active={activeTab === 'performance'} />
-        <RailNavItem icon={GraduationCap} label="Learning" to="/learning" active={activeTab === 'learning'} />
-        <RailNavItem icon={FileText} label="Surveys" to="/survey" active={activeTab === 'survey'} />
+        <VisibleNavItem route="projects" icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
+        <VisibleNavItem route="people" icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />
+        <VisibleNavItem route="leave" icon={Calendar} label="Leave Management" to="/leave" active={activeTab === 'leave'} />
+        <VisibleNavItem route="holidays" icon={Calendar} label="Holidays" to="/holidays" active={activeTab === 'holidays'} />
+        <VisibleNavItem route="attendance" icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
+        <VisibleNavItem route="timesheets" icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
+        <VisibleNavItem route="documents" icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
+        <VisibleNavItem route="assets" icon={Monitor} label="Assets" to="/assets" active={activeTab === 'assets'} />
+        <VisibleNavItem route="performance" icon={Activity} label="Performance" to="/performance" active={activeTab === 'performance'} />
+        <VisibleNavItem route="learning" icon={GraduationCap} label="Learning" to="/learning" active={activeTab === 'learning'} />
+        <VisibleNavItem route="survey" icon={FileText} label="Surveys" to="/survey" active={activeTab === 'survey'} />
 
         <RailSection label="Culture" />
-        <RailNavItem icon={Users} label="Community" to="/community" active={activeTab === 'community'} />
-        <RailNavItem icon={MessageSquare} label="Help Desk" to="/helpdesk" active={activeTab === 'helpdesk'} />
-        <RailNavItem icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
-        <RailNavItem icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
-        <RailNavItem icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
-        <RailNavItem icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
-        <RailNavItem icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
-        <RailNavItem icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
+        <VisibleNavItem route="community" icon={Users} label="Community" to="/community" active={activeTab === 'community'} />
+        <VisibleNavItem route="helpdesk" icon={MessageSquare} label="Help Desk" to="/helpdesk" active={activeTab === 'helpdesk'} />
+        <VisibleNavItem route="marketplace" icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
+        <VisibleNavItem route="rewards" icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
+        <VisibleNavItem route="leaderboard" icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
+        <VisibleNavItem route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
+        <VisibleNavItem route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
+        <VisibleNavItem route="policies" icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
 
         <div className="mt-auto flex flex-col gap-0.5 pt-4">
-          <RailNavItem icon={Bell} label="Notifications" to="/notifications" active={activeTab === 'notifications'} />
-          <RailNavItem icon={Settings} label="Settings" to="/settings" active={activeTab === 'settings'} />
+          <VisibleNavItem route="notifications" icon={Bell} label="Notifications" to="/notifications" active={activeTab === 'notifications'} />
+          <VisibleNavItem route="settings" icon={Settings} label="Settings" to="/settings" active={activeTab === 'settings'} />
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors"
@@ -348,46 +375,43 @@ function HRMSApp() {
               )}
               
               {activeTab === 'marketplace' && (
-                <MarketplaceView 
-                  tasks={marketplaceTasks} 
-                  onClaim={claimTask} 
-                  userId={currentUser.id} 
-                  users={allUsers}
-                />
+                <GuardedView module="marketplace">
+                  <MarketplaceView tasks={marketplaceTasks} onClaim={claimTask} userId={currentUser.id} users={allUsers} />
+                </GuardedView>
               )}
               
-              {activeTab === 'leaderboard' && <LeaderboardView users={allUsers.length ? allUsers : [currentUser]} />}
-              {activeTab === 'recruit' && <RecruitView />}
-              {activeTab === 'employees' && <EmployeeManagementView />}
-              {activeTab === 'people' && <PeopleView />}
-              {activeTab === 'leave' && <LeaveManagementView />}
-              {activeTab === 'documents' && <DocumentsView />}
-              {activeTab === 'attendance' && <AttendanceView />}
-              {activeTab === 'payroll' && <PayrollView />}
-              {activeTab === 'assets' && <AssetsView />}
-              {activeTab === 'projects' && <ProjectsView />}
-              {activeTab === 'tasks' && <TasksView />}
-              {activeTab === 'performance' && <PerformanceView />}
-              {activeTab === 'learning' && <LearningView />}
-              {activeTab === 'chat' && <ChatView users={allUsers.length ? allUsers : [currentUser]} currentUser={currentUser} />}
-              {activeTab === 'survey' && <SurveyView />}
-              {activeTab === 'field' && <FieldView />}
-              {activeTab === 'finance' && <FinanceView />}
-              {activeTab === 'ai' && <AIView />}
-              {activeTab === 'community' && <CommunityView />}
-              {activeTab === 'helpdesk' && <HelpDeskView />}
-              {activeTab === 'reports' && <ReportsView />}
-              {activeTab === 'rewards' && <RewardsView />}
-              {activeTab === 'profile' && <ProfileView />}
-              {activeTab === 'settings' && <SettingsView />}
-              {activeTab === 'roles' && <RolesView />}
-              {activeTab === 'notifications' && <NotificationsView />}
-              {activeTab === 'onboarding' && <OnboardingView />}
-              {activeTab === 'expenses' && <ExpensesView />}
-              {activeTab === 'orgchart' && <OrgChartView />}
-              {activeTab === 'holidays' && <HolidaysView />}
-              {activeTab === 'timesheets' && <TimesheetsView />}
-              {activeTab === 'policies' && <PoliciesView />}
+              {activeTab === 'leaderboard' && <GuardedView module="leaderboard"><LeaderboardView users={allUsers.length ? allUsers : [currentUser]} /></GuardedView>}
+              {activeTab === 'recruit' && <GuardedView module="recruit"><RecruitView /></GuardedView>}
+              {activeTab === 'employees' && <GuardedView module="employees"><EmployeeManagementView /></GuardedView>}
+              {activeTab === 'people' && <GuardedView module="people"><PeopleView /></GuardedView>}
+              {activeTab === 'leave' && <GuardedView module="leave"><LeaveManagementView /></GuardedView>}
+              {activeTab === 'documents' && <GuardedView module="documents"><DocumentsView /></GuardedView>}
+              {activeTab === 'attendance' && <GuardedView module="attendance"><AttendanceView /></GuardedView>}
+              {activeTab === 'payroll' && <GuardedView module="payroll"><PayrollView /></GuardedView>}
+              {activeTab === 'assets' && <GuardedView module="assets"><AssetsView /></GuardedView>}
+              {(activeTab === 'projects' || location.pathname.startsWith('/projects/')) && <GuardedView module="projects"><ProjectsView /></GuardedView>}
+              {activeTab === 'tasks' && <GuardedView module="tasks"><TasksView /></GuardedView>}
+              {activeTab === 'performance' && <GuardedView module="performance"><PerformanceView /></GuardedView>}
+              {activeTab === 'learning' && <GuardedView module="learning"><LearningView /></GuardedView>}
+              {activeTab === 'chat' && <GuardedView module="chat"><ChatView users={allUsers.length ? allUsers : [currentUser]} currentUser={currentUser} /></GuardedView>}
+              {activeTab === 'survey' && <GuardedView module="survey"><SurveyView /></GuardedView>}
+              {activeTab === 'field' && <GuardedView module="field"><FieldView /></GuardedView>}
+              {activeTab === 'finance' && <GuardedView module="finance"><FinanceView /></GuardedView>}
+              {activeTab === 'ai' && <GuardedView module="ai"><AIView /></GuardedView>}
+              {activeTab === 'community' && <GuardedView module="community"><CommunityView /></GuardedView>}
+              {activeTab === 'helpdesk' && <GuardedView module="helpdesk"><HelpDeskView /></GuardedView>}
+              {activeTab === 'reports' && <GuardedView module="reports"><ReportsView /></GuardedView>}
+              {activeTab === 'rewards' && <GuardedView module="rewards"><RewardsView /></GuardedView>}
+              {activeTab === 'profile' && <GuardedView module="profile"><ProfileView /></GuardedView>}
+              {activeTab === 'settings' && <GuardedView module="settings"><SettingsView /></GuardedView>}
+              {activeTab === 'roles' && <GuardedView module="roles"><RolesView /></GuardedView>}
+              {activeTab === 'notifications' && <GuardedView module="notifications"><NotificationsView /></GuardedView>}
+              {activeTab === 'onboarding' && <GuardedView module="onboarding"><OnboardingView /></GuardedView>}
+              {activeTab === 'expenses' && <GuardedView module="expenses"><ExpensesView /></GuardedView>}
+              {activeTab === 'orgchart' && <GuardedView module="orgchart"><OrgChartView /></GuardedView>}
+              {activeTab === 'holidays' && <GuardedView module="holidays"><HolidaysView /></GuardedView>}
+              {activeTab === 'timesheets' && <GuardedView module="timesheets"><TimesheetsView /></GuardedView>}
+              {activeTab === 'policies' && <GuardedView module="policies"><PoliciesView /></GuardedView>}
               {!['dashboard','marketplace','leaderboard','recruit','employees','onboarding','orgchart','people','leave','holidays','documents','attendance','timesheets','payroll','expenses','assets','projects','tasks','performance','learning','chat','survey','field','finance','ai','community','helpdesk','reports','rewards','profile','settings','roles','notifications','policies'].includes(activeTab) && (
                 <Navigate to="/dashboard" replace />
               )}
@@ -676,15 +700,17 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
             <p className="text-xs text-maroon-600/70 mt-1">Awaiting your review</p>
           </div>
         )}
-        <div className={`studio-card p-5 flex items-center justify-between gap-4 ${isManager ? '' : 'lg:col-span-1'}`}>
-          <div>
-            <p className="font-display text-base font-semibold text-maroon-950">Quick action</p>
-            <p className="text-xs text-maroon-600/70 mt-1">Create a task for yourself or your team</p>
+        {isManager && (
+          <div className="studio-card p-5 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-display text-base font-semibold text-maroon-950">Quick action</p>
+              <p className="text-xs text-maroon-600/70 mt-1">Create a task for yourself or your team</p>
+            </div>
+            <button onClick={() => setIsNewTaskModalOpen(true)} className="btn-primary shrink-0">
+              <Plus className="w-4 h-4" /> New Task
+            </button>
           </div>
-          <button onClick={() => setIsNewTaskModalOpen(true)} className="btn-primary shrink-0">
-            <Plus className="w-4 h-4" /> New Task
-          </button>
-        </div>
+        )}
       </div>
 
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8 studio-reveal studio-reveal-d2">
@@ -748,12 +774,14 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
                 <option value="createdDate">Sort by Created Date</option>
               </select>
             </div>
-            <button
-              onClick={() => setIsNewTaskModalOpen(true)}
-              className="btn-primary text-xs py-1.5 px-3"
-            >
-              <Plus className="w-3 h-3" /> New Task
-            </button>
+            {isManager && (
+              <button
+                onClick={() => setIsNewTaskModalOpen(true)}
+                className="btn-primary text-xs py-1.5 px-3"
+              >
+                <Plus className="w-3 h-3" /> New Task
+              </button>
+            )}
           </div>
           <div className="p-6">
             {pending.length === 0 && underReview.length === 0 ? (

@@ -18,11 +18,11 @@ export function FinanceView() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <span className="text-xs text-gray-500 font-medium mb-2 block">Monthly Payroll</span>
-          <span className="text-3xl font-semibold text-gray-900">${(data?.monthlyPayroll || 0).toLocaleString()}</span>
+          <span className="text-3xl font-semibold text-gray-900">₹{(data?.monthlyPayroll || 0).toLocaleString('en-IN')}</span>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <span className="text-xs text-gray-500 font-medium mb-2 block">Software Expenses</span>
-          <span className="text-3xl font-semibold text-gray-900">${(data?.softwareExpenses || 0).toLocaleString()}</span>
+          <span className="text-3xl font-semibold text-gray-900">₹{(data?.softwareExpenses || 0).toLocaleString('en-IN')}</span>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
           <span className="text-xs text-gray-500 font-medium mb-2 block">Pending Reimbursements</span>
@@ -36,7 +36,7 @@ export function FinanceView() {
             {data.expenses.map(e => (
               <div key={e.id} className="flex justify-between text-sm border-b border-gray-50 pb-2">
                 <span className="text-gray-700">{e.title}</span>
-                <span className="font-medium">${e.amount} · {e.status}</span>
+                <span className="font-medium">₹{e.amount.toLocaleString('en-IN')} · {e.status}</span>
               </div>
             ))}
           </div>
