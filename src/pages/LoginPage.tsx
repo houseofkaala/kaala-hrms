@@ -4,6 +4,7 @@ import { setToken, isAuthenticated } from '../auth';
 import type { User } from '../types';
 import { useRBACStore } from '../store';
 import { getPortal, getPortalLoginUrl, PORTAL_META, portalForRole, roleMatchesPortal, type Portal } from '../portal';
+import { PasswordInput } from '../components/PasswordInput';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -115,12 +116,12 @@ export default function LoginPage() {
               </div>
               <div>
                 <label className="block font-accent text-[10px] uppercase tracking-[0.3em] text-maroon-700/80 mb-2">Password</label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={setPassword}
                   className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors"
                   required
+                  autoComplete="current-password"
                 />
               </div>
               {error && (
