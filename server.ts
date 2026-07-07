@@ -5,7 +5,7 @@ import { registerRoutes } from './server/routes';
 async function startServer() {
   const app = express();
   app.set('trust proxy', 1);
-  app.use(express.json());
+  app.use(express.json({ limit: '15mb' }));
   const PORT = Number(process.env.PORT) || 3000;
 
   // Fast health check before heavy route registration

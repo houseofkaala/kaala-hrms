@@ -66,10 +66,15 @@ export function AssetsView() {
         </div>
       )}
       <div className="bg-white px-8 py-6 border border-gray-200 rounded-2xl flex items-center justify-between shadow-sm">
-        <h2 className="text-xl font-semibold text-gray-900">Assets</h2>
-        <button onClick={() => setIsModalOpen(true)} className="bg-gray-900 text-white px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 hover:bg-gray-800 shadow-sm">
-          <Plus className="w-4 h-4" /> Add Asset
-        </button>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Assets</h2>
+          <p className="text-sm text-gray-500 mt-1">{isManager ? 'Manage company equipment' : 'Equipment assigned to you'}</p>
+        </div>
+        {isManager && (
+          <button onClick={() => setIsModalOpen(true)} className="bg-gray-900 text-white px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 hover:bg-gray-800 shadow-sm">
+            <Plus className="w-4 h-4" /> Add Asset
+          </button>
+        )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {assets.map(asset => (

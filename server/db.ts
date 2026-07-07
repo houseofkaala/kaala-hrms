@@ -2,6 +2,7 @@ import { syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
 import { ensureProjectSchema } from './project-management';
 import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
+import { seedOperationalContent } from './operational-seed';
 import { mergeEmailSettings } from './notifications/registry';
 import {
   flushPersistence,
@@ -68,7 +69,9 @@ function applyMigrations() {
   if (!db.emailDigestQueue) db.emailDigestQueue = [];
   if (!db.emailDigestMeta) db.emailDigestMeta = {};
   if (!db.surveyResponses) db.surveyResponses = [];
+  if (!db.sessions) db.sessions = [];
   ensureProjectSchema(db);
+  seedOperationalContent(db);
 }
 
 function hydrateStore(raw: Partial<Database> | null) {

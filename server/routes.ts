@@ -2,7 +2,10 @@ import { Express } from 'express';
 import {
   initDb, saveDb, getDb, sanitizeUser, getUserById, pushNotification, addTransaction, getStorageBackend, UserRecord,
 } from './db';
-import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession } from './middleware';
+import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession, moduleAccessMiddleware } from './middleware';
+import { checkLoginRateLimit, clearLoginRateLimit } from './rate-limit';
+import { getAllowedModules, assertValidRoleChange } from './security';
+import { saveDocumentFile, getDocumentFilePath, deleteDocumentFile, mimeFromFilename } from './document-storage';
 import { registerExtraRoutes } from './extra-routes';
 import { registerProjectRoutes } from './project-routes';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
@@ -78,10 +81,18 @@ export async function registerRoutes(app: Express) {
   app.post('/api/auth/login', (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
+    const clientIp = String(req.ip || req.socket.remoteAddress || 'unknown');
+    const rate = checkLoginRateLimit(clientIp, email);
+    if (!rate.allowed) {
+      return res.status(429).json({
+        error: `Too many login attempts. Try again in ${rate.retryAfterSec} seconds.`,
+      });
+    }
     const user = db().users.find(u => u.email?.toLowerCase() === email);
     if (!user || !verifyPassword(password, user.password)) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+    clearLoginRateLimit(clientIp, email);
     if (user.status === 'Inactive') {
       return res.status(403).json({ error: 'Account is inactive. Contact HR.' });
     }
@@ -98,7 +109,7 @@ export async function registerRoutes(app: Express) {
     }
 
     const token = createSession(user.id);
-    res.json({ token, user: sanitizeUser(user) });
+    res.json({ token, user: { ...sanitizeUser(user), allowedModules: getAllowedModules(user.role) } });
   });
 
   app.post('/api/auth/logout', authMiddleware, (req: AuthedRequest, res) => {
@@ -118,11 +129,12 @@ export async function registerRoutes(app: Express) {
   });
 
   app.use('/api', authMiddleware);
+  app.use('/api', moduleAccessMiddleware);
 
   app.get('/api/me', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.json(sanitizeUser(user));
+    res.json({ ...sanitizeUser(user), allowedModules: getAllowedModules(user.role) });
   });
 
   app.patch('/api/me', (req: AuthedRequest, res) => {
@@ -321,10 +333,52 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post('/api/documents', (req: AuthedRequest, res) => {
-    const doc = { id: `doc${Date.now()}`, userId: req.userId!, name: req.body.name, category: req.body.category || 'General', uploadedAt: new Date().toISOString().split('T')[0], size: req.body.size || '128 KB' };
+    const name = String(req.body.name || '').trim();
+    if (!name) return res.status(400).json({ error: 'Document name is required' });
+
+    const docId = `doc${Date.now()}`;
+    const doc: {
+      id: string; userId: string; name: string; category: string;
+      uploadedAt: string; size: string; storageKey?: string; mimeType?: string;
+    } = {
+      id: docId,
+      userId: req.userId!,
+      name,
+      category: req.body.category || 'General',
+      uploadedAt: new Date().toISOString().split('T')[0],
+      size: req.body.size || '0 KB',
+    };
+
+    if (req.body.contentBase64) {
+      try {
+        const mimeType = req.body.mimeType || mimeFromFilename(name);
+        const saved = saveDocumentFile(docId, String(req.body.contentBase64), mimeType);
+        doc.storageKey = saved.storageKey;
+        doc.mimeType = mimeType;
+        doc.size = saved.size;
+      } catch (err) {
+        return res.status(400).json({ error: err instanceof Error ? err.message : 'Upload failed' });
+      }
+    }
+
     db().documents.unshift(doc);
     saveDb();
     res.json({ success: true, document: doc });
+  });
+
+  app.get('/api/documents/:id/file', (req: AuthedRequest, res) => {
+    const doc = db().documents.find(d => d.id === req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    const me = getUserById(req.userId!);
+    if (doc.userId !== req.userId && !isManagerOrAdmin(me)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    if (!doc.storageKey) return res.status(404).json({ error: 'No file attached to this document' });
+    const filePath = getDocumentFilePath(doc.storageKey);
+    if (!filePath) return res.status(404).json({ error: 'File not found on server' });
+    res.setHeader('Content-Type', doc.mimeType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${doc.name}"`);
+    res.sendFile(filePath);
   });
 
   // Notifications
@@ -389,12 +443,20 @@ export async function registerRoutes(app: Express) {
   app.patch('/api/roles/users/:id', requireRole('admin'), (req, res) => {
     const u = getUserById(req.params.id);
     if (!u) return res.status(404).json({ error: 'Not found' });
-    u.role = req.body.role; saveDb();
+    const newRole = String(req.body.role || '').trim();
+    if (!newRole) return res.status(400).json({ error: 'Role is required' });
+    if (!assertValidRoleChange(u, newRole, res)) return;
+    u.role = newRole as UserRecord['role'];
+    saveDb();
     res.json({ success: true, user: sanitizeUser(u) });
   });
 
   // Assets
-  app.get('/api/assets', (_req, res) => res.json(db().assets));
+  app.get('/api/assets', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    if (isManagerOrAdmin(me)) return res.json(db().assets);
+    res.json(db().assets.filter(a => a.userId === req.userId));
+  });
   app.post('/api/assets', requireRole('manager', 'admin'), (req, res) => {
     const a = { id: 'AST-' + Math.floor(Math.random() * 1000), name: req.body.name, userId: null, user: null, status: 'Available' };
     db().assets.push(a); saveDb();

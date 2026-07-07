@@ -10,6 +10,7 @@ export interface User {
   projects?: string[];
   title?: string;
   joinDate?: string;
+  allowedModules?: string[];
 }
 
 export interface Task {

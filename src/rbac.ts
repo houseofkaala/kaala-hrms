@@ -54,6 +54,8 @@ export function canAccessModule(user: User | null, route: string): boolean {
   if (!user) return false;
   if (user.role === 'admin' || user.role === 'manager') return true;
   const mod = moduleForRoute(route);
+  if (user.allowedModules?.includes('*')) return true;
+  if (user.allowedModules?.length) return user.allowedModules.includes(mod);
   return EMPLOYEE_MODULES.has(mod);
 }
 

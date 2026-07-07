@@ -2,6 +2,8 @@ import { Express } from 'express';
 import { getDb, saveDb, sanitizeUser, getUserById, pushNotification } from './db';
 import { AuthedRequest, requireRole } from './middleware';
 import { hashPassword } from './password';
+import { assertValidRoleChange } from './security';
+import { deleteDocumentFile } from './document-storage';
 
 export function registerExtraRoutes(app: Express) {
   const db = () => getDb();
@@ -40,7 +42,10 @@ export function registerExtraRoutes(app: Express) {
     const { name, department, role, title, status, phone, managerId, emergencyContact, employmentType } = req.body;
     if (name) u.name = name;
     if (department) u.department = department;
-    if (role) u.role = role;
+    if (role) {
+      if (!assertValidRoleChange(u, String(role), res)) return;
+      u.role = role;
+    }
     if (title) u.title = title;
     if (status) u.status = status;
     if (phone) u.phone = phone;
@@ -221,9 +226,14 @@ export function registerExtraRoutes(app: Express) {
 
   // Documents delete
   app.delete('/api/documents/:id', (req: AuthedRequest, res) => {
-    const idx = db().documents.findIndex(d => d.id === req.params.id && d.userId === req.userId);
+    const me = getUserById(req.userId!);
+    const idx = db().documents.findIndex(d => {
+      if (d.id !== req.params.id) return false;
+      return d.userId === req.userId || me?.role === 'manager' || me?.role === 'admin';
+    });
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    db().documents.splice(idx, 1);
+    const [removed] = db().documents.splice(idx, 1);
+    deleteDocumentFile(removed.storageKey);
     saveDb();
     res.json({ success: true });
   });
@@ -257,10 +267,10 @@ export function registerExtraRoutes(app: Express) {
   app.patch('/api/roles', requireRole('admin'), (req, res) => {
     const { role, modules } = req.body;
     const perms = db().rolePermissions as Record<string, { modules: string[]; description: string }>;
-    if (role && modules && perms[role]) {
-      perms[role].modules = modules;
-      saveDb();
-    }
+    if (!role || !perms[role]) return res.status(400).json({ error: 'Invalid role' });
+    if (!Array.isArray(modules)) return res.status(400).json({ error: 'modules must be an array' });
+    perms[role].modules = modules.map(String);
+    saveDb();
     res.json({ success: true, permissions: db().rolePermissions });
   });
 

@@ -83,3 +83,33 @@ export function hasModuleAccess(role: string, module: string): boolean {
   if (cfg.modules.includes('*')) return true;
   return cfg.modules.includes(module);
 }
+
+export function getAllowedModules(role: string): string[] {
+  const perms = getDb().rolePermissions as Record<string, { modules: string[] }>;
+  const cfg = perms[role];
+  if (!cfg) return [];
+  if (cfg.modules.includes('*')) return ['*'];
+  return cfg.modules;
+}
+
+const VALID_ROLES = new Set(['employee', 'manager', 'admin']);
+
+export function countActiveAdmins() {
+  return getDb().users.filter(u => u.role === 'admin' && u.status === 'Active').length;
+}
+
+export function assertValidRoleChange(
+  target: UserRecord,
+  newRole: string,
+  res: Response,
+): boolean {
+  if (!VALID_ROLES.has(newRole)) {
+    res.status(400).json({ error: 'Invalid role. Must be employee, manager, or admin.' });
+    return false;
+  }
+  if (target.role === 'admin' && newRole !== 'admin' && countActiveAdmins() <= 1) {
+    res.status(400).json({ error: 'Cannot demote the last active admin' });
+    return false;
+  }
+  return true;
+}

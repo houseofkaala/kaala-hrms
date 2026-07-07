@@ -1,28 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
 import { getUserById } from './db';
+import { createSession, deleteSession, resolveSession } from './sessions';
+import { hasModuleAccess, isManagerOrAdmin } from './security';
 
-
-const sessions = new Map<string, string>();
+export { createSession, deleteSession };
 
 export interface AuthedRequest extends Request {
   userId?: string;
 }
 
-export function createSession(userId: string): string {
-  const token = crypto.randomUUID();
-  sessions.set(token, userId);
-  return token;
-}
-
-export function deleteSession(token: string) {
-  sessions.delete(token);
-}
-
 export function authMiddleware(req: AuthedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) return res.status(401).json({ error: 'Unauthorized' });
-  const userId = sessions.get(authHeader.slice(7));
+  const userId = resolveSession(authHeader.slice(7));
   if (!userId) return res.status(401).json({ error: 'Invalid or expired session' });
   req.userId = userId;
   const user = getUserById(userId);
@@ -38,4 +28,68 @@ export function requireRole(...roles: string[]) {
     if (!user || !roles.includes(user.role)) return res.status(403).json({ error: 'Forbidden' });
     next();
   };
+}
+
+const PATH_MODULE_RULES: [RegExp, string][] = [
+  [/^\/api\/finance/, 'finance'],
+  [/^\/api\/field/, 'field'],
+  [/^\/api\/recruit/, 'recruit'],
+  [/^\/api\/reports/, 'reports'],
+  [/^\/api\/employees/, 'employees'],
+  [/^\/api\/roles/, 'roles'],
+  [/^\/api\/settings/, 'settings'],
+  [/^\/api\/payroll\/run/, 'payroll'],
+  [/^\/api\/admin\//, 'settings'],
+  [/^\/api\/biometric-devices/, 'attendance'],
+  [/^\/api\/holidays/, 'holidays'],
+  [/^\/api\/policies/, 'policies'],
+  [/^\/api\/assets/, 'assets'],
+  [/^\/api\/documents/, 'documents'],
+  [/^\/api\/surveys/, 'surveys'],
+  [/^\/api\/learning/, 'learning'],
+  [/^\/api\/helpdesk/, 'helpdesk'],
+  [/^\/api\/community/, 'community'],
+  [/^\/api\/tasks/, 'marketplace'],
+  [/^\/api\/marketplace/, 'marketplace'],
+  [/^\/api\/kanban/, 'tasks'],
+  [/^\/api\/projects/, 'projects'],
+  [/^\/api\/performance/, 'performance'],
+  [/^\/api\/expenses/, 'expenses'],
+  [/^\/api\/timesheets/, 'timesheets'],
+  [/^\/api\/onboarding/, 'onboarding'],
+  [/^\/api\/org-chart/, 'orgchart'],
+  [/^\/api\/attendance/, 'attendance'],
+  [/^\/api\/leave/, 'leave'],
+  [/^\/api\/rewards/, 'rewards'],
+  [/^\/api\/transactions/, 'rewards'],
+  [/^\/api\/chat/, 'chat'],
+  [/^\/api\/ai/, 'ai'],
+  [/^\/api\/payroll/, 'payroll'],
+  [/^\/api\/notifications/, 'notifications'],
+  [/^\/api\/shifts/, 'attendance'],
+];
+
+const MODULE_EXEMPT = new Set([
+  '/api/me',
+  '/api/users',
+  '/api/health',
+  '/api/auth/logout',
+]);
+
+export function moduleAccessMiddleware(req: AuthedRequest, res: Response, next: NextFunction) {
+  if (!req.userId) return next();
+
+  const path = req.originalUrl.split('?')[0];
+  if (MODULE_EXEMPT.has(path)) return next();
+
+  const user = getUserById(req.userId);
+  if (!user || isManagerOrAdmin(user)) return next();
+
+  for (const [pattern, module] of PATH_MODULE_RULES) {
+    if (pattern.test(path) && !hasModuleAccess(user.role, module)) {
+      return res.status(403).json({ error: 'Module access denied' });
+    }
+  }
+
+  next();
 }
