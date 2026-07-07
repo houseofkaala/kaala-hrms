@@ -18,6 +18,9 @@ async function startServer() {
   const { startNotificationScheduler } = await import('./server/notifications/scheduler');
   startNotificationScheduler();
 
+  const { startAutomationScheduler } = await import('./server/automations');
+  startAutomationScheduler();
+
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: 'spa' });

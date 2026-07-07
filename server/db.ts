@@ -71,6 +71,7 @@ function applyMigrations() {
   if (!db.emailDigestMeta) db.emailDigestMeta = {};
   if (!db.surveyResponses) db.surveyResponses = [];
   if (!db.sessions) db.sessions = [];
+  if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
   seedOperationalContent(db);
 }

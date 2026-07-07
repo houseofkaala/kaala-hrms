@@ -1,6 +1,8 @@
 import { Express, type Response } from 'express';
+import path from 'path';
 import { getDb, saveDb, getUserById, pushNotification } from './db';
 import { AuthedRequest, requireRole } from './middleware';
+import { ensureProjectChat, getProjectMessages, addProjectMessage, getProjectAttachmentPath } from './project-chat';
 import {
   normalizeProject,
   normalizeTask,
@@ -89,6 +91,7 @@ export function registerProjectRoutes(app: Express) {
     });
 
     db().projects.push(project);
+    ensureProjectChat(project);
     saveDb();
 
     for (const uid of memberIds) {
@@ -100,8 +103,8 @@ export function registerProjectRoutes(app: Express) {
     res.json({ success: true, project: projectWithStats(project, [], db().users) });
   });
 
-  // Update project
-  app.patch('/api/projects/:id', (req: AuthedRequest, res) => {
+  // Update project (admin/manager only)
+  app.patch('/api/projects/:id', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
     const idx = db().projects.findIndex(x => x.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
 
@@ -109,9 +112,6 @@ export function registerProjectRoutes(app: Express) {
     const u = getUserById(req.userId!);
     const isLeadOrManager = u && (u.role === 'admin' || u.role === 'manager' || project.leadId === req.userId);
     if (!requireProjectAccess(req, res, project)) return;
-    if (!isLeadOrManager && Object.keys(req.body).some(k => !['status'].includes(k))) {
-      return res.status(403).json({ error: 'Only project lead or managers can edit project details' });
-    }
 
     if (req.body.name) project.name = req.body.name.trim();
     if (req.body.description !== undefined) project.description = req.body.description;
@@ -312,5 +312,54 @@ export function registerProjectRoutes(app: Express) {
 
     saveDb();
     res.json({ success: true });
+  });
+
+  // Project chat room
+  app.get('/api/projects/:id/chat', (req: AuthedRequest, res) => {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Not found' });
+    if (!requireProjectAccess(req, res, project)) return;
+    ensureProjectChat(project);
+    res.json(getProjectMessages(project.id));
+  });
+
+  app.post('/api/projects/:id/chat', (req: AuthedRequest, res) => {
+    const project = getProject(req.params.id);
+    if (!project) return res.status(404).json({ error: 'Not found' });
+    if (!requireProjectAccess(req, res, project)) return;
+
+    const type = req.body.type as 'message' | 'file' | 'meet' | undefined;
+    if (type === 'file' && !req.body.contentBase64) {
+      return res.status(400).json({ error: 'File content required' });
+    }
+    if (type !== 'file' && type !== 'meet' && !req.body.content?.trim()) {
+      return res.status(400).json({ error: 'Message content required' });
+    }
+
+    const msg = addProjectMessage(project.id, req.userId!, {
+      content: req.body.content,
+      type: type || 'message',
+      contentBase64: req.body.contentBase64,
+      mimeType: req.body.mimeType,
+      fileName: req.body.fileName,
+    });
+    res.json({ success: true, message: msg });
+  });
+
+  app.get('/api/projects/:projectId/chat/:messageId/file', (req: AuthedRequest, res) => {
+    const project = getProject(req.params.projectId);
+    if (!project) return res.status(404).json({ error: 'Not found' });
+    if (!requireProjectAccess(req, res, project)) return;
+
+    const dbExt = db() as ReturnType<typeof getDb> & { projectMessages?: { id: string; projectId: string; attachmentKey?: string; attachmentName?: string; type: string }[] };
+    const msg = (dbExt.projectMessages || []).find(m => m.id === req.params.messageId && m.projectId === project.id);
+    if (!msg || msg.type !== 'file' || !msg.attachmentKey) {
+      return res.status(404).json({ error: 'Attachment not found' });
+    }
+
+    const filePath = getProjectAttachmentPath(msg.attachmentKey);
+    if (!filePath) return res.status(404).json({ error: 'File not found on server' });
+    res.setHeader('Content-Disposition', `attachment; filename="${msg.attachmentName || 'file'}"`);
+    res.sendFile(path.resolve(filePath));
   });
 }

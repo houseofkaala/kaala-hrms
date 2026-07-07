@@ -1,4 +1,5 @@
 import type { Database } from './db';
+import { projectHealthScore } from './algorithms';
 
 export type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed' | 'archived';
 export type ProjectPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -136,9 +137,12 @@ export function projectWithStats(
     .filter(Boolean)
     .map(u => ({ id: u!.id, name: u!.name, title: u!.title, department: u!.department }));
 
+  const progress = calcProgress(projectTasks);
+
   return {
     ...project,
-    progress: calcProgress(projectTasks),
+    progress,
+    health: projectHealthScore({ ...project, progress }, projectTasks),
     teamSize: project.memberIds.length,
     taskCount: projectTasks.length,
     openTasks,

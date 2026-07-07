@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetcher } from '../utils';
 import { useRBACStore } from '../store';
 import { getPortalLoginUrl } from '../portal';
-import { UserPlus, Search, Mail, Phone, Building2, Copy, Check, KeyRound, ExternalLink, Sparkles } from 'lucide-react';
+import { UserPlus, Search, Mail, Phone, Building2, Copy, Check, KeyRound, ExternalLink, Sparkles, UserMinus } from 'lucide-react';
 
 type Employee = {
   id: string;
@@ -63,6 +63,7 @@ export function EmployeeManagementView() {
   const [resetTarget, setResetTarget] = useState<Employee | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetResult, setResetResult] = useState<{ email: string; password: string; loginUrl: string } | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<Employee | null>(null);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
 
@@ -91,6 +92,17 @@ export function EmployeeManagementView() {
       setOnboarded({ ...data, tempPassword: variables.password });
       setShowForm(false);
       setForm(emptyForm);
+      setFormError('');
+    },
+    onError: (e: Error) => setFormError(e.message),
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetcher<{ success: boolean }>(`/api/employees/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['employees'] });
+      setRemoveTarget(null);
       setFormError('');
     },
     onError: (e: Error) => setFormError(e.message),
@@ -388,6 +400,30 @@ Please change your password after first login in Settings.`;
         </form>
       )}
 
+      {/* Remove employee modal */}
+      {removeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setRemoveTarget(null)}>
+          <div className="card p-6 max-w-md w-full shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg mb-2">Remove {removeTarget.name}?</h3>
+            <p className="text-sm text-[var(--text-muted)] mb-4">
+              This deactivates their account. They will no longer be able to sign in to HRMS.
+            </p>
+            {formError && <p className="text-sm text-red-600 mb-3">{formError}</p>}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-primary flex-1 bg-red-700 hover:bg-red-800"
+                disabled={removeMutation.isPending}
+                onClick={() => removeMutation.mutate(removeTarget.id)}
+              >
+                {removeMutation.isPending ? 'Removing…' : 'Remove employee'}
+              </button>
+              <button type="button" className="btn-ghost" onClick={() => { setRemoveTarget(null); setFormError(''); }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Reset password modal */}
       {resetTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => { setResetTarget(null); setResetResult(null); }}>
@@ -478,15 +514,25 @@ Please change your password after first login in Settings.`;
                   </div>
                 )}
               </div>
-              {user?.role === 'admin' && (
-                <button
-                  type="button"
-                  onClick={() => { setResetTarget(emp); setFormError(''); setResetResult(null); setNewPassword(generatePassword()); }}
-                  className="mt-4 w-full btn-secondary text-sm inline-flex items-center justify-center gap-2"
-                >
-                  <KeyRound className="w-4 h-4" />
-                  Reset password
-                </button>
+              {user?.role === 'admin' && emp.id !== user.id && (
+                <div className="mt-4 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setResetTarget(emp); setFormError(''); setResetResult(null); setNewPassword(generatePassword()); }}
+                    className="w-full btn-secondary text-sm inline-flex items-center justify-center gap-2"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                    Reset password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setRemoveTarget(emp); setFormError(''); }}
+                    className="w-full btn-ghost text-sm inline-flex items-center justify-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <UserMinus className="w-4 h-4" />
+                    Remove employee
+                  </button>
+                </div>
               )}
             </div>
           ))}

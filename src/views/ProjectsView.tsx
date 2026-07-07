@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Users, Calendar, ArrowLeft, LayoutGrid, List, Flag, UserPlus,
   MoreHorizontal, CheckCircle2, Circle, Trash2, X, Search, Filter,
+  MessageSquare, Paperclip, Video, ExternalLink, Send,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fetcher, cn } from '../utils';
@@ -224,8 +225,8 @@ function ProjectListView({ onOpen }: { onOpen: (id: string) => void }) {
               {p.description && <p className="text-sm text-maroon-600/70 line-clamp-2 mb-4">{p.description}</p>}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-maroon-500">Progress</span>
-                  <span className="font-semibold text-maroon-900">{p.progress}%</span>
+                  <span className="text-maroon-500">Progress · Health</span>
+                  <span className="font-semibold text-maroon-900">{p.progress}% · {(p as { health?: number }).health ?? '—'}%</span>
                 </div>
                 <div className="h-1.5 bg-maroon-100 rounded-full overflow-hidden">
                   <div className="h-full rounded-full transition-all" style={{ width: `${p.progress}%`, backgroundColor: p.color }} />
@@ -255,7 +256,9 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
   const { currentUser } = useRBACStore();
   const qc = useQueryClient();
   const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
-  const [tab, setTab] = useState<'board' | 'list' | 'milestones' | 'team'>('board');
+  const [tab, setTab] = useState<'board' | 'list' | 'milestones' | 'team' | 'chat'>('board');
+  const [chatInput, setChatInput] = useState('');
+  const [chatSending, setChatSending] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', priority: 'medium' as ProjectPriority, assigneeId: '', dueDate: '' });
   const [milestoneTitle, setMilestoneTitle] = useState('');
@@ -271,6 +274,18 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
     queryKey: ['users'],
     queryFn: () => fetcher('/api/users'),
     enabled: isManager,
+  });
+
+  type ProjectMessage = {
+    id: string; fromId: string; authorName: string; content: string;
+    type: 'message' | 'file' | 'meet'; attachmentName?: string; meetLink?: string; createdAt: string;
+  };
+
+  const { data: chatMessages = [], refetch: refetchChat } = useQuery<ProjectMessage[]>({
+    queryKey: ['project-chat', projectId],
+    queryFn: () => fetcher(`/api/projects/${projectId}/chat`),
+    enabled: tab === 'chat',
+    refetchInterval: tab === 'chat' ? 8000 : false,
   });
 
   const refresh = () => {
@@ -336,8 +351,38 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
   };
 
   const updateStatus = async (status: ProjectStatus) => {
+    if (!isManager) return;
     await fetcher(`/api/projects/${projectId}`, { method: 'PATCH', body: JSON.stringify({ status }) });
     refresh();
+  };
+
+  const sendChat = async (payload: { content?: string; type?: string; contentBase64?: string; fileName?: string; mimeType?: string }) => {
+    setChatSending(true);
+    try {
+      await fetcher(`/api/projects/${projectId}/chat`, { method: 'POST', body: JSON.stringify(payload) });
+      setChatInput('');
+      refetchChat();
+    } finally {
+      setChatSending(false);
+    }
+  };
+
+  const scheduleMeet = () => sendChat({ type: 'meet', content: 'Google Meet scheduled for the team' });
+
+  const attachFile = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = String(reader.result).split(',')[1];
+        sendChat({ type: 'file', contentBase64: base64, fileName: file.name, mimeType: file.type, content: `Shared file: ${file.name}` });
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
   };
 
   if (isLoading) return <p className="text-sm text-maroon-500 py-12 text-center">Loading project…</p>;
@@ -371,7 +416,7 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
               {project.description && <p className="text-sm text-maroon-700/80 mt-3 max-w-2xl leading-relaxed">{project.description}</p>}
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">
-              {(isManager || project.leadId === currentUser?.id) && project.status !== 'completed' && (
+              {isManager && project.status !== 'completed' && (
                 <select
                   value={project.status}
                   onChange={e => updateStatus(e.target.value as ProjectStatus)}
@@ -387,8 +432,11 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
             <div>
-              <p className="studio-kicker">Progress</p>
+              <p className="studio-kicker">Progress / Health</p>
               <p className="font-display text-2xl font-semibold text-maroon-950 mt-1">{project.progress}%</p>
+              {'health' in project && (
+                <p className="text-xs text-maroon-500 mt-0.5">Health score: {(project as { health?: number }).health ?? '—'}%</p>
+              )}
               <div className="h-1.5 bg-maroon-100 rounded-full mt-2 overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${project.progress}%`, backgroundColor: project.color }} />
               </div>
@@ -418,6 +466,7 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
             { key: 'list' as const, label: 'List', icon: List },
             { key: 'milestones' as const, label: 'Milestones', icon: Flag },
             { key: 'team' as const, label: 'Team', icon: Users },
+            { key: 'chat' as const, label: 'Chat', icon: MessageSquare },
           ]).map(t => (
             <button
               key={t.key}
@@ -541,6 +590,80 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
                   </button>
                 ))
               )}
+            </div>
+          )}
+
+          {tab === 'chat' && (
+            <div className="flex flex-col h-[480px] max-w-2xl">
+              <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+                {chatMessages.length === 0 ? (
+                  <p className="text-sm text-maroon-400 text-center py-8">No messages yet. Start the conversation.</p>
+                ) : (
+                  chatMessages.map(msg => (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        'rounded-2xl px-4 py-3 max-w-[85%]',
+                        msg.fromId === currentUser?.id ? 'ml-auto bg-maroon-800 text-white' : 'bg-maroon-50 text-maroon-950',
+                        msg.fromId === 'system' && 'mx-auto bg-maroon-100/80 text-maroon-700 text-center text-sm max-w-full',
+                      )}
+                    >
+                      {msg.fromId !== 'system' && msg.fromId !== currentUser?.id && (
+                        <p className="text-[10px] font-semibold opacity-70 mb-1">{msg.authorName}</p>
+                      )}
+                      <p className="text-sm leading-relaxed">{msg.content}</p>
+                      {msg.type === 'file' && msg.attachmentName && (
+                        <a
+                          href={`/api/projects/${projectId}/chat/${msg.id}/file`}
+                          className={cn('inline-flex items-center gap-1.5 mt-2 text-xs font-medium underline', msg.fromId === currentUser?.id ? 'text-maroon-100' : 'text-maroon-700')}
+                        >
+                          <Paperclip className="w-3.5 h-3.5" /> {msg.attachmentName}
+                        </a>
+                      )}
+                      {msg.type === 'meet' && msg.meetLink && (
+                        <a
+                          href={msg.meetLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn('inline-flex items-center gap-1.5 mt-2 text-xs font-semibold px-3 py-1.5 rounded-lg', msg.fromId === currentUser?.id ? 'bg-white/20 hover:bg-white/30' : 'bg-maroon-700 text-white hover:bg-maroon-800')}
+                        >
+                          <Video className="w-3.5 h-3.5" /> Join Google Meet <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                      <p className={cn('text-[9px] mt-1.5 opacity-50', msg.fromId === currentUser?.id ? 'text-right' : '')}>
+                        {format(new Date(msg.createdAt), 'MMM d, h:mm a')}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="border-t border-maroon-100 pt-4 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    value={chatInput}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && chatInput.trim()) { e.preventDefault(); sendChat({ content: chatInput.trim() }); } }}
+                    placeholder="Message the project team…"
+                    className="input-field flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => chatInput.trim() && sendChat({ content: chatInput.trim() })}
+                    disabled={chatSending || !chatInput.trim()}
+                    className="btn-primary shrink-0 px-4"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={attachFile} disabled={chatSending} className="btn-secondary text-sm flex items-center gap-1.5">
+                    <Paperclip className="w-3.5 h-3.5" /> Attach file
+                  </button>
+                  <button type="button" onClick={scheduleMeet} disabled={chatSending} className="btn-secondary text-sm flex items-center gap-1.5">
+                    <Video className="w-3.5 h-3.5" /> Schedule Google Meet
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

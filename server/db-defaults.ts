@@ -31,6 +31,7 @@ export function createEmptyOperationalDb() {
     events: [] as { id: string; title: string; date: string; time: string; location: string }[],
     polls: [] as { id: string; question: string; options: { label: string; votes: number }[]; voters?: string[] }[],
     chatMessages: [] as { id: string; fromId: string; toId: string; content: string; createdAt: string }[],
+    projectMessages: [] as { id: string; projectId: string; fromId: string; authorName: string; content: string; type: 'message' | 'file' | 'meet'; attachmentName?: string; attachmentKey?: string; meetLink?: string; createdAt: string }[],
     aiMessages: {} as Record<string, { id: string; role: 'user' | 'assistant'; content: string; createdAt: string }[]>,
     performanceGoals: [] as { id: string; userId: string; title: string; progress: number; target: number; quarter: string }[],
     performanceReviews: [] as { id: string; userId: string; reviewerId: string; rating: number; feedback: string; period: string; status: string }[],

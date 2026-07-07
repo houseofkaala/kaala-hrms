@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings, Bell, Shield, Clock } from 'lucide-react';
+import { Settings, Bell, Shield, Clock, Zap, Play } from 'lucide-react';
 import { fetcher } from '../utils';
 import { useRBACStore } from '../store';
 import { EmailNotificationsSettings } from './EmailNotificationsSettings';
@@ -20,6 +20,25 @@ export function SettingsView() {
   const { currentUser } = useRBACStore();
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
+  const [automationRunning, setAutomationRunning] = useState(false);
+
+  const { data: automations, refetch: refetchAutomations } = useQuery<{
+    logs: { id: string; rule: string; message: string; ranAt: string; affected: number }[];
+  }>({
+    queryKey: ['automations'],
+    queryFn: () => fetcher('/api/automations'),
+    enabled: currentUser?.role === 'admin',
+  });
+
+  const runAutomations = async () => {
+    setAutomationRunning(true);
+    try {
+      await fetcher('/api/automations/run', { method: 'POST' });
+      refetchAutomations();
+    } finally {
+      setAutomationRunning(false);
+    }
+  };
 
   const { data: settings, isLoading } = useQuery<OrgSettings>({
     queryKey: ['settings'],
@@ -190,6 +209,42 @@ export function SettingsView() {
           </button>
         )}
       </div>
+
+      {currentUser?.role === 'admin' && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <Zap className="w-4 h-4" /> HR Automations
+            </h3>
+            <button
+              onClick={runAutomations}
+              disabled={automationRunning}
+              className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-800 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <Play className="w-3.5 h-3.5" />
+              {automationRunning ? 'Running…' : 'Run now'}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500">
+            Automated reminders for pending leave, attendance, low performance scores, and project deadlines. Runs every 6 hours.
+          </p>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {(automations?.logs || []).length === 0 ? (
+              <p className="text-sm text-gray-400">No automation runs yet.</p>
+            ) : (
+              automations?.logs.map(log => (
+                <div key={log.id} className="text-sm border-b border-gray-50 pb-2">
+                  <div className="flex justify-between gap-2">
+                    <span className="font-medium text-gray-800 capitalize">{log.rule.replace(/_/g, ' ')}</span>
+                    <span className="text-xs text-gray-400 shrink-0">{new Date(log.ranAt).toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">{log.message} · {log.affected} affected</p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {currentUser?.role === 'admin' && <EmailNotificationsSettings />}
     </div>

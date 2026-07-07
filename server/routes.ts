@@ -16,6 +16,9 @@ import { isEmailConfigured, sendEmail } from './email/transport';
 import { notify, notifyManager } from './notifications/dispatcher';
 import { attendanceStatusPayload, evaluateClockOut, MIN_CLOCK_OUT_HOURS, FULL_DAY_HOURS } from './attendance-rules';
 import { verifyPassword, hashPassword, upgradePasswordIfNeeded } from './password';
+import { buildReport } from './reports';
+import { employeePerformanceScore } from './algorithms';
+import { getAutomationLogs, runDailyAutomations } from './automations';
 import {
   activeUsers, assertManager, assertSelfOrManager, canAccessTask, canAccessKanbanTask,
   directoryUser, isManagerOrAdmin,
@@ -887,13 +890,61 @@ export async function registerRoutes(app: Express) {
 
   // Finance
   app.get('/api/finance/summary', requireRole('manager', 'admin'), (_req, res) => {
-    const payroll = db().payrollRecords.reduce((s, p) => s + p.netPay, 0);
-    const approvedExpenses = db().expenses.filter(e => e.status === 'Approved').reduce((s, e) => s + e.amount, 0);
+    const payrollRecords = db().payrollRecords;
+    const expenses = db().expenses;
+    const payroll = payrollRecords.reduce((s, p) => s + p.netPay, 0);
+    const approvedExpenses = expenses.filter(e => e.status === 'Approved').reduce((s, e) => s + e.amount, 0);
+    const pendingAmount = expenses.filter(e => e.status === 'Pending').reduce((s, e) => s + e.amount, 0);
+
+    const payrollByPeriod: Record<string, number> = {};
+    payrollRecords.forEach(p => {
+      const key = p.period || 'Unknown';
+      payrollByPeriod[key] = (payrollByPeriod[key] || 0) + p.netPay;
+    });
+    const payrollTrend = Object.entries(payrollByPeriod).map(([period, amount]) => ({ period, amount }));
+
+    const expensesByStatus = ['Approved', 'Pending', 'Rejected'].map(status => ({
+      status,
+      amount: expenses.filter(e => e.status === status).reduce((s, e) => s + e.amount, 0),
+      count: expenses.filter(e => e.status === status).length,
+    }));
+
+    const financeReport = buildReport('finance') as { byDepartment?: { department: string; headcount: number; payroll: number }[] };
+    const departmentSpend = financeReport.byDepartment || [];
+
+    const monthlyBurn: { month: string; payroll: number; expenses: number }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      const periodMatch = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      monthlyBurn.push({
+        month,
+        payroll: payrollRecords.filter(p => p.period?.includes(periodMatch.split(' ')[0])).reduce((s, p) => s + p.netPay, 0) || Math.round(payroll / 6),
+        expenses: expenses.filter(e => {
+          const ed = new Date(e.date);
+          return ed.getMonth() === d.getMonth() && ed.getFullYear() === d.getFullYear() && e.status === 'Approved';
+        }).reduce((s, e) => s + e.amount, 0),
+      });
+    }
+
     res.json({
       monthlyPayroll: payroll,
       softwareExpenses: approvedExpenses,
-      pendingReimbursements: db().expenses.filter(e => e.status === 'Pending').length,
-      expenses: db().expenses,
+      pendingReimbursements: expenses.filter(e => e.status === 'Pending').length,
+      expenses: expenses.slice(0, 20),
+      totals: {
+        totalPayroll: payroll,
+        approvedExpenses,
+        pendingExpensesAmount: pendingAmount,
+        netBurn: payroll + approvedExpenses,
+      },
+      charts: {
+        payrollTrend,
+        expensesByStatus,
+        departmentSpend,
+        monthlyBurn,
+      },
     });
   });
 
@@ -954,13 +1005,28 @@ export async function registerRoutes(app: Express) {
   // Reports
   app.get('/api/reports/:type', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
     const type = req.params.type;
-    let data: unknown = {};
-    if (type === 'attendance') data = { logs: db().attendanceLogs.length, activeToday: db().users.filter(u => u.status === 'Active').length, chart: db().attendanceLogs.slice(-30) };
-    else if (type === 'leave') data = { requests: db().leaveRequests, approved: db().leaveRequests.filter(l => l.status === 'Approved').length, pending: db().leaveRequests.filter(l => l.status === 'Pending').length };
-    else if (type === 'performance') data = { goals: db().performanceGoals, reviews: db().performanceReviews, avgRating: 4.2 };
-    else if (type === 'attrition') data = { headcount: activeUsers().length, onLeave: db().users.filter(u => u.status === 'On Leave').length, departures: db().users.filter(u => u.status === 'Inactive').length };
-    else data = { message: 'Custom report generated', modules: Object.keys(db().rolePermissions) };
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+
+    if (type === 'employee' && !userId) {
+      return res.status(400).json({ error: 'userId query parameter required for employee report' });
+    }
+    if (type === 'project' && !projectId) {
+      return res.status(400).json({ error: 'projectId query parameter required for project report' });
+    }
+
+    const data = buildReport(type, { userId, projectId });
     res.json({ type, generatedAt: new Date().toISOString(), data });
+  });
+
+  // HR automations
+  app.get('/api/automations', requireRole('admin'), (_req, res) => {
+    res.json({ logs: getAutomationLogs() });
+  });
+
+  app.post('/api/automations/run', requireRole('admin'), (_req, res) => {
+    const affected = runDailyAutomations();
+    res.json({ success: true, affected, logs: getAutomationLogs() });
   });
 
   // Performance
@@ -974,12 +1040,12 @@ export async function registerRoutes(app: Express) {
     const completedTasks = db().tasks.filter(t => t.status === 'completed' && (t.claimedById === uid || t.ownerId === uid));
     const logs = db().attendanceLogs.filter(l => l.userId === uid && l.clockOut);
     const avgHours = logs.length ? Math.round(logs.reduce((s, l) => s + (new Date(l.clockOut!).getTime() - new Date(l.clockIn).getTime()) / 3600000, 0) / logs.length * 10) / 10 : 0;
-    const qualityScore = Math.min(100, Math.round(70 + completedTasks.length * 2 + (db().performanceReviews.filter(r => r.userId === uid).reduce((s, r) => s + (r.rating || 0), 0) / Math.max(1, db().performanceReviews.filter(r => r.userId === uid).length)) * 5));
+    const performanceScore = employeePerformanceScore(uid);
     res.json({
       goals: db().performanceGoals.filter(g => g.userId === uid),
       reviews: db().performanceReviews.filter(r => r.userId === uid),
       skills: db().skills.filter(s => s.userId === uid),
-      productivity: { tasksCompleted: completedTasks.length, avgHours, qualityScore },
+      productivity: { tasksCompleted: completedTasks.length, avgHours, qualityScore: performanceScore, performanceScore },
       teamStats: (getUserById(req.userId!)?.role === 'manager' || getUserById(req.userId!)?.role === 'admin') ? { directReports: db().users.filter(u => u.managerId === req.userId || (u.department === getUserById(req.userId!)?.department && u.role === 'employee')).length, pendingReviews: db().tasks.filter(t => t.status === 'under_review').length } : null,
     });
   });
