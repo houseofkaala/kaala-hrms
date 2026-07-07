@@ -5,8 +5,8 @@ export type Portal = 'employee' | 'admin';
 const BASE_DOMAIN = import.meta.env.VITE_BASE_DOMAIN || 'bymarketingonly.com';
 
 export const PORTAL_META: Record<Portal, { title: string; subtitle: string; roleLabel: string }> = {
-  employee: { title: 'Employee Portal', subtitle: 'Your daily workspace', roleLabel: 'Employees' },
-  admin: { title: 'Admin Portal', subtitle: 'Managers & administrators', roleLabel: 'Managers & Admins' },
+  employee: { title: 'Employee Portal', subtitle: 'Sign in to access your HR account', roleLabel: 'Employees' },
+  admin: { title: 'Admin Portal', subtitle: 'Sign in to manage your organisation', roleLabel: 'Managers & Admins' },
 };
 
 export function getPortal(hostname = window.location.hostname): Portal {

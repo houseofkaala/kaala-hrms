@@ -3,58 +3,49 @@ import type { LucideIcon } from 'lucide-react';
 import { cn } from '../utils';
 
 const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Dashboard', subtitle: 'Your daily orbit' },
-  marketplace: { title: 'Market', subtitle: 'Claim & earn' },
-  leaderboard: { title: 'Ranks', subtitle: 'Points hierarchy' },
-  recruit: { title: 'Recruit', subtitle: 'Talent pipeline' },
-  employees: { title: 'People Ops', subtitle: 'Employee records' },
-  onboarding: { title: 'Onboard', subtitle: 'New hire journey' },
-  orgchart: { title: 'Org Chart', subtitle: 'Structure & lineage' },
-  people: { title: 'Directory', subtitle: 'Find your team' },
-  leave: { title: 'Leave', subtitle: 'Time away' },
-  holidays: { title: 'Holidays', subtitle: 'Calendar of rest' },
-  attendance: { title: 'Presence', subtitle: 'Clock & compliance' },
-  timesheets: { title: 'Hours', subtitle: 'Project time' },
-  documents: { title: 'Vault', subtitle: 'Files & contracts' },
-  payroll: { title: 'Payroll', subtitle: 'Compensation' },
-  expenses: { title: 'Expenses', subtitle: 'Claims & reimburse' },
-  assets: { title: 'Assets', subtitle: 'Equipment ledger' },
-  projects: { title: 'Projects', subtitle: 'Initiatives' },
-  tasks: { title: 'Tasks', subtitle: 'Kanban flow' },
-  performance: { title: 'Performance', subtitle: 'Growth & goals' },
-  learning: { title: 'Learn', subtitle: 'Skill cultivation' },
-  chat: { title: 'Chat', subtitle: 'Conversations' },
-  survey: { title: 'Surveys', subtitle: 'Voice of team' },
-  field: { title: 'Field', subtitle: 'Agents on map' },
-  finance: { title: 'Finance', subtitle: 'Org economics' },
-  ai: { title: 'Kaala AI', subtitle: 'Intelligent assistant' },
-  community: { title: 'Community', subtitle: 'Culture & events' },
-  helpdesk: { title: 'Help Desk', subtitle: 'Support tickets' },
-  reports: { title: 'Reports', subtitle: 'Insights export' },
-  rewards: { title: 'Rewards', subtitle: 'Recognition' },
-  profile: { title: 'Profile', subtitle: 'Your identity' },
+  dashboard: { title: 'Dashboard', subtitle: 'Overview' },
+  marketplace: { title: 'Reward Marketplace', subtitle: 'Earn Kaala Points' },
+  leaderboard: { title: 'Leaderboard', subtitle: 'Team rankings' },
+  recruit: { title: 'Recruitment', subtitle: 'Hiring pipeline' },
+  employees: { title: 'Employees', subtitle: 'Team management' },
+  onboarding: { title: 'Onboarding', subtitle: 'New joiners' },
+  orgchart: { title: 'Organisation Chart', subtitle: 'Reporting structure' },
+  people: { title: 'People Directory', subtitle: 'Find colleagues' },
+  leave: { title: 'Leave Management', subtitle: 'Apply and track leave' },
+  holidays: { title: 'Holidays', subtitle: 'Company calendar' },
+  attendance: { title: 'Attendance', subtitle: 'Punch in and out' },
+  timesheets: { title: 'Timesheets', subtitle: 'Project hours' },
+  documents: { title: 'Documents', subtitle: 'Files and contracts' },
+  payroll: { title: 'Payroll', subtitle: 'Salary and payslips' },
+  expenses: { title: 'Expenses', subtitle: 'Claims and reimbursement' },
+  assets: { title: 'Assets', subtitle: 'Company equipment' },
+  projects: { title: 'Projects', subtitle: 'Active initiatives' },
+  tasks: { title: 'Tasks', subtitle: 'Work tracking' },
+  performance: { title: 'Performance', subtitle: 'Goals and reviews' },
+  learning: { title: 'Learning', subtitle: 'Training courses' },
+  chat: { title: 'Chat', subtitle: 'Team messages' },
+  survey: { title: 'Surveys', subtitle: 'Employee feedback' },
+  field: { title: 'Field Operations', subtitle: 'On-ground team' },
+  finance: { title: 'Finance', subtitle: 'Budget overview' },
+  ai: { title: 'HR Assistant', subtitle: 'Ask anything about HR' },
+  community: { title: 'Community', subtitle: 'Announcements' },
+  helpdesk: { title: 'Help Desk', subtitle: 'Raise a ticket' },
+  reports: { title: 'Reports', subtitle: 'Analytics and exports' },
+  rewards: { title: 'Rewards', subtitle: 'Redeem points' },
+  profile: { title: 'My Profile', subtitle: 'Personal details' },
   settings: { title: 'Settings', subtitle: 'Preferences' },
-  roles: { title: 'Roles', subtitle: 'Access control' },
-  notifications: { title: 'Inbox', subtitle: 'Alerts stream' },
-  policies: { title: 'Policies', subtitle: 'Governance' },
+  roles: { title: 'Roles & Permissions', subtitle: 'Access control' },
+  notifications: { title: 'Notifications', subtitle: 'Alerts and updates' },
+  policies: { title: 'Policies', subtitle: 'Company guidelines' },
 };
 
 export function AtelierPageHeader({ activeTab }: { activeTab: string }) {
   const meta = PAGE_TITLES[activeTab] || { title: activeTab, subtitle: 'Module' };
-  const index = String(Object.keys(PAGE_TITLES).indexOf(activeTab) + 1).padStart(2, '0');
 
   return (
-    <header className="atelier-page-header relative mb-8 pt-2">
-      <span className="atelier-index font-display select-none" aria-hidden>{index}</span>
-      <div className="relative z-10 pl-1">
-        <p className="text-[10px] uppercase tracking-[0.45em] text-maroon-500/80 font-semibold mb-3 flex items-center gap-3">
-          <span className="atelier-rule" />
-          {meta.subtitle}
-        </p>
-        <h1 className="font-display text-[clamp(2.5rem,6vw,4.5rem)] font-semibold text-maroon-950 leading-[0.92] tracking-tight">
-          {meta.title}
-        </h1>
-      </div>
+    <header className="mb-8">
+      <p className="text-xs uppercase tracking-wider text-maroon-500 font-medium mb-1">{meta.subtitle}</p>
+      <h1 className="font-display text-3xl font-semibold text-maroon-950">{meta.title}</h1>
     </header>
   );
 }

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { setToken, isAuthenticated } from '../auth';
 import type { User } from '../types';
 import { useRBACStore } from '../store';
-import { getPortal, getPortalLoginUrl, PORTAL_META, portalForRole, roleMatchesPortal, type Portal } from '../portal';
+import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, type Portal } from '../portal';
 import { PasswordInput } from '../components/PasswordInput';
 
 export default function LoginPage() {
@@ -40,7 +40,7 @@ export default function LoginPage() {
       const body = await res.json();
       if (!res.ok) {
         if (body.correctPortal) {
-          throw new Error(`${body.error} Sign in at ${getPortalLoginUrl(body.correctPortal)}`);
+          throw new Error(body.error || 'Login failed');
         }
         throw new Error(body.error || 'Login failed');
       }
@@ -61,27 +61,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-ink kaala-grain">
-      {/* Animated mesh blobs */}
       <div className="login-blob w-[50vw] h-[50vw] -top-[10%] -left-[10%] bg-maroon-700/40" style={{ animationDelay: '0s' }} />
       <div className="login-blob w-[40vw] h-[40vw] bottom-[-15%] right-[-5%] bg-maroon-900/50" style={{ animationDelay: '-5s' }} />
-      <div className="login-blob w-[25vw] h-[25vw] top-[40%] left-[30%] bg-maroon-500/20" style={{ animationDelay: '-8s' }} />
-
-      {/* Giant outline typography */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
-        <span className="login-giant-type">KAALA</span>
-      </div>
-
-      {/* Diagonal light sweep */}
-      <div
-        className="absolute inset-0 opacity-[0.04] pointer-events-none"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(-55deg, white 0px, white 1px, transparent 1px, transparent 48px)',
-        }}
-      />
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-[420px] atelier-reveal">
-          {/* Floating glass card — asymmetric corner */}
           <div
             className="relative bg-white/95 backdrop-blur-xl p-8 sm:p-10 shadow-2xl"
             style={{
@@ -91,15 +75,11 @@ export default function LoginPage() {
           >
             <div className="absolute -top-px left-8 right-8 h-[3px] bg-gradient-to-r from-ink via-maroon-600 to-transparent rounded-full" />
 
-            <div className="flex items-start justify-between mb-10">
-              <div>
-                <p className="font-accent text-[10px] uppercase tracking-[0.45em] text-maroon-500 mb-2">{meta.title}</p>
-                <h1 className="font-display text-4xl font-semibold text-maroon-950 leading-none">
-                  House of<br /><span className="italic font-normal text-maroon-700">Kaala</span>
-                </h1>
-                <p className="text-xs text-maroon-500/80 mt-2">{meta.subtitle}</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-maroon-800 to-ink flex items-center justify-center font-display text-xl text-white font-bold shadow-lg">K</div>
+            <div className="flex flex-col items-center text-center mb-8">
+              <img src="/logo.svg" alt="House of Kaala" className="w-16 h-16 rounded-2xl shadow-lg mb-4" />
+              <p className="font-accent text-[10px] uppercase tracking-[0.35em] text-maroon-500 mb-1">{meta.title}</p>
+              <h1 className="font-display text-3xl font-semibold text-maroon-950">House of Kaala</h1>
+              <p className="text-sm text-maroon-600/80 mt-1">Human Resource Management System</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -130,25 +110,15 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="group w-full relative overflow-hidden bg-ink text-white py-4 rounded-2xl text-sm font-accent font-semibold uppercase tracking-[0.15em] hover:bg-maroon-950 transition-all disabled:opacity-50 mt-2"
+                className="group w-full relative overflow-hidden bg-ink text-white py-4 rounded-2xl text-sm font-semibold hover:bg-maroon-950 transition-all disabled:opacity-50 mt-2"
               >
-                <span className="relative z-10">{loading ? 'Entering...' : 'Enter the Atelier'}</span>
+                <span className="relative z-10">{loading ? 'Signing in…' : 'Sign In'}</span>
                 <span className="absolute inset-0 bg-gradient-to-r from-maroon-700 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             </form>
-          </div>
 
-          <div className="mt-6 px-2 text-[11px] text-white/40 space-y-2 font-light">
-            <p className="font-accent uppercase tracking-widest text-white/25 text-[9px]">Other portals</p>
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {(['employee', 'admin'] as Portal[]).filter(p => p !== portal).map(p => (
-                <a key={p} href={getPortalLoginUrl(p)} className="text-white/50 hover:text-white underline-offset-2 hover:underline">
-                  {PORTAL_META[p].title}
-                </a>
-              ))}
-            </div>
-            <p className="text-white/35 text-[10px] pt-1">
-              Use your company email and password. Contact your administrator if you need access.
+            <p className="text-xs text-maroon-500/70 text-center mt-6">
+              Use your company email and password. Contact HR if you need access.
             </p>
           </div>
         </div>

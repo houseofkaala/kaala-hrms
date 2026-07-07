@@ -209,9 +209,9 @@ Please change your password after first login in Settings.`;
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl text-[var(--text)]">Team</h2>
+          <h2 className="font-display text-2xl text-[var(--text)]">Employees</h2>
           <p className="text-sm text-[var(--text-muted)] mt-1">
-            Add real employees — they sign in at{' '}
+            Add team members and share login details for the employee portal at{' '}
             <a href={getPortalLoginUrl('employee')} className="text-[var(--accent)] hover:underline" target="_blank" rel="noreferrer">
               {getPortalLoginUrl('employee').replace('https://', '')}
             </a>

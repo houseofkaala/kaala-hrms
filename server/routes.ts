@@ -669,31 +669,28 @@ export async function registerRoutes(app: Express) {
   app.post('/api/ai/chat', async (req: AuthedRequest, res) => {
     const { message } = req.body;
     const uid = req.userId!;
+    const text = String(message || '').trim();
+    if (!text) return res.status(400).json({ error: 'Message is required' });
+
     if (!db().aiMessages[uid]) db().aiMessages[uid] = [];
-    db().aiMessages[uid].push({ id: `ai${Date.now()}`, role: 'user', content: message, createdAt: new Date().toISOString() });
+    db().aiMessages[uid].push({ id: `ai${Date.now()}`, role: 'user', content: text, createdAt: new Date().toISOString() });
 
-    let reply = '';
-    const lower = message.toLowerCase();
     const user = getUserById(uid);
-    const bal = db().leaveRequests.filter(l => l.userId === uid && l.status === 'Approved').reduce((s, l) => s + l.days, 0);
+    const { buildAiReply } = await import('./ai-assistant');
+    let reply = buildAiReply(text, user, db());
 
-    if (lower.includes('leave')) reply = `You have used ${bal} approved leave days. ${db().leaveRequests.filter(l => l.userId === uid && l.status === 'Pending').length} request(s) pending. Annual allowance: ${db().orgSettings.defaultLeaveDays} days.`;
-    else if (lower.includes('payroll') || lower.includes('salary')) reply = `Your latest payslip shows net pay of $7,250. ${db().payrollRecords.filter(p => p.userId === uid).length} records on file.`;
-    else if (lower.includes('point') || lower.includes('reward')) reply = `You have ${user?.points || 0} Kaala Points. Rank #${[...db().users].sort((a, b) => b.points - a.points).findIndex(u => u.id === uid) + 1} in the organization.`;
-    else if (lower.includes('attendance')) reply = user?.status === 'Active' ? 'You are currently checked in and marked Active.' : 'You are currently off duty. Use Attendance to check in.';
-    else {
+    const key = process.env.GEMINI_API_KEY?.trim();
+    if (key && key !== 'MY_GEMINI_API_KEY' && text.length > 20) {
       try {
         const { GoogleGenAI } = await import('@google/genai');
-        const key = process.env.GEMINI_API_KEY;
-        if (key && key !== 'MY_GEMINI_API_KEY') {
-          const ai = new GoogleGenAI({ apiKey: key });
-          const resp = await ai.models.generateContent({ model: 'gemini-2.0-flash', contents: `You are Kaala HRMS assistant for ${user?.name}. Answer briefly about HR topics: ${message}` });
-          reply = resp.text || 'I could not generate a response.';
-        } else {
-          reply = `I'm Kaala AI, your HR assistant. I can help with leave (${db().orgSettings.defaultLeaveDays - bal} days remaining), payroll, attendance, and rewards (${user?.points} KP). How can I help?`;
-        }
+        const ai = new GoogleGenAI({ apiKey: key });
+        const resp = await ai.models.generateContent({
+          model: 'gemini-2.0-flash',
+          contents: `You are Kaala HRMS assistant for ${user?.name} at House of Kaala, India. Reply in clear Indian English. Be brief and helpful about HR topics only: ${text}`,
+        });
+        if (resp.text?.trim()) reply = resp.text.trim();
       } catch {
-        reply = `I'm Kaala AI. You have ${user?.points} KP and ${db().orgSettings.defaultLeaveDays - bal} leave days available. Ask me about leave, payroll, attendance, or rewards.`;
+        // keep rule-based reply
       }
     }
 

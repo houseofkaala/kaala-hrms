@@ -1,0 +1,80 @@
+import { getSeedUsers } from './seed-users';
+import type { TaskRecord } from './db';
+
+export function createEmptyOperationalDb() {
+  const users = getSeedUsers();
+
+  return {
+    users,
+    tasks: [] as TaskRecord[],
+    kanbanTasks: [] as { id: string; title: string; stage: string; priority: string; assigneeId?: string }[],
+    transactions: [] as { id: string; userId: string; amount: number; reason: string; timestamp: string }[],
+    assets: [] as { id: string; name: string; userId: string | null; user: string | null; status: string }[],
+    leaveRequests: [] as { id: string; userId: string; type: string; startDate: string; endDate: string; days: number; reason: string; status: string; createdAt: string }[],
+    documents: [] as { id: string; userId: string; name: string; category: string; uploadedAt: string; size: string }[],
+    notifications: [] as { id: string; userId: string; title: string; message: string; read: boolean; createdAt: string }[],
+    attendanceLogs: [] as { id: string; userId: string; clockIn: string; clockOut: string | null; date: string }[],
+    attendanceRequests: [] as { id: string; userId: string; type: string; date: string; hours?: string; reason?: string; location?: string; time?: string; status: string; createdAt: string }[],
+    candidates: [] as { id: string; name: string; role: string; stage: string }[],
+    payrollRecords: [] as { id: string; userId: string; period: string; grossPay: number; deductions: number; netPay: number; status: string }[],
+    projects: [] as { id: string; name: string; progress: number; teamSize: number; memberIds: string[] }[],
+    courses: [] as { id: string; title: string; duration: string; required: boolean; enrolled: string[] }[],
+    surveys: [] as { id: string; title: string; description: string; dueIn: string; responses: string[] }[],
+    fieldAgents: [] as { id: string; name: string; location: string; lat: number; lng: number; status: string }[],
+    expenses: [] as { id: string; userId: string; title: string; amount: number; status: string; date: string }[],
+    tickets: [] as { id: string; title: string; category: string; priority: string; status: string; date: string; userId: string; user: string }[],
+    communityPosts: [] as { id: string; userId: string; author: string; type: string; title: string; content: string; likes: number; comments: number; createdAt: string }[],
+    events: [] as { id: string; title: string; date: string; time: string; location: string }[],
+    polls: [] as { id: string; question: string; options: { label: string; votes: number }[] }[],
+    chatMessages: [] as { id: string; fromId: string; toId: string; content: string; createdAt: string }[],
+    aiMessages: {} as Record<string, { id: string; role: 'user' | 'assistant'; content: string; createdAt: string }[]>,
+    performanceGoals: [] as { id: string; userId: string; title: string; progress: number; target: number; quarter: string }[],
+    performanceReviews: [] as { id: string; userId: string; reviewerId: string; rating: number; feedback: string; period: string; status: string }[],
+    skills: [] as { id: string; userId: string; name: string; level: number; maxLevel: number }[],
+    badges: [
+      { id: 'b1', name: 'Quality Champion', icon: 'award' },
+      { id: 'b2', name: 'Fast Learner', icon: 'trending' },
+      { id: 'b3', name: 'Team Player', icon: 'users' },
+    ],
+    userBadges: [] as { userId: string; badgeId: string }[],
+    giftCards: [
+      { id: 'gc1', name: 'Amazon Gift Card', pointsCost: 500, value: 500, currency: 'INR' },
+      { id: 'gc2', name: 'Flipkart Voucher', pointsCost: 200, value: 200, currency: 'INR' },
+    ],
+    orgSettings: {
+      companyName: 'House of Kaala',
+      timezone: 'Asia/Kolkata',
+      workWeekStart: 'Monday',
+      defaultLeaveDays: 18,
+      sickLeaveDays: 12,
+      marketplacePenalty: 50,
+      fridayScanTime: '18:30',
+      notificationsEnabled: true,
+      twoFactorRequired: false,
+    },
+    rolePermissions: {
+      employee: { modules: ['dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart'], description: 'Standard employee access' },
+      manager: { modules: ['*'], description: 'Team management and approvals' },
+      admin: { modules: ['*'], description: 'Full system access' },
+    },
+    holidays: [
+      { id: 'h1', name: 'Independence Day', date: '2026-08-15', type: 'Public' },
+      { id: 'h2', name: 'Diwali', date: '2026-11-01', type: 'Public' },
+      { id: 'h3', name: 'Christmas', date: '2026-12-25', type: 'Public' },
+      { id: 'h4', name: 'Republic Day', date: '2027-01-26', type: 'Public' },
+    ],
+    shifts: [] as { id: string; userId: string; shiftType: string; date: string; status: string; reason: string }[],
+    policies: [
+      { id: 'pol1', title: 'Office Timings', description: 'Core hours: 10:00 AM – 4:00 PM IST. Flexible start between 9:00–10:00 AM with manager approval.', category: 'Attendance', status: 'Active' },
+      { id: 'pol2', title: 'Late Mark Policy', description: 'More than 3 late marks in a month will be reviewed by your manager.', category: 'Attendance', status: 'Active' },
+      { id: 'pol3', title: 'Work From Home', description: 'Up to 2 WFH days per week with prior manager approval.', category: 'Remote Work', status: 'Active' },
+      { id: 'pol4', title: 'Expense Reimbursement', description: 'Submit expenses within 30 days with valid receipts.', category: 'Finance', status: 'Active' },
+      { id: 'pol5', title: 'Code of Conduct', description: 'All employees must follow company values and workplace ethics.', category: 'HR', status: 'Active' },
+    ],
+    onboardingTasks: [] as { id: string; userId: string; title: string; description: string; status: string; dueDate: string; category: string }[],
+    timesheets: [] as { id: string; userId: string; projectId: string; projectName: string; date: string; hours: number; description: string; status: string }[],
+    biometricDevices: [] as { id: string; name: string; location: string; status: string; lastSync: string }[],
+    courseProgress: {} as Record<string, Record<string, number>>,
+    dataVersion: 2,
+  };
+}

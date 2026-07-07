@@ -197,7 +197,7 @@ function HRMSApp() {
       {/* Sidebar navigation */}
       <aside className="atelier-rail w-64 shrink-0 flex flex-col items-stretch py-5 px-2 gap-0.5 relative z-20 overflow-y-auto hide-scrollbar">
         <Link to="/dashboard" className="mb-4 mx-1 px-3 py-3 rounded-2xl bg-white/10 border border-white/15 flex items-center gap-3 hover:bg-white/20 transition-colors">
-          <span className="w-10 h-10 shrink-0 rounded-xl bg-white/10 flex items-center justify-center font-display text-lg font-bold text-white">K</span>
+          <img src="/logo.svg" alt="" className="w-10 h-10 shrink-0 rounded-xl" />
           <span className="min-w-0">
             <span className="font-display text-sm font-semibold text-white leading-tight block truncate">House of Kaala</span>
             <span className="text-[10px] uppercase tracking-wider text-white/45 block truncate">{portalMeta.title}</span>
@@ -210,7 +210,7 @@ function HRMSApp() {
           <>
             <RailSection label={portal === 'admin' ? 'Admin & HR' : 'Team Management'} />
             <RailNavItem icon={Users} label="Recruit" to="/recruit" active={activeTab === 'recruit'} />
-            <RailNavItem icon={Users} label="Employee Management" to="/employees" active={activeTab === 'employees'} />
+            <RailNavItem icon={Users} label="Employees" to="/employees" active={activeTab === 'employees'} />
             <RailNavItem icon={ClipboardList} label="Onboarding" to="/onboarding" active={activeTab === 'onboarding'} />
             <RailNavItem icon={Network} label="Org Chart" to="/orgchart" active={activeTab === 'orgchart'} />
             <RailNavItem icon={DollarSign} label="Payroll" to="/payroll" active={activeTab === 'payroll'} />
@@ -245,7 +245,7 @@ function HRMSApp() {
         <RailNavItem icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
         <RailNavItem icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
         <RailNavItem icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
-        <RailNavItem icon={Sparkles} label="Kaala AI" to="/ai" active={activeTab === 'ai'} />
+        <RailNavItem icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
         <RailNavItem icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
 
         <div className="mt-auto flex flex-col gap-0.5 pt-4">
@@ -599,38 +599,48 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
   
   const pendingCount = pending.length + underReview.length;
 
+  const currentUser = useRBACStore.getState().currentUser;
+  const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   return (
     <div className="space-y-8">
       <AtelierPageHeader activeTab="dashboard" />
 
-      {/* Bento mosaic */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 atelier-reveal atelier-reveal-delay-1">
-        <div className="bento-card col-span-2 row-span-2 p-6 md:p-8 bg-gradient-to-br from-maroon-900 via-maroon-950 to-ink text-white min-h-[180px] flex flex-col justify-end">
-          <p className="font-accent text-[10px] uppercase tracking-[0.4em] text-white/40 mb-2">Today</p>
-          <p className="font-display text-4xl md:text-5xl font-semibold leading-none">{pendingCount}</p>
-          <p className="text-white/50 text-sm mt-2">active missions in your orbit</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="lg:col-span-2 bg-gradient-to-br from-maroon-900 to-maroon-950 text-white rounded-2xl p-6 shadow-sm">
+          <p className="text-sm text-white/70">{greeting()},</p>
+          <p className="font-display text-2xl font-semibold mt-1">{currentUser?.name?.split(' ')[0] || 'there'}</p>
+          <p className="text-sm text-white/60 mt-2">Welcome to your HR dashboard. Here is a quick summary of your work today.</p>
         </div>
-        <div className="bento-card p-5 flex flex-col justify-between min-h-[100px]">
-          <Medal className="w-5 h-5 text-maroon-600" />
-          <div>
-            <p className="font-accent text-[9px] uppercase tracking-widest text-maroon-500">Points</p>
-            <p className="font-display text-2xl font-semibold text-maroon-950">{useRBACStore.getState().currentUser?.points ?? 0}</p>
-          </div>
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">My Tasks</p>
+          <p className="text-3xl font-semibold text-gray-900 mt-2">{pendingCount}</p>
+          <p className="text-sm text-gray-500 mt-1">Pending and in progress</p>
         </div>
-        <div className="bento-card p-5 flex flex-col justify-between min-h-[100px]">
-          <Clock className="w-5 h-5 text-maroon-600" />
-          <div>
-            <p className="font-accent text-[9px] uppercase tracking-widest text-maroon-500">Review</p>
-            <p className="font-display text-2xl font-semibold text-maroon-950">{reviewTasks.length}</p>
-          </div>
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Kaala Points</p>
+          <p className="text-3xl font-semibold text-maroon-800 mt-2">{currentUser?.points ?? 0}</p>
+          <p className="text-sm text-gray-500 mt-1">Reward balance</p>
         </div>
-        <div className="bento-card col-span-2 p-5 flex items-center justify-between gap-4">
-          <div>
-            <p className="font-accent text-[9px] uppercase tracking-widest text-maroon-500 mb-1">Marketplace pulse</p>
-            <p className="text-sm text-maroon-800/80">Claim abandoned tasks before Sunday cutoff</p>
+        {isManager && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Pending Approvals</p>
+            <p className="text-3xl font-semibold text-gray-900 mt-2">{reviewTasks.length}</p>
+            <p className="text-sm text-gray-500 mt-1">Awaiting your review</p>
           </div>
-          <button onClick={() => setIsNewTaskModalOpen(true)} className="shrink-0 px-4 py-2.5 bg-ink text-white text-xs font-accent font-semibold uppercase tracking-wider rounded-xl hover:bg-maroon-950 transition-colors flex items-center gap-2">
-            <Plus className="w-3.5 h-3.5" /> New
+        )}
+        <div className={`bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex items-center justify-between gap-4 ${isManager ? '' : 'lg:col-span-1'}`}>
+          <div>
+            <p className="text-sm font-medium text-gray-900">Quick action</p>
+            <p className="text-xs text-gray-500 mt-1">Create a new task for yourself or your team</p>
+          </div>
+          <button onClick={() => setIsNewTaskModalOpen(true)} className="shrink-0 px-4 py-2 bg-maroon-900 text-white text-sm font-medium rounded-lg hover:bg-maroon-950 flex items-center gap-2">
+            <Plus className="w-4 h-4" /> New Task
           </button>
         </div>
       </div>
@@ -645,7 +655,7 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
           <div className="bg-white border border-gray-200 rounded-2xl flex flex-col shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
               <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-gray-500" /> Manager Review Queue
+                <ShieldAlert className="w-4 h-4 text-gray-500" /> Pending Approvals
               </h3>
               <span className="bg-gray-900 text-white text-[10px] font-medium px-2.5 py-1 rounded-full">{reviewTasks.length} Pending</span>
             </div>
@@ -707,7 +717,7 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
             {pending.length === 0 && underReview.length === 0 ? (
               <div className="py-16 flex flex-col items-center justify-center text-gray-400">
                 <CheckCircle2 className="w-10 h-10 mb-4 text-gray-300" />
-                <p className="text-sm font-medium">All clear. Check the marketplace for opportunities.</p>
+                <p className="text-sm font-medium">You have no pending tasks. Well done!</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -749,11 +759,11 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
       <div className="flex flex-col gap-6">
         <div className="bg-white border border-gray-200 rounded-2xl flex flex-col shadow-sm overflow-hidden flex-1 max-h-[700px]">
           <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-            <h3 className="text-sm font-semibold text-gray-900">Audit Stream</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Recent Activity</h3>
           </div>
           <div className="p-6 font-mono text-xs space-y-4 overflow-y-auto">
             {transactions.length === 0 ? (
-              <p className="text-gray-400 font-sans text-sm">Watching stream...</p>
+              <p className="text-gray-400 font-sans text-sm">No recent activity to show.</p>
             ) : (
               transactions.map((tx: Transaction) => (
                 <div key={tx.id} className="flex flex-col pb-4 border-b border-gray-100 last:border-0 last:pb-0">
