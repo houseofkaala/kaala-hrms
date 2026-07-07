@@ -49,6 +49,26 @@ export function registerExtraRoutes(app: Express) {
     res.json({ success: true });
   });
 
+  app.post('/api/employees/:id/reset-password', requireRole('admin'), (req, res) => {
+    const u = getUserById(req.params.id);
+    if (!u) return res.status(404).json({ error: 'Not found' });
+    const { password } = req.body;
+    if (!password || String(password).length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    u.password = String(password);
+    saveDb();
+    pushNotification(u.id, 'Password updated', 'Your login password was reset by an administrator.');
+    const baseDomain = process.env.VITE_BASE_DOMAIN || 'bymarketingonly.com';
+    const portal = u.role === 'employee' ? 'employee' : 'admin';
+    res.json({
+      success: true,
+      email: u.email,
+      password: String(password),
+      loginUrl: `https://${portal}.${baseDomain}/login`,
+    });
+  });
+
   // Expenses
   app.get('/api/expenses', (req: AuthedRequest, res) => {
     const u = getUserById(req.userId!);

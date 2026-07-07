@@ -4,6 +4,7 @@ import {
 } from './db';
 import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession } from './middleware';
 import { registerExtraRoutes } from './extra-routes';
+import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
 
 export type { AuthedRequest } from './middleware';
 
@@ -120,36 +121,80 @@ export function registerRoutes(app: Express) {
     res.json({ ...sanitizeUser(user), employmentType: user.employmentType, emergencyContact: user.emergencyContact });
   });
 
-  app.get('/api/employees', requireRole('manager', 'admin'), (_req, res) => {
-    res.json(db().users.map(u => ({ ...sanitizeUser(u), employeeCode: `EMP-${u.id.toUpperCase()}`, designation: u.title })));
+  app.get('/api/employees', requireRole('manager', 'admin'), (req, res) => {
+    const roleFilter = typeof req.query.role === 'string' ? req.query.role : null;
+    let users = db().users.filter(u => u.status === 'Active' || u.status === undefined);
+    if (roleFilter) users = users.filter(u => u.role === roleFilter);
+    res.json(users.map(u => ({ ...sanitizeUser(u), employeeCode: `EMP-${u.id.toUpperCase()}`, designation: u.title })));
   });
 
-  app.post('/api/employees', requireRole('admin'), (req, res) => {
-    const { name, email, department, role, title, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+  app.post('/api/employees', requireRole('manager', 'admin'), (req, res) => {
+    const {
+      name, email, department, role, title, password, phone,
+      joinDate, employmentType, emergencyContact, address, managerId,
+    } = req.body;
+
+    if (!name?.trim()) return res.status(400).json({ error: 'Full name is required' });
+    if (!email?.trim()) return res.status(400).json({ error: 'Email is required' });
+    if (!password || String(password).length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
-    if (db().users.some(u => u.email === email)) {
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (db().users.some(u => u.email?.toLowerCase() === normalizedEmail)) {
       return res.status(409).json({ error: 'Email already registered' });
     }
+
+    const userRole = (['employee', 'manager', 'admin'].includes(role) ? role : 'employee') as UserRecord['role'];
+    const resolvedManager =
+      managerId ||
+      (userRole === 'employee'
+        ? db().users.find(u => u.role === 'manager' && u.status === 'Active')?.id
+        : userRole === 'manager'
+          ? db().users.find(u => u.role === 'admin' && u.status === 'Active')?.id
+          : null) ||
+      null;
+
     const newUser: UserRecord = {
       id: `u${Date.now()}`,
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       department: department || 'General',
-      role: role || 'employee',
-      title: title || 'Employee',
-      password,
+      role: userRole,
+      title: title?.trim() || 'Employee',
+      password: String(password),
       points: 1000,
       status: 'Active',
-      phone: '',
+      phone: phone?.trim() || '',
       projects: [],
-      joinDate: new Date().toISOString().split('T')[0],
-      managerId: role === 'employee' ? 'mgr-1' : role === 'manager' ? 'admin-1' : null,
+      joinDate: joinDate || new Date().toISOString().split('T')[0],
+      employmentType: employmentType || 'Full-Time',
+      emergencyContact: emergencyContact?.trim() || '',
+      address: address?.trim() || '',
+      managerId: resolvedManager,
+      preferences: { emailNotifications: true, timezone: 'Asia/Kolkata' },
     };
-    db().users.push(newUser);
+
+    const database = db();
+    database.users.push(newUser);
+    provisionNewEmployee(database, newUser);
     saveDb();
-    res.json({ success: true, employee: sanitizeUser(newUser) });
+
+    const baseDomain = process.env.VITE_BASE_DOMAIN || 'bymarketingonly.com';
+    const portalSubdomain = portalLoginPath(userRole);
+
+    const loginUrl = `https://${portalSubdomain}.${baseDomain}/login`;
+    res.status(201).json({
+      success: true,
+      employee: sanitizeUser(newUser),
+      access: {
+        email: normalizedEmail,
+        portal: portalSubdomain,
+        loginUrl,
+        role: userRole,
+        message: `${newUser.name} can sign in now at the ${userRole === 'employee' ? 'Employee' : 'Admin'} portal.`,
+      },
+    });
   });
 
   app.patch('/api/me/password', (req: AuthedRequest, res) => {
