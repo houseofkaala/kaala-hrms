@@ -62,18 +62,18 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
       >
         <Bell className="w-5 h-5" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] text-white font-bold">
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-ink text-[9px] text-white font-bold ring-2 ring-white">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-maroon-100 rounded-2xl shadow-xl shadow-maroon-900/10 z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-maroon-50 flex items-center justify-between bg-maroon-50/50">
-            <h3 className="text-sm font-semibold text-maroon-900 font-display">Notifications</h3>
+        <div className="absolute right-0 top-full mt-2 w-80 studio-card overflow-hidden z-50">
+          <div className="px-4 py-3 border-b border-maroon-100 flex items-center justify-between bg-maroon-50/60">
+            <h3 className="font-display text-sm font-semibold text-maroon-950">Notifications</h3>
             {unread > 0 && (
-              <button onClick={markAllRead} className="text-xs text-maroon-600 hover:text-maroon-900 flex items-center gap-1 font-medium">
+              <button onClick={markAllRead} className="studio-kicker text-maroon-600 hover:text-maroon-900 flex items-center gap-1 transition-colors">
                 <CheckCheck className="w-3.5 h-3.5" /> Mark all read
               </button>
             )}
@@ -93,7 +93,7 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
                 >
                   <p className="text-sm font-medium text-ink">{n.title}</p>
                   <p className="text-xs text-maroon-700/70 mt-0.5 line-clamp-2">{n.message}</p>
-                  <p className="text-[10px] text-maroon-400 mt-1">
+                  <p className="studio-kicker text-maroon-400 mt-1.5 normal-case tracking-normal">
                     {new Date(n.createdAt).toLocaleString()}
                   </p>
                 </button>
@@ -103,7 +103,7 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
           <Link
             to="/notifications"
             onClick={onClose}
-            className="block px-4 py-3 text-center text-xs font-semibold text-maroon-700 hover:bg-maroon-50 border-t border-maroon-50"
+            className="block px-4 py-3 text-center studio-kicker text-maroon-700 hover:bg-maroon-50 border-t border-maroon-100 transition-colors"
           >
             View all notifications
           </Link>

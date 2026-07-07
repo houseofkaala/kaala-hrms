@@ -21,17 +21,17 @@ export function FloatingChatWidget({ users, currentUser }: { users: User[]; curr
   return (
     <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-3 pointer-events-none">
       {open && !minimized && (
-        <div className="pointer-events-auto w-[min(420px,calc(100vw-2rem))] h-[min(560px,calc(100vh-6rem))] bg-white border border-gray-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="pointer-events-auto studio-chat-panel w-[min(420px,calc(100vw-2rem))] h-[min(560px,calc(100vh-6rem))] bg-white/95 backdrop-blur-xl border border-maroon-100 flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-maroon-900 to-ink text-white shrink-0">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              <span className="text-sm font-semibold">Team Chat</span>
+              <span className="font-display text-sm font-semibold">Team Chat</span>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setMinimized(true)}
-                className="p-1.5 rounded-lg hover:bg-white/10"
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
                 aria-label="Minimize chat"
               >
                 <Minus className="w-4 h-4" />
@@ -39,7 +39,7 @@ export function FloatingChatWidget({ users, currentUser }: { users: User[]; curr
               <button
                 type="button"
                 onClick={() => { setOpen(false); setMinimized(false); }}
-                className="p-1.5 rounded-lg hover:bg-white/10"
+                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
                 aria-label="Close chat"
               >
                 <X className="w-4 h-4" />
@@ -63,8 +63,8 @@ export function FloatingChatWidget({ users, currentUser }: { users: User[]; curr
           }
         }}
         className={cn(
-          'pointer-events-auto w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95',
-          open ? 'bg-gray-800 text-white' : 'bg-gradient-to-br from-maroon-800 to-maroon-950 text-white',
+          'pointer-events-auto studio-chat-fab w-14 h-14 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95',
+          open && !minimized && 'bg-maroon-950',
         )}
         aria-label={open ? 'Toggle chat' : 'Open team chat'}
       >

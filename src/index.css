@@ -1,5 +1,5 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
 @theme {
   --color-maroon-50: #fbf4f5;
@@ -18,27 +18,28 @@
   --font-display: 'Cormorant Garamond', Georgia, serif;
   --font-sans: 'Outfit', system-ui, sans-serif;
   --font-accent: 'Syne', system-ui, sans-serif;
-}
-
-@keyframes mesh-drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(2%, -3%) scale(1.05); }
-  66% { transform: translate(-2%, 2%) scale(0.98); }
+  --radius-studio: 1.5rem 1.5rem 1.5rem 0.375rem;
+  --radius-studio-sm: 1rem 1rem 1rem 0.25rem;
 }
 
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-12px) rotate(2deg); }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 @keyframes reveal-up {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes line-grow {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
+}
+
+@keyframes studio-shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
 }
 
 @layer base {
@@ -54,6 +55,17 @@
   ::selection {
     background: color-mix(in srgb, var(--color-maroon-600) 30%, white);
     color: var(--color-maroon-950);
+  }
+
+  :root {
+    --text: var(--color-ink);
+    --text-muted: #5c4a50;
+    --accent: var(--color-maroon-700);
+    --accent-soft: var(--color-maroon-50);
+    --border: color-mix(in srgb, var(--color-maroon-400) 18%, #e8e0e2);
+    --bg-muted: var(--color-maroon-50);
+    --card-bg: rgba(255, 255, 255, 0.88);
+    --card-border: color-mix(in srgb, var(--color-maroon-500) 20%, white);
   }
 }
 
@@ -73,139 +85,359 @@
 
   .kaala-mesh {
     background:
-      radial-gradient(ellipse 80% 60% at 10% 20%, color-mix(in srgb, var(--color-maroon-600) 35%, transparent), transparent 55%),
-      radial-gradient(ellipse 70% 50% at 90% 80%, color-mix(in srgb, var(--color-maroon-800) 25%, transparent), transparent 50%),
-      radial-gradient(ellipse 50% 40% at 50% 50%, color-mix(in srgb, #0a0a0a 8%, transparent), transparent 60%),
-      var(--color-cream);
+      radial-gradient(ellipse 90% 70% at 0% 0%, color-mix(in srgb, var(--color-maroon-400) 12%, transparent), transparent 50%),
+      radial-gradient(ellipse 80% 60% at 100% 100%, color-mix(in srgb, var(--color-maroon-700) 10%, transparent), transparent 45%),
+      linear-gradient(165deg, var(--color-cream) 0%, color-mix(in srgb, var(--color-maroon-50) 40%, white) 100%);
   }
 
-  .kaala-mesh-animated::before {
-    content: '';
-    position: fixed;
-    inset: -20%;
-    background:
-      radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--color-maroon-500) 18%, transparent) 0%, transparent 45%),
-      radial-gradient(circle at 70% 60%, color-mix(in srgb, var(--color-maroon-800) 12%, transparent) 0%, transparent 40%);
-    animation: mesh-drift 18s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 0;
+  .studio-grid {
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--color-maroon-300) 8%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--color-maroon-300) 8%, transparent) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
+
+  .studio-reveal,
+  .atelier-reveal { animation: reveal-up 0.55s ease-out both; }
+  .studio-reveal-d1 { animation-delay: 0.06s; }
+  .studio-reveal-d2,
+  .atelier-reveal-delay-2 { animation-delay: 0.12s; }
+  .studio-reveal-d3 { animation-delay: 0.18s; }
 }
 
-/* ─── Atelier shell ─── */
+/* ─── Creative studio shell ─── */
+.studio-watermark,
 .atelier-watermark {
   position: fixed;
-  right: -5vw;
-  top: 50%;
-  transform: translateY(-50%);
+  right: -2vw;
+  top: 42%;
+  transform: translateY(-50%) rotate(-6deg);
   font-family: var(--font-display);
-  font-size: clamp(18rem, 35vw, 42rem);
+  font-size: clamp(14rem, 28vw, 32rem);
   font-weight: 700;
-  line-height: 0.8;
-  color: color-mix(in srgb, var(--color-maroon-600) 4%, transparent);
+  line-height: 0.75;
+  color: color-mix(in srgb, var(--color-maroon-500) 5%, transparent);
   pointer-events: none;
   user-select: none;
   z-index: 0;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.06em;
 }
 
+.studio-sidebar,
 .atelier-rail {
-  background: linear-gradient(180deg, var(--color-maroon-900) 0%, var(--color-maroon-950) 40%, var(--color-ink) 100%);
-  box-shadow: 8px 0 40px -10px color-mix(in srgb, var(--color-maroon-950) 60%, transparent);
-}
-
-.atelier-rail::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.15) 30%, rgba(255,255,255,0.05) 70%, transparent);
-}
-
-.atelier-rail-tooltip {
-  position: absolute;
-  left: calc(100% + 12px);
-  top: 50%;
-  transform: translateY(-50%) translateX(-6px);
-  opacity: 0;
-  pointer-events: none;
-  white-space: nowrap;
-  padding: 6px 12px;
-  background: var(--color-ink);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  z-index: 50;
-}
-
-.atelier-rail-tooltip::before {
-  content: '';
-  position: absolute;
-  left: -4px;
-  top: 50%;
-  transform: translateY(-50%) rotate(45deg);
-  width: 8px;
-  height: 8px;
-  background: var(--color-ink);
-}
-
-.atelier-rail-item:hover .atelier-rail-tooltip {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-}
-
-.atelier-workspace {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px);
-  border: 1px solid color-mix(in srgb, var(--color-maroon-300) 35%, white);
-  border-radius: 2rem 2rem 2rem 0.75rem;
+  background:
+    linear-gradient(175deg, var(--color-maroon-900) 0%, var(--color-maroon-950) 45%, var(--color-ink) 100%);
   box-shadow:
-    0 0 0 1px color-mix(in srgb, white 80%, transparent),
-    0 25px 50px -12px color-mix(in srgb, var(--color-maroon-900) 18%, transparent),
-    inset 0 1px 0 rgba(255,255,255,0.9);
+    12px 0 48px -16px color-mix(in srgb, var(--color-ink) 50%, transparent),
+    inset -1px 0 0 color-mix(in srgb, white 8%, transparent);
 }
 
-.atelier-page-header {
-  animation: reveal-up 0.6s ease-out;
-}
-
-.atelier-index {
+.studio-sidebar::before,
+.atelier-rail::before {
+  content: '';
   position: absolute;
-  left: -0.15em;
-  top: -0.35em;
-  font-size: clamp(5rem, 12vw, 9rem);
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 3px,
+    color-mix(in srgb, white 2%, transparent) 3px,
+    color-mix(in srgb, white 2%, transparent) 4px
+  );
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.studio-brand {
+  border-radius: var(--radius-studio-sm);
+  background: color-mix(in srgb, white 8%, transparent);
+  border: 1px solid color-mix(in srgb, white 12%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.studio-nav-item {
+  border-radius: 0.875rem;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.studio-nav-item[data-active="true"] {
+  background: white;
+  color: var(--color-maroon-950);
+  box-shadow:
+    0 4px 20px -4px color-mix(in srgb, var(--color-ink) 35%, transparent),
+    inset 0 1px 0 white;
+}
+
+.studio-nav-item:not([data-active="true"]):hover {
+  background: color-mix(in srgb, white 10%, transparent);
+  color: white;
+}
+
+.studio-section-label {
+  font-family: var(--font-accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, white 32%, transparent);
+}
+
+.studio-canvas,
+.atelier-workspace {
+  background: var(--card-bg);
+  backdrop-filter: blur(24px) saturate(1.2);
+  border: 1px solid var(--card-border);
+  border-radius: 2rem 2rem 2rem 0.625rem;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, white 70%, transparent),
+    0 32px 64px -24px color-mix(in srgb, var(--color-maroon-900) 22%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.studio-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-maroon-300) 25%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, white 60%, transparent), transparent);
+}
+
+.studio-page-header {
+  position: relative;
+  padding-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  animation: reveal-up 0.5s ease-out;
+}
+
+.studio-page-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 64px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-ink), var(--color-maroon-600));
+  transform-origin: left;
+  animation: line-grow 0.7s ease-out 0.15s both;
+}
+
+.studio-page-index {
+  position: absolute;
+  left: -0.05em;
+  top: -0.45em;
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 10vw, 7rem);
   font-weight: 700;
   line-height: 1;
-  color: color-mix(in srgb, var(--color-maroon-200) 55%, transparent);
+  color: color-mix(in srgb, var(--color-maroon-200) 70%, transparent);
+  pointer-events: none;
+  user-select: none;
   z-index: 0;
 }
 
-.atelier-rule {
-  display: inline-block;
-  width: 32px;
-  height: 2px;
-  background: var(--color-ink);
-  transform-origin: left;
-  animation: line-grow 0.8s ease-out 0.2s both;
+.studio-kicker {
+  font-family: var(--font-accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--color-maroon-500);
 }
 
-.atelier-reveal {
-  animation: reveal-up 0.5s ease-out both;
+/* ─── Studio components (global in content) ─── */
+.card,
+.studio-card,
+.bento-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-studio);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, white 90%, transparent),
+    0 16px 40px -20px color-mix(in srgb, var(--color-maroon-900) 18%, transparent);
+  backdrop-filter: blur(10px);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
-.atelier-reveal-delay-1 { animation-delay: 0.08s; }
-.atelier-reveal-delay-2 { animation-delay: 0.16s; }
-.atelier-reveal-delay-3 { animation-delay: 0.24s; }
+.card:hover,
+.studio-card:hover,
+.bento-card:hover {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, white 90%, transparent),
+    0 24px 48px -20px color-mix(in srgb, var(--color-maroon-900) 26%, transparent);
+}
 
-/* ─── Content theming ─── */
+.studio-hero {
+  border-radius: var(--radius-studio);
+  background:
+    linear-gradient(135deg, var(--color-maroon-900) 0%, var(--color-maroon-950) 55%, var(--color-ink) 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.studio-hero::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 60%;
+  height: 140%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-maroon-500) 35%, transparent), transparent 65%);
+  pointer-events: none;
+}
+
+.studio-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, white 25%, transparent), transparent);
+}
+
+.studio-stat {
+  border-radius: var(--radius-studio-sm);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 1.25rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.studio-stat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-maroon-600), transparent);
+}
+
+.studio-stat-label {
+  font-family: var(--font-accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-maroon-500);
+}
+
+.studio-stat-value {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--color-maroon-950);
+  margin-top: 0.35rem;
+}
+
+.btn-primary,
+.studio-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--color-ink), var(--color-maroon-950));
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 24px -8px color-mix(in srgb, var(--color-ink) 50%, transparent);
+}
+
+.btn-primary:hover,
+.studio-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -8px color-mix(in srgb, var(--color-maroon-900) 55%, transparent);
+}
+
+.btn-secondary,
+.studio-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-maroon-800);
+  background: white;
+  border: 1px solid var(--card-border);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-secondary:hover { background: var(--color-maroon-50); }
+
+.btn-ghost {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-ghost:hover { color: var(--color-maroon-800); }
+
+.input-field,
+.studio-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  background: color-mix(in srgb, var(--color-cream) 50%, white);
+  border: 1px solid var(--card-border);
+  border-radius: 0.75rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-field:focus,
+.studio-input:focus {
+  border-color: var(--color-maroon-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-maroon-500) 15%, transparent);
+}
+
+.studio-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  border: 1px solid var(--card-border);
+  background: color-mix(in srgb, var(--color-maroon-50) 80%, white);
+  color: var(--color-maroon-700);
+}
+
+.studio-chip-live {
+  background: linear-gradient(135deg, var(--color-maroon-900), var(--color-ink));
+  color: white;
+  border-color: transparent;
+}
+
+.studio-points {
+  background: linear-gradient(135deg, var(--color-maroon-800), var(--color-ink));
+  color: white;
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  font-family: var(--font-accent);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+
+/* ─── Content theming (all module views) ─── */
 .kaala-content {
-  --card-bg: rgba(255, 255, 255, 0.85);
-  --card-border: color-mix(in srgb, var(--color-maroon-500) 22%, #e8e0e2);
+  --card-bg: rgba(255, 255, 255, 0.88);
+  --card-border: color-mix(in srgb, var(--color-maroon-500) 18%, #e8e0e2);
   --muted: #5c4a50;
 }
 
@@ -218,7 +450,7 @@
 .kaala-content .bg-gray-50,
 .kaala-content .bg-gray-50\/50,
 .kaala-content .bg-gray-50\/30 {
-  background-color: color-mix(in srgb, var(--color-maroon-50) 80%, white) !important;
+  background-color: color-mix(in srgb, var(--color-maroon-50) 75%, white) !important;
 }
 
 .kaala-content .border-gray-200,
@@ -241,6 +473,7 @@
 .kaala-content button.bg-gray-900 {
   background: linear-gradient(135deg, var(--color-ink), var(--color-maroon-950)) !important;
   color: white !important;
+  border-radius: 9999px !important;
 }
 
 .kaala-content .hover\:bg-gray-800:hover { background: var(--color-maroon-900) !important; }
@@ -249,6 +482,7 @@
 .kaala-content .bg-emerald-600,
 .kaala-content button.bg-emerald-600 {
   background: linear-gradient(135deg, var(--color-maroon-700), var(--color-maroon-900)) !important;
+  border-radius: 9999px !important;
 }
 
 .kaala-content .hover\:bg-emerald-700:hover { background: var(--color-maroon-950) !important; }
@@ -259,22 +493,21 @@
 
 .kaala-content .bg-emerald-50 { background-color: var(--color-maroon-50) !important; }
 .kaala-content .text-emerald-700 { color: var(--color-maroon-700) !important; }
-.kaala-content .border-emerald-100 { border-color: var(--color-maroon-200) !important; }
+.kaala-content .border-emerald-100,
+.kaala-content .border-emerald-200 { border-color: var(--color-maroon-200) !important; }
 
 .kaala-content .rounded-2xl,
 .kaala-content .rounded-xl {
-  border-radius: 1.25rem;
+  border-radius: var(--radius-studio) !important;
   box-shadow:
     0 1px 0 color-mix(in srgb, white 90%, transparent),
-    0 12px 32px -12px color-mix(in srgb, var(--color-maroon-900) 15%, transparent);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+    0 14px 36px -14px color-mix(in srgb, var(--color-maroon-900) 16%, transparent);
 }
 
-.kaala-content .rounded-2xl:hover,
-.kaala-content .rounded-xl:hover {
-  box-shadow:
-    0 1px 0 color-mix(in srgb, white 90%, transparent),
-    0 20px 40px -16px color-mix(in srgb, var(--color-maroon-900) 22%, transparent);
+.kaala-content input,
+.kaala-content select,
+.kaala-content textarea {
+  border-radius: 0.75rem !important;
 }
 
 .kaala-content input:focus,
@@ -282,15 +515,16 @@
 .kaala-content textarea:focus {
   outline: none;
   border-color: var(--color-maroon-500) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-maroon-500) 18%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-maroon-500) 15%, transparent);
 }
 
 .kaala-content table thead { background-color: var(--color-maroon-50) !important; }
 
-.kaala-content h2.text-xl {
+.kaala-content h2.text-xl,
+.kaala-content h3.font-semibold {
   font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   color: var(--color-maroon-900) !important;
 }
 
@@ -302,37 +536,48 @@
 .kaala-content .border-blue-100 { border-color: var(--color-maroon-200) !important; }
 .kaala-content .bg-amber-600 { background-color: var(--color-maroon-800) !important; }
 
-/* Bento cards */
-.bento-card {
-  @apply relative overflow-hidden rounded-[1.35rem] border border-maroon-200/50 bg-white/80 backdrop-blur-sm;
-  box-shadow: 0 12px 40px -16px color-mix(in srgb, var(--color-maroon-900) 20%, transparent);
-}
-
-.bento-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--color-ink), var(--color-maroon-600), transparent);
-}
-
 /* Login theatre */
 .login-blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(60px);
-  animation: mesh-drift 14s ease-in-out infinite;
+  filter: blur(80px);
+  opacity: 0.5;
 }
 
-.login-giant-type {
+.login-editorial-type {
   font-family: var(--font-display);
-  font-size: clamp(8rem, 22vw, 18rem);
+  font-size: clamp(5rem, 14vw, 11rem);
   font-weight: 700;
-  line-height: 0.85;
+  line-height: 0.88;
   letter-spacing: -0.04em;
-  -webkit-text-stroke: 1px rgba(255,255,255,0.12);
-  color: transparent;
-  user-select: none;
+  color: color-mix(in srgb, white 92%, transparent);
+}
+
+.login-editorial-sub {
+  font-family: var(--font-accent);
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, white 45%, transparent);
+}
+
+.studio-login-card {
+  border-radius: 2rem 2rem 2rem 0.5rem;
+  background: color-mix(in srgb, white 96%, transparent);
+  backdrop-filter: blur(20px);
+  box-shadow:
+    0 48px 96px -32px color-mix(in srgb, var(--color-ink) 55%, transparent),
+    0 0 0 1px color-mix(in srgb, white 50%, transparent);
+}
+
+.studio-chat-fab {
+  background: linear-gradient(145deg, var(--color-maroon-800), var(--color-ink));
+  box-shadow:
+    0 12px 32px -8px color-mix(in srgb, var(--color-ink) 55%, transparent),
+    0 0 0 1px color-mix(in srgb, white 15%, transparent);
+}
+
+.studio-chat-panel {
+  border-radius: 1.5rem 1.5rem 1.5rem 0.375rem;
+  box-shadow: 0 32px 64px -16px color-mix(in srgb, var(--color-ink) 40%, transparent);
 }

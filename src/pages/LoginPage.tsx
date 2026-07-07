@@ -63,63 +63,81 @@ export default function LoginPage() {
     <div className="min-h-screen relative overflow-hidden bg-ink kaala-grain">
       <div className="login-blob w-[50vw] h-[50vw] -top-[10%] -left-[10%] bg-maroon-700/40" style={{ animationDelay: '0s' }} />
       <div className="login-blob w-[40vw] h-[40vw] bottom-[-15%] right-[-5%] bg-maroon-900/50" style={{ animationDelay: '-5s' }} />
+      <div className="absolute inset-0 studio-grid opacity-[0.04] pointer-events-none" />
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
-        <div className="w-full max-w-[420px] atelier-reveal">
-          <div
-            className="relative bg-white/95 backdrop-blur-xl p-8 sm:p-10 shadow-2xl"
-            style={{
-              borderRadius: '2rem 2rem 2rem 0.5rem',
-              boxShadow: '0 40px 80px -20px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 rgba(255,255,255,0.8)',
-            }}
-          >
-            <div className="absolute -top-px left-8 right-8 h-[3px] bg-gradient-to-r from-ink via-maroon-600 to-transparent rounded-full" />
+      <div className="relative z-10 min-h-screen grid lg:grid-cols-2">
+        {/* Editorial left panel */}
+        <div className="hidden lg:flex flex-col justify-between p-12 xl:p-16 relative">
+          <div className="studio-reveal">
+            <img src="/logo.svg" alt="" className="w-12 h-12 rounded-xl mb-8 opacity-90" />
+            <p className="login-editorial-sub mb-6">{meta.title}</p>
+            <h1 className="login-editorial-type">
+              House<br />of<br />Kaala
+            </h1>
+            <p className="mt-8 max-w-sm text-sm leading-relaxed text-white/40">
+              A creative studio workspace for your team — attendance, tasks, culture, and everything in between.
+            </p>
+          </div>
+          <p className="login-editorial-sub studio-reveal studio-reveal-d2">
+            Human Resource Management
+          </p>
+        </div>
 
-            <div className="flex flex-col items-center text-center mb-8">
-              <img src="/logo.svg" alt="House of Kaala" className="w-16 h-16 rounded-2xl shadow-lg mb-4" />
-              <p className="font-accent text-[10px] uppercase tracking-[0.35em] text-maroon-500 mb-1">{meta.title}</p>
-              <h1 className="font-display text-3xl font-semibold text-maroon-950">House of Kaala</h1>
-              <p className="text-sm text-maroon-600/80 mt-1">Human Resource Management System</p>
+        {/* Form panel */}
+        <div className="flex items-center justify-center p-6 sm:p-10 lg:p-12">
+          <div className="w-full max-w-[420px] studio-reveal studio-reveal-d1">
+            <div className="lg:hidden flex flex-col items-center text-center mb-8">
+              <img src="/logo.svg" alt="House of Kaala" className="w-14 h-14 rounded-2xl shadow-lg mb-3" />
+              <p className="login-editorial-sub text-maroon-400">{meta.title}</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block font-accent text-[10px] uppercase tracking-[0.3em] text-maroon-700/80 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors placeholder:text-maroon-300"
-                  placeholder="you@bymarketingonly.com"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block font-accent text-[10px] uppercase tracking-[0.3em] text-maroon-700/80 mb-2">Password</label>
-                <PasswordInput
-                  value={password}
-                  onChange={setPassword}
-                  className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors"
-                  required
-                  autoComplete="current-password"
-                />
-              </div>
-              {error && (
-                <p className="text-sm text-maroon-800 bg-maroon-50 px-3 py-2 rounded-lg border-l-2 border-maroon-600">{error}</p>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="group w-full relative overflow-hidden bg-ink text-white py-4 rounded-2xl text-sm font-semibold hover:bg-maroon-950 transition-all disabled:opacity-50 mt-2"
-              >
-                <span className="relative z-10">{loading ? 'Signing in…' : 'Sign In'}</span>
-                <span className="absolute inset-0 bg-gradient-to-r from-maroon-700 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-            </form>
+            <div className="studio-login-card relative p-8 sm:p-10">
+              <div className="absolute -top-px left-8 right-8 h-[3px] bg-gradient-to-r from-ink via-maroon-600 to-transparent rounded-full" />
 
-            <p className="text-xs text-maroon-500/70 text-center mt-6">
-              Use your company email and password. Contact HR if you need access.
-            </p>
+              <div className="mb-8">
+                <p className="studio-kicker mb-2">Welcome back</p>
+                <h2 className="font-display text-3xl font-semibold text-maroon-950">Sign in</h2>
+                <p className="text-sm text-maroon-600/70 mt-1">Use your company credentials to continue.</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="studio-kicker block mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors placeholder:text-maroon-300"
+                    placeholder="you@bymarketingonly.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="studio-kicker block mb-2">Password</label>
+                  <PasswordInput
+                    value={password}
+                    onChange={setPassword}
+                    className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors"
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+                {error && (
+                  <p className="text-sm text-maroon-800 bg-maroon-50 px-3 py-2 rounded-lg border-l-2 border-maroon-600">{error}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary w-full py-3.5 mt-2 disabled:opacity-50"
+                >
+                  {loading ? 'Signing in…' : 'Sign In'}
+                </button>
+              </form>
+
+              <p className="text-xs text-maroon-500/70 text-center mt-6">
+                Contact HR if you need access to your account.
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -43,7 +43,7 @@ import { PoliciesView } from './views/PoliciesView';
 import { NotificationsPanel } from './components/NotificationsPanel';
 import { AttendanceHeaderButton } from './components/AttendanceHeaderButton';
 import { FloatingChatWidget } from './components/FloatingChatWidget';
-import { AtelierPageHeader, RailNavItem, RailSection } from './components/AtelierChrome';
+import { AtelierPageHeader, RailNavItem, RailSection, getPageMeta } from './components/AtelierChrome';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import { useRBACStore, useTimerStore } from './store';
@@ -190,15 +190,25 @@ function HRMSApp() {
 
   if (loading || !currentUser) {
     return (
-      <div className="min-h-screen kaala-mesh kaala-grain flex flex-col items-center justify-center gap-6">
-        <div className="relative">
-          <div className="w-20 h-20 rounded-[1.75rem] bg-gradient-to-br from-maroon-700 to-ink flex items-center justify-center font-display text-3xl text-white font-bold shadow-2xl shadow-maroon-950/40" style={{ animation: 'float-slow 4s ease-in-out infinite' }}>K</div>
-          <div className="absolute -inset-4 rounded-[2rem] border border-maroon-300/30 animate-pulse" />
+      <div className="min-h-screen kaala-mesh kaala-grain studio-grid flex flex-col items-center justify-center gap-8">
+        <div className="relative studio-reveal">
+          <div
+            className="w-24 h-24 rounded-[1.75rem] bg-gradient-to-br from-maroon-700 to-ink flex items-center justify-center font-display text-4xl text-white font-bold shadow-2xl shadow-maroon-950/40"
+            style={{ animation: 'float-slow 4s ease-in-out infinite' }}
+          >
+            K
+          </div>
+          <div className="absolute -inset-5 rounded-[2.25rem] border border-maroon-300/25 animate-pulse" />
         </div>
-        <p className="font-accent text-xs uppercase tracking-[0.4em] text-maroon-600/60">Loading dashboard</p>
+        <div className="text-center studio-reveal studio-reveal-d1">
+          <p className="studio-kicker text-maroon-500">House of Kaala</p>
+          <p className="font-display text-xl text-maroon-900 mt-2">Preparing your studio</p>
+        </div>
       </div>
     );
   }
+
+  const pageMeta = getPageMeta(activeTab);
 
   const myTasks = tasks.filter(t => t.ownerId === currentUser.id || t.claimedById === currentUser.id);
   const marketplaceTasks = tasks.filter(t => t.status === 'marketplace');
@@ -210,12 +220,12 @@ function HRMSApp() {
   const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
 
   return (
-    <div className="flex h-screen kaala-mesh kaala-grain text-ink overflow-hidden relative">
-      <div className="atelier-watermark" aria-hidden>K</div>
+    <div className="flex h-screen kaala-mesh kaala-grain studio-grid text-ink overflow-hidden relative">
+      <div className="studio-watermark" aria-hidden>K</div>
 
       {/* Sidebar navigation */}
-      <aside className="atelier-rail w-64 shrink-0 flex flex-col items-stretch py-5 px-2 gap-0.5 relative z-20 overflow-y-auto hide-scrollbar">
-        <Link to="/dashboard" className="mb-4 mx-1 px-3 py-3 rounded-2xl bg-white/10 border border-white/15 flex items-center gap-3 hover:bg-white/20 transition-colors">
+      <aside className="studio-sidebar w-64 shrink-0 flex flex-col items-stretch py-5 px-2 gap-0.5 relative z-20 overflow-y-auto hide-scrollbar">
+        <Link to="/dashboard" className="studio-brand mb-4 mx-1 px-3 py-3 flex items-center gap-3 hover:bg-white/12 transition-colors">
           <img src="/logo.svg" alt="" className="w-10 h-10 shrink-0 rounded-xl" />
           <span className="min-w-0">
             <span className="font-display text-sm font-semibold text-white leading-tight block truncate">House of Kaala</span>
@@ -284,22 +294,28 @@ function HRMSApp() {
 
       {/* Floating workspace panel */}
       <div className="flex-1 flex flex-col min-w-0 p-3 pl-2 pb-3 relative z-10">
-        <div className="atelier-workspace flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="shrink-0 flex items-center justify-between gap-4 px-6 lg:px-8 py-4 border-b border-maroon-100/60">
+        <div className="studio-canvas flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div className="studio-header shrink-0 flex items-center justify-between gap-4 px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="hidden sm:inline font-accent text-[10px] uppercase tracking-[0.35em] text-maroon-500/70 truncate">
-                {portalMeta.title}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <AttendanceHeaderButton onStatusChange={loadData} />
-              <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-maroon-50/80 border border-maroon-100">
-                <span className="w-1.5 h-1.5 rounded-full bg-maroon-600 animate-pulse" />
-                <span className="font-accent text-[10px] uppercase tracking-widest text-maroon-700/70">Live</span>
+              {pageMeta.index && (
+                <span className="hidden sm:inline studio-kicker text-maroon-400 tabular-nums">{pageMeta.index}</span>
+              )}
+              <div className="min-w-0">
+                <p className="hidden sm:block studio-kicker text-maroon-500 truncate">{portalMeta.title}</p>
+                {activeTab !== 'dashboard' && (
+                  <p className="hidden md:block font-display text-lg text-maroon-950 truncate leading-tight">{pageMeta.title}</p>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-maroon-900 to-ink text-white shadow-md">
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <AttendanceHeaderButton onStatusChange={loadData} />
+              <div className="hidden md:flex studio-chip">
+                <span className="w-1.5 h-1.5 rounded-full bg-maroon-500 animate-pulse" />
+                Live
+              </div>
+              <div className="studio-points flex items-center gap-1.5">
                 <Medal className="w-3.5 h-3.5 opacity-80" />
-                <span className="font-accent font-bold text-sm tabular-nums">{currentUser.points}</span>
+                <span className="tabular-nums">{currentUser.points}</span>
                 <span className="text-[9px] uppercase tracking-wider opacity-60">KP</span>
               </div>
               <NotificationsPanel open={notifOpen} onToggle={() => setNotifOpen(!notifOpen)} onClose={() => setNotifOpen(false)} />
@@ -377,7 +393,7 @@ function HRMSApp() {
             </div>
           </main>
 
-          <footer className="shrink-0 flex items-center justify-between px-6 lg:px-8 py-2.5 border-t border-maroon-100/50 text-[9px] font-accent uppercase tracking-[0.2em] text-maroon-600/50">
+          <footer className="shrink-0 flex items-center justify-between px-6 lg:px-8 py-2.5 border-t border-maroon-100/50 text-[9px] studio-kicker text-maroon-500/60">
             <div className="flex items-center gap-4">
               <span>Connected</span>
               <span className="text-maroon-300">·</span>
@@ -423,7 +439,7 @@ function TaskItem({ task, activeTimers, handleStartTimer, handleStopTimer, onCom
   };
 
   return (
-    <div className={cn("bg-white border rounded-xl p-5 flex items-center justify-between group hover:border-gray-300 transition-all shadow-sm hover:shadow", isLate ? "border-red-300 bg-red-50/10" : "border-gray-200")}>
+    <div className={cn("studio-card p-5 flex items-center justify-between group transition-all", isLate ? "border-red-300 bg-red-50/10" : "")}>
       <div className="flex items-center gap-4">
         <div className={cn(
           "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
@@ -537,20 +553,20 @@ function NewTaskModal({ isOpen, onClose, onRefresh }: any) {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-          <h3 className="font-semibold text-gray-900">New Task</h3>
+    <div className="fixed inset-0 bg-ink/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="studio-card w-full max-w-md overflow-hidden">
+        <div className="px-6 py-4 border-b border-maroon-100 flex justify-between items-center bg-maroon-50/50">
+          <h3 className="font-display text-lg font-semibold text-maroon-950">New Task</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><XCircle className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Task Title</label>
-            <input required autoFocus value={title} onChange={e => setTitle(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400" placeholder="e.g. Update user documentation" />
+            <input required autoFocus value={title} onChange={e => setTitle(e.target.value)} className="input-field" placeholder="e.g. Update user documentation" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400">
+            <select value={category} onChange={e => setCategory(e.target.value)} className="input-field">
               <option value="">Select a category</option>
               <option value="Development">Development</option>
               <option value="Design">Design</option>
@@ -560,11 +576,11 @@ function NewTaskModal({ isOpen, onClose, onRefresh }: any) {
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1">Reference Link (Optional)</label>
-            <input type="url" value={referenceLink} onChange={e => setReferenceLink(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-gray-400" placeholder="https://..." />
+            <input type="url" value={referenceLink} onChange={e => setReferenceLink(e.target.value)} className="input-field" placeholder="https://..." />
           </div>
           <div className="pt-2 flex justify-end gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-900">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-gray-800 transition-colors shadow-sm">Create Task</button>
+            <button type="submit" className="btn-primary">Create Task</button>
           </div>
         </form>
       </div>
@@ -633,57 +649,59 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
     <div className="space-y-8">
       <AtelierPageHeader activeTab="dashboard" />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="lg:col-span-2 bg-gradient-to-br from-maroon-900 to-maroon-950 text-white rounded-2xl p-6 shadow-sm">
-          <p className="text-sm text-white/70">{greeting()},</p>
-          <p className="font-display text-2xl font-semibold mt-1">{currentUser?.name?.split(' ')[0] || 'there'}</p>
-          <p className="text-sm text-white/60 mt-2">Welcome to your HR dashboard. Here is a quick summary of your work today.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 studio-reveal studio-reveal-d1">
+        <div className="lg:col-span-2 studio-hero p-7 sm:p-8 relative z-[1]">
+          <p className="studio-kicker text-white/50">{greeting()}</p>
+          <p className="font-display text-3xl sm:text-4xl font-semibold mt-2 text-white">{currentUser?.name?.split(' ')[0] || 'there'}</p>
+          <p className="text-sm text-white/55 mt-3 max-w-md leading-relaxed">
+            Your studio overview — tasks, points, and team activity at a glance.
+          </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">My Tasks</p>
-          <p className="text-3xl font-semibold text-gray-900 mt-2">{pendingCount}</p>
-          <p className="text-sm text-gray-500 mt-1">Pending and in progress</p>
+        <div className="studio-stat">
+          <p className="studio-stat-label">My Tasks</p>
+          <p className="studio-stat-value">{pendingCount}</p>
+          <p className="text-xs text-maroon-600/70 mt-1">Pending and in progress</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Kaala Points</p>
-          <p className="text-3xl font-semibold text-maroon-800 mt-2">{currentUser?.points ?? 0}</p>
-          <p className="text-sm text-gray-500 mt-1">Reward balance</p>
+        <div className="studio-stat">
+          <p className="studio-stat-label">Kaala Points</p>
+          <p className="studio-stat-value">{currentUser?.points ?? 0}</p>
+          <p className="text-xs text-maroon-600/70 mt-1">Reward balance</p>
         </div>
         {isManager && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Pending Approvals</p>
-            <p className="text-3xl font-semibold text-gray-900 mt-2">{reviewTasks.length}</p>
-            <p className="text-sm text-gray-500 mt-1">Awaiting your review</p>
+          <div className="studio-stat">
+            <p className="studio-stat-label">Pending Approvals</p>
+            <p className="studio-stat-value">{reviewTasks.length}</p>
+            <p className="text-xs text-maroon-600/70 mt-1">Awaiting your review</p>
           </div>
         )}
-        <div className={`bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex items-center justify-between gap-4 ${isManager ? '' : 'lg:col-span-1'}`}>
+        <div className={`studio-card p-5 flex items-center justify-between gap-4 ${isManager ? '' : 'lg:col-span-1'}`}>
           <div>
-            <p className="text-sm font-medium text-gray-900">Quick action</p>
-            <p className="text-xs text-gray-500 mt-1">Create a new task for yourself or your team</p>
+            <p className="font-display text-base font-semibold text-maroon-950">Quick action</p>
+            <p className="text-xs text-maroon-600/70 mt-1">Create a task for yourself or your team</p>
           </div>
-          <button onClick={() => setIsNewTaskModalOpen(true)} className="shrink-0 px-4 py-2 bg-maroon-900 text-white text-sm font-medium rounded-lg hover:bg-maroon-950 flex items-center gap-2">
+          <button onClick={() => setIsNewTaskModalOpen(true)} className="btn-primary shrink-0">
             <Plus className="w-4 h-4" /> New Task
           </button>
         </div>
       </div>
 
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8 atelier-reveal atelier-reveal-delay-2">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8 studio-reveal studio-reveal-d2">
       
       {/* Main Content Area */}
       <div className="xl:col-span-2 flex flex-col gap-8">
         
         {/* Manager Review Queue */}
         {isManager && reviewTasks.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-2xl flex flex-col shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-gray-500" /> Pending Approvals
+          <div className="studio-card flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-maroon-100 flex justify-between items-center bg-maroon-50/50">
+              <h3 className="font-display text-base font-semibold text-maroon-950 flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-maroon-500" /> Pending Approvals
               </h3>
-              <span className="bg-gray-900 text-white text-[10px] font-medium px-2.5 py-1 rounded-full">{reviewTasks.length} Pending</span>
+              <span className="studio-chip studio-chip-live">{reviewTasks.length} Pending</span>
             </div>
-            <div className="p-6 space-y-4 bg-gray-50/30">
+            <div className="p-6 space-y-4 bg-maroon-50/30">
               {reviewTasks.map((task: Task) => (
-                <div key={task.id} className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between shadow-sm hover:border-gray-300 transition-colors">
+                <div key={task.id} className="studio-card p-5 flex items-center justify-between transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
                       <FileText className="w-5 h-5" />
@@ -700,13 +718,13 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
                   <div className="flex gap-2">
                     <button 
                       onClick={() => onReview(task.id, 'reject')}
-                      className="px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                      className="btn-secondary text-xs flex items-center gap-1.5"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Reject
                     </button>
                     <button 
                       onClick={() => onReview(task.id, 'approve')}
-                      className="px-4 py-2 bg-gray-900 text-white text-xs font-semibold rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-1.5 shadow-sm"
+                      className="btn-primary text-xs flex items-center gap-1.5"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" /> Approve
                     </button>
@@ -718,11 +736,11 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
         )}
 
         {/* Active Tasks */}
-        <div className="bg-white border border-gray-200 rounded-2xl flex flex-col shadow-sm overflow-hidden flex-1">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <div className="studio-card flex flex-col overflow-hidden flex-1">
+          <div className="px-6 py-4 border-b border-maroon-100 flex justify-between items-center bg-maroon-50/50">
             <div className="flex items-center gap-4">
-              <h3 className="text-sm font-semibold text-gray-900">My Active Tasks</h3>
-              <select value={sortOrder} onChange={e => setSortOrder(e.target.value)} className="text-xs border border-gray-200 rounded-md px-2 py-1 outline-none focus:border-gray-400 bg-white shadow-sm">
+              <h3 className="font-display text-base font-semibold text-maroon-950">My Active Tasks</h3>
+              <select value={sortOrder} onChange={e => setSortOrder(e.target.value)} className="input-field text-xs py-1.5 px-2 w-auto">
                 <option value="dueDate">Sort by Due Date</option>
                 <option value="priority">Sort by Priority</option>
                 <option value="createdDate">Sort by Created Date</option>
@@ -730,7 +748,7 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
             </div>
             <button
               onClick={() => setIsNewTaskModalOpen(true)}
-              className="px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-1 shadow-sm"
+              className="btn-primary text-xs py-1.5 px-3"
             >
               <Plus className="w-3 h-3" /> New Task
             </button>
@@ -779,9 +797,9 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
       <NewTaskModal isOpen={isNewTaskModalOpen} onClose={() => setIsNewTaskModalOpen(false)} onRefresh={onRefresh} />
       {/* Transaction Ledger */}
       <div className="flex flex-col gap-6">
-        <div className="bg-white border border-gray-200 rounded-2xl flex flex-col shadow-sm overflow-hidden flex-1 max-h-[700px]">
-          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-            <h3 className="text-sm font-semibold text-gray-900">Recent Activity</h3>
+        <div className="studio-card flex flex-col overflow-hidden flex-1 max-h-[700px]">
+          <div className="px-6 py-4 border-b border-maroon-100 bg-maroon-50/50">
+            <h3 className="font-display text-base font-semibold text-maroon-950">Recent Activity</h3>
           </div>
           <div className="p-6 font-mono text-xs space-y-4 overflow-y-auto">
             {transactions.length === 0 ? (
@@ -812,13 +830,13 @@ function DashboardView({ tasks, reviewTasks, transactions, allUsers, onComplete,
 function MarketplaceView({ tasks, onClaim, userId, users }: { tasks: Task[], onClaim: (id: string) => void, userId: string, users: User[] }) {
   return (
     <div className="space-y-6">
-      <div className="bg-white px-8 py-6 border border-gray-200 rounded-2xl flex flex-col shadow-sm">
-        <h2 className="text-xl font-semibold text-gray-900">Reward Marketplace</h2>
+      <div className="studio-card px-8 py-6 flex flex-col">
+        <h2 className="font-display text-2xl font-semibold text-maroon-950">Reward Marketplace</h2>
         <p className="text-sm text-gray-500 mt-2">Claim abandoned tasks to earn Kaala Points. Strict Deadline is Sunday 11:59 PM. Incomplete claimed tasks incur a 50 pt penalty.</p>
       </div>
 
       {tasks.length === 0 ? (
-        <div className="p-16 border border-gray-200 rounded-2xl flex flex-col items-center justify-center text-gray-400 bg-white shadow-sm">
+        <div className="p-16 studio-card flex flex-col items-center justify-center text-maroon-400">
           <Store className="w-12 h-12 mb-4 text-gray-300" />
           <p className="text-base font-medium text-gray-600">The marketplace is currently empty.</p>
           <p className="text-sm mt-2">New tasks will appear here if SLA is breached (Friday 6:30 PM).</p>
@@ -826,7 +844,7 @@ function MarketplaceView({ tasks, onClaim, userId, users }: { tasks: Task[], onC
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tasks.map(task => (
-            <div key={task.id} className="bg-white border border-gray-200 rounded-2xl p-6 flex flex-col hover:border-gray-300 transition-all shadow-sm hover:shadow relative">
+            <div key={task.id} className="studio-card p-6 flex flex-col transition-all relative">
               <div className="flex items-center justify-between mb-4">
                 <span className="px-3 py-1 bg-gray-100 text-gray-900 text-xs font-semibold rounded-full">
                   +{task.value} KP
@@ -851,7 +869,7 @@ function MarketplaceView({ tasks, onClaim, userId, users }: { tasks: Task[], onC
                 <button 
                   onClick={() => onClaim(task.id)}
                   disabled={task.ownerId === userId}
-                  className="w-full py-2.5 bg-gray-900 text-white text-xs font-semibold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="btn-primary w-full py-2.5 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {task.ownerId === userId ? 'Cannot claim own task' : 'Claim Bounty & Accept Risk'} <ArrowRight className="w-3.5 h-3.5" />
                 </button>
