@@ -1,8 +1,15 @@
-import fs from 'fs';
-import path from 'path';
 import { getSeedUsers, syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
+import {
+  flushPersistence,
+  getStorageBackend,
+  initPersistence,
+  persistStore,
+  readFileStore,
+  readPostgresStore,
+  type StorageBackend,
+} from './persistence';
 
-const DB_PATH = path.join(process.cwd(), 'data', 'store.json');
+export { getStorageBackend, type StorageBackend };
 
 export interface TaskRecord {
   id: string;
@@ -219,30 +226,56 @@ function defaultDb() {
 export type Database = ReturnType<typeof defaultDb>;
 
 let db: Database = defaultDb();
+let initialized = false;
 
-export function loadDb() {
+function applyMigrations() {
+  db.users = syncSeedUsers(db.users);
+  migrateLegacyUserRefs(db);
+}
+
+function hydrateStore(raw: Partial<Database> | null) {
+  db = { ...defaultDb(), ...(raw || {}) };
+  applyMigrations();
+  persistStore(db);
+}
+
+/** Load data from PostgreSQL (if configured) or local JSON file. */
+export async function initDb() {
+  if (initialized) return getStorageBackend();
+  const backend = await initPersistence();
+
   try {
-    if (fs.existsSync(DB_PATH)) {
-      const raw = fs.readFileSync(DB_PATH, 'utf-8');
-      db = { ...defaultDb(), ...JSON.parse(raw) };
+    if (backend === 'postgres') {
+      const stored = await readPostgresStore();
+      if (stored) {
+        hydrateStore(stored);
+      } else {
+        hydrateStore(readFileStore());
+      }
     } else {
-      db = defaultDb();
+      hydrateStore(readFileStore());
     }
-    db.users = syncSeedUsers(db.users);
-    migrateLegacyUserRefs(db);
-    saveDb();
-  } catch {
-    db = defaultDb();
-    db.users = syncSeedUsers(db.users);
-    migrateLegacyUserRefs(db);
-    saveDb();
+  } catch (err) {
+    console.error('[HRMS] Database load failed, using defaults:', err);
+    hydrateStore(null);
   }
+
+  initialized = true;
+  console.log(`[HRMS] Storage: ${getStorageBackend()}${getStorageBackend() === 'file' ? ' (data may be lost on Render redeploy — set DATABASE_URL)' : ''}`);
+  return getStorageBackend();
+}
+
+/** @deprecated Use initDb() at startup. Kept for compatibility. */
+export function loadDb() {
+  hydrateStore(readFileStore());
 }
 
 export function saveDb() {
-  const dir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2));
+  persistStore(db);
+}
+
+export async function flushDb() {
+  await flushPersistence();
 }
 
 export function getDb() {

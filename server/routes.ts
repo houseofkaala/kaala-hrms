@@ -1,6 +1,6 @@
 import { Express } from 'express';
 import {
-  loadDb, saveDb, getDb, sanitizeUser, getUserById, pushNotification, addTransaction, UserRecord,
+  initDb, saveDb, getDb, sanitizeUser, getUserById, pushNotification, addTransaction, getStorageBackend, UserRecord,
 } from './db';
 import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession } from './middleware';
 import { registerExtraRoutes } from './extra-routes';
@@ -61,8 +61,8 @@ function weeklySummary(userId: string) {
   return { chart, onTime, late };
 }
 
-export function registerRoutes(app: Express) {
-  loadDb();
+export async function registerRoutes(app: Express) {
+  await initDb();
   const db = () => getDb();
 
   app.post('/api/auth/login', (req, res) => {
@@ -89,7 +89,15 @@ export function registerRoutes(app: Express) {
     res.json({ success: true });
   });
 
-  app.get('/api/health', (_req, res) => res.json({ status: 'ok', database: 'connected', uptime: process.uptime() }));
+  app.get('/api/health', (_req, res) => {
+    const storage = getStorageBackend();
+    res.json({
+      status: 'ok',
+      database: storage === 'postgres' ? 'postgres' : 'file',
+      persistent: storage === 'postgres',
+      uptime: process.uptime(),
+    });
+  });
 
   app.use('/api', authMiddleware);
 

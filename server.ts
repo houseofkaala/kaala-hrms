@@ -13,7 +13,7 @@ async function startServer() {
     res.json({ status: 'ok', database: 'connected', uptime: process.uptime() });
   });
 
-  registerRoutes(app);
+  await registerRoutes(app);
 
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');

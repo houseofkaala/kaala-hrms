@@ -19,7 +19,8 @@ services:
         value: bymarketingonly.com
       - key: TZ
         value: Asia/Kolkata
-      # Set these in the Render dashboard (Environment → Add variable). Required for login.
+      # Set these in the Render dashboard (Environment → Add variable):
+      # - DATABASE_URL            (Neon/Supabase/Render Postgres — keeps all HRMS data safe)
       # - SEED_ADMIN_PASSWORD     (admin@bymarketingonly.com)
       # - SEED_MANAGER_PASSWORD   (manager@bymarketingonly.com)
       # - SEED_EMPLOYEE_PASSWORD  (employee@bymarketingonly.com)
