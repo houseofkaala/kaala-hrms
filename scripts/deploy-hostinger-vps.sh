@@ -40,15 +40,18 @@ setup_env() {
     echo "Created .env from .env.example"
   fi
 
-  # shellcheck disable=SC1091
-  set -a
-  source .env
-  set +a
+  read_env() {
+    grep -E "^${1}=" .env | head -1 | cut -d= -f2- | sed 's/^["'\'']//; s/["'\'']$//'
+  }
+
+  export SEED_ADMIN_PASSWORD="$(read_env SEED_ADMIN_PASSWORD)"
+  export SEED_MANAGER_PASSWORD="$(read_env SEED_MANAGER_PASSWORD)"
+  export SEED_EMPLOYEE_PASSWORD="$(read_env SEED_EMPLOYEE_PASSWORD)"
 
   local missing=0
-  require_env SEED_ADMIN_PASSWORD || missing=1
-  require_env SEED_MANAGER_PASSWORD || missing=1
-  require_env SEED_EMPLOYEE_PASSWORD || missing=1
+  [ -n "$SEED_ADMIN_PASSWORD" ] || missing=1
+  [ -n "$SEED_MANAGER_PASSWORD" ] || missing=1
+  [ -n "$SEED_EMPLOYEE_PASSWORD" ] || missing=1
   if [ "$missing" -eq 1 ]; then
     echo ""
     echo "Edit ${PROJECT_DIR}/.env and set:"
