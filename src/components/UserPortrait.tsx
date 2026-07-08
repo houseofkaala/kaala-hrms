@@ -71,7 +71,7 @@ export function UserPortrait({
   }, [userId, hasProfileImage]);
 
   const frame = framed
-    ? 'rounded-[1.5rem] rounded-br-md shadow-2xl shadow-maroon-950/25 ring-4 ring-white/20'
+    ? 'rounded-[1.5rem] rounded-br-md shadow-2xl ring-1 ring-gold/35 border border-gold/20'
     : 'rounded-2xl';
 
   if (url && !failed) {
@@ -88,7 +88,7 @@ export function UserPortrait({
     <div
       className={cn(
         'shrink-0 flex items-center justify-center font-display font-semibold uppercase',
-        'bg-gradient-to-br from-maroon-500 via-maroon-700 to-maroon-950 text-white/90',
+        'bg-charcoal text-gold-light border border-gold/25',
         frame,
         SIZE_CLASS[size],
         TEXT_CLASS[size],

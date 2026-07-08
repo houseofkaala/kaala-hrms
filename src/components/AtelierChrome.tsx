@@ -47,7 +47,7 @@ export function AtelierPageHeader({ activeTab }: { activeTab: string }) {
       <span className="studio-page-index" aria-hidden>{meta.index}</span>
       <div className="relative z-10">
         <p className="studio-kicker mb-2">{meta.subtitle}</p>
-        <h1 className="font-display text-4xl sm:text-5xl font-semibold text-maroon-950 tracking-tight">{meta.title}</h1>
+        <h1 className="font-display text-4xl sm:text-5xl font-medium text-ivory tracking-tight">{meta.title}</h1>
       </div>
     </header>
   );
@@ -72,16 +72,16 @@ export function RailNavItem({
       data-active={active}
       className={cn(
         'studio-nav-item group relative flex items-center gap-3 w-full px-3 py-2.5',
-        active ? 'text-maroon-950' : 'text-white/65',
+        active ? 'text-gold-light' : 'text-ivory-muted',
       )}
     >
       <span className="relative shrink-0 flex items-center justify-center w-8 h-8 rounded-lg">
         <Icon
-          className={cn('w-[17px] h-[17px] transition-colors', active ? 'text-maroon-700' : 'text-white/80 group-hover:text-white')}
+          className={cn('w-[17px] h-[17px] transition-colors', active ? 'text-gold' : 'text-ivory-muted group-hover:text-gold-light')}
           strokeWidth={active ? 2.25 : 1.75}
         />
         {badge != null && badge > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-maroon-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-maroon-950">
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-gold text-obsidian text-[9px] font-bold flex items-center justify-center ring-2 ring-charcoal">
             {badge > 9 ? '9+' : badge}
           </span>
         )}
@@ -90,7 +90,7 @@ export function RailNavItem({
         {label}
       </span>
       {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-maroon-600 rounded-full -ml-0.5" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gold rounded-full -ml-0.5" />
       )}
     </Link>
   );
@@ -100,7 +100,7 @@ export function RailSection({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2 px-3 pt-5 pb-1.5 first:pt-2">
       <span className="studio-section-label whitespace-nowrap">{label}</span>
-      <div className="flex-1 h-px bg-white/8" />
+      <div className="flex-1 h-px bg-gold/15" />
     </div>
   );
 }

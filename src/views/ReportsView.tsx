@@ -9,6 +9,7 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts';
 import { cn, fetcher } from '../utils';
+import { CHART, chartTooltipStyle } from '../theme/charts';
 
 const REPORTS = [
   { id: 'attendance', title: 'Attendance Report', icon: Calendar, description: 'Attendance patterns, present days, and late trends.', color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -21,7 +22,7 @@ const REPORTS = [
   { id: 'finance', title: 'Finance Report', icon: IndianRupee, description: 'Payroll and expense breakdown by department.', color: 'text-teal-600', bg: 'bg-teal-50' },
 ];
 
-const PIE_COLORS = ['#651a2c', '#7f2438', '#9a3348', '#c45a72'];
+const PIE_COLORS = CHART.series;
 
 type Employee = { id: string; name: string; department: string };
 type Project = { id: string; name: string };
@@ -115,11 +116,11 @@ export function ReportsView() {
           {chart.length > 0 && (
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={chart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={2} dot={{ r: 2 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Line type="monotone" dataKey="count" stroke={CHART.gold} strokeWidth={2} dot={{ r: 2, fill: CHART.gold }} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -139,11 +140,11 @@ export function ReportsView() {
           {byType.length > 0 && (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={byType}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="type" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#d97706" radius={[6, 6, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="type" tick={{ fontSize: 10, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="count" fill={CHART.gold} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -163,11 +164,11 @@ export function ReportsView() {
           {rankings.length > 0 && (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={rankings.slice(0, 10)} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 10 }} />
-                <Tooltip />
-                <Bar dataKey="score" fill="#059669" radius={[0, 6, 6, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 10, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="score" fill={CHART.gold} radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -235,12 +236,12 @@ export function ReportsView() {
           {list.length > 0 && (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={list}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="health" name="Health" fill="#7c3aed" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="progress" name="Progress" fill="#a78bfa" radius={[6, 6, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="name" tick={{ fontSize: 9, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="health" name="Health" fill={CHART.gold} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="progress" name="Progress" fill={CHART.goldLight} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -298,11 +299,11 @@ export function ReportsView() {
           {byDept.length > 0 && (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={byDept}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="department" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => `₹${v.toLocaleString('en-IN')}`} />
-                <Bar dataKey="payroll" fill="#0d9488" radius={[6, 6, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="department" tick={{ fontSize: 10, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: CHART.ivoryMuted }} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} />
+                <Tooltip formatter={(v: number) => `₹${v.toLocaleString('en-IN')}`} contentStyle={chartTooltipStyle} />
+                <Bar dataKey="payroll" fill={CHART.goldMuted} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -319,12 +320,13 @@ export function ReportsView() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="studio-card px-8 py-6 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">HR Analytics & Reports</h2>
-          <p className="text-gray-500 mt-1">Attendance, performance, projects, finance, and per-employee insights.</p>
+          <p className="studio-kicker mb-1">Intelligence</p>
+          <h2 className="font-display text-2xl font-medium text-ivory tracking-tight">HR Analytics & Reports</h2>
+          <p className="text-ivory-muted text-sm mt-1">Attendance, performance, projects, finance, and per-employee insights.</p>
         </div>
-        <button onClick={downloadCsv} disabled={!report} className="bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50">
+        <button onClick={downloadCsv} disabled={!report} className="btn-primary text-sm disabled:opacity-50">
           <Download className="w-4 h-4" />
           Export Data
         </button>
@@ -337,26 +339,28 @@ export function ReportsView() {
               key={r.id}
               onClick={() => setActiveReport(r.id)}
               className={cn(
-                'w-full flex items-start gap-4 p-4 rounded-2xl transition-all border text-left',
-                activeReport === r.id ? 'bg-white border-gray-200 shadow-sm ring-1 ring-gray-900/5' : 'bg-transparent border-transparent hover:bg-gray-50',
+                'w-full flex items-start gap-4 p-4 rounded-xl transition-all border text-left',
+                activeReport === r.id
+                  ? 'studio-card border-gold/20 ring-1 ring-gold/10'
+                  : 'border-transparent hover:bg-gold/5 hover:border-gold/10',
               )}
             >
               <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', r.bg)}>
                 <r.icon className={cn('w-5 h-5', r.color)} />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">{r.title}</h3>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-2">{r.description}</p>
+                <h3 className="font-medium text-ivory text-sm">{r.title}</h3>
+                <p className="text-xs text-ivory-muted mt-1 line-clamp-2">{r.description}</p>
               </div>
             </button>
           ))}
         </div>
 
-        <div className="md:col-span-2 bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex flex-col min-h-[600px]">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-gray-100">
+        <div className="md:col-span-2 studio-card p-6 flex flex-col min-h-[600px]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-gold/10">
             <div>
-              <h3 className="text-lg font-bold text-gray-900">{reportMeta?.title}</h3>
-              <p className="text-sm text-gray-500">
+              <h3 className="font-display text-lg font-medium text-ivory">{reportMeta?.title}</h3>
+              <p className="text-sm text-ivory-muted">
                 {report ? `Generated ${new Date(report.generatedAt).toLocaleString()}` : 'Configure filters below'}
               </p>
             </div>
@@ -409,18 +413,10 @@ export function ReportsView() {
 }
 
 function StatCard({ label, value, accent }: { label: string; value: string; accent?: 'emerald' | 'amber' | 'red' }) {
-  const colors = {
-    emerald: 'bg-emerald-50 border-emerald-100 text-emerald-900',
-    amber: 'bg-amber-50 border-amber-100 text-amber-900',
-    red: 'bg-red-50 border-red-100 text-red-900',
-    default: 'bg-gray-50 border-gray-100 text-gray-900',
-  };
-  const c = accent ? colors[accent] : colors.default;
-  const labelColor = accent === 'emerald' ? 'text-emerald-600' : accent === 'amber' ? 'text-amber-600' : accent === 'red' ? 'text-red-600' : 'text-gray-500';
   return (
-    <div className={cn('rounded-xl p-4 border', c)}>
-      <p className={cn('text-xs uppercase', labelColor)}>{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
+    <div className={cn('premium-stat', accent === 'emerald' && 'border-gold/20')}>
+      <p className="premium-stat-label">{label}</p>
+      <p className={cn('premium-stat-value text-2xl mt-1', accent === 'red' && 'text-red-300/90')}>{value}</p>
     </div>
   );
 }

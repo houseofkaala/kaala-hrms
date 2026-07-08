@@ -60,22 +60,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-ink kaala-grain">
-      <div className="login-blob w-[50vw] h-[50vw] -top-[10%] -left-[10%] bg-maroon-700/40" style={{ animationDelay: '0s' }} />
-      <div className="login-blob w-[40vw] h-[40vw] bottom-[-15%] right-[-5%] bg-maroon-900/50" style={{ animationDelay: '-5s' }} />
-      <div className="absolute inset-0 studio-grid opacity-[0.04] pointer-events-none" />
+    <div className="min-h-screen relative overflow-hidden bg-obsidian kaala-grain kaala-jaali">
+      <div className="login-blob w-[45vw] h-[45vw] -top-[15%] -left-[10%] bg-gold/20" />
+      <div className="login-blob w-[35vw] h-[35vw] bottom-[-10%] right-[-5%] bg-gold-muted/15" />
 
       <div className="relative z-10 min-h-screen grid lg:grid-cols-2">
-        {/* Editorial left panel */}
         <div className="hidden lg:flex flex-col justify-between p-12 xl:p-16 relative">
           <div className="studio-reveal">
-            <img src="/logo.svg" alt="" className="w-12 h-12 rounded-xl mb-8 opacity-90" />
-            <p className="login-editorial-sub mb-6">{meta.title}</p>
+            <img src="/logo.svg" alt="" className="w-12 h-12 rounded-xl mb-10 opacity-90 ring-1 ring-gold/20" />
+            <p className="login-editorial-sub mb-8">{meta.title}</p>
             <h1 className="login-editorial-type">
               House<br />of<br />Kaala
             </h1>
-            <p className="mt-8 max-w-sm text-sm leading-relaxed text-white/40">
-              A creative studio workspace for your team — attendance, tasks, culture, and everything in between.
+            <div className="executive-profile-divider my-10 max-w-xs" />
+            <p className="max-w-sm text-sm leading-relaxed text-ivory-muted">
+              A luxury operating environment for your creative studio — attendance, culture, projects, and everything in between.
             </p>
           </div>
           <p className="login-editorial-sub studio-reveal studio-reveal-d2">
@@ -83,21 +82,20 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Form panel */}
         <div className="flex items-center justify-center p-6 sm:p-10 lg:p-12">
           <div className="w-full max-w-[420px] studio-reveal studio-reveal-d1">
             <div className="lg:hidden flex flex-col items-center text-center mb-8">
-              <img src="/logo.svg" alt="House of Kaala" className="w-14 h-14 rounded-2xl shadow-lg mb-3" />
-              <p className="login-editorial-sub text-maroon-400">{meta.title}</p>
+              <img src="/logo.svg" alt="House of Kaala" className="w-14 h-14 rounded-2xl mb-3 ring-1 ring-gold/25" />
+              <p className="login-editorial-sub">{meta.title}</p>
             </div>
 
             <div className="studio-login-card relative p-8 sm:p-10">
-              <div className="absolute -top-px left-8 right-8 h-[3px] bg-gradient-to-r from-ink via-maroon-600 to-transparent rounded-full" />
+              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
 
               <div className="mb-8">
                 <p className="studio-kicker mb-2">Welcome back</p>
-                <h2 className="font-display text-3xl font-semibold text-maroon-950">Sign in</h2>
-                <p className="text-sm text-maroon-600/70 mt-1">Use your company credentials to continue.</p>
+                <h2 className="font-display text-3xl font-medium text-ivory">Sign in</h2>
+                <p className="text-sm text-ivory-muted mt-2">Use your company credentials to continue.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -107,7 +105,7 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors placeholder:text-maroon-300"
+                    className="input-field bg-transparent border-0 border-b border-gold/20 rounded-none px-0 focus:border-gold/50"
                     placeholder="you@bymarketingonly.com"
                     required
                   />
@@ -117,13 +115,13 @@ export default function LoginPage() {
                   <PasswordInput
                     value={password}
                     onChange={setPassword}
-                    className="w-full bg-cream/50 border-0 border-b-2 border-maroon-200 rounded-none px-0 py-3 text-sm text-ink outline-none focus:border-maroon-600 transition-colors"
+                    className="w-full bg-transparent border-0 border-b border-gold/20 rounded-none px-0 py-3 text-sm text-ivory outline-none focus:border-gold/50 transition-colors"
                     required
                     autoComplete="current-password"
                   />
                 </div>
                 {error && (
-                  <p className="text-sm text-maroon-800 bg-maroon-50 px-3 py-2 rounded-lg border-l-2 border-maroon-600">{error}</p>
+                  <p className="text-sm text-red-300/90 bg-red-950/30 px-3 py-2 rounded-lg border-l border-red-400/40">{error}</p>
                 )}
                 <button
                   type="submit"
@@ -134,7 +132,7 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <p className="text-xs text-maroon-500/70 text-center mt-6">
+              <p className="text-xs text-ivory-muted text-center mt-8">
                 Contact HR if you need access to your account.
               </p>
             </div>

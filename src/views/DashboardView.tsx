@@ -83,13 +83,13 @@ interface DashboardViewProps {
 
 function StatCard({ label, value, sub, icon: Icon }: { label: string; value: string | number; sub?: string; icon?: typeof Users }) {
   return (
-    <div className="studio-stat">
+    <div className="premium-stat group">
       <div className="flex items-start justify-between gap-2">
-        <p className="studio-stat-label">{label}</p>
-        {Icon && <Icon className="w-4 h-4 text-maroon-400 shrink-0" />}
+        <p className="premium-stat-label">{label}</p>
+        {Icon && <Icon className="w-4 h-4 premium-stat-icon shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />}
       </div>
-      <p className="studio-stat-value">{value}</p>
-      {sub && <p className="text-xs text-maroon-600/70 mt-1">{sub}</p>}
+      <p className="premium-stat-value">{value}</p>
+      {sub && <p className="text-xs text-ivory-muted mt-1.5">{sub}</p>}
     </div>
   );
 }
@@ -101,16 +101,13 @@ function PeriodToggle({ value, onChange }: { value: Period; onChange: (p: Period
     { key: 'monthly', label: 'Monthly' },
   ];
   return (
-    <div className="flex rounded-full bg-maroon-50 border border-maroon-100 p-1 gap-0.5">
+    <div className="period-toggle">
       {opts.map(o => (
         <button
           key={o.key}
           type="button"
+          data-active={value === o.key}
           onClick={() => onChange(o.key)}
-          className={cn(
-            'px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-full transition-all',
-            value === o.key ? 'bg-maroon-800 text-white shadow-sm' : 'text-maroon-600 hover:text-maroon-900',
-          )}
         >
           {o.label}
         </button>
@@ -146,11 +143,12 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
     <div className="space-y-6">
       <AtelierPageHeader activeTab="dashboard" />
 
-      {/* Hero with portrait + period toggle */}
-      <div className="flex flex-col gap-4 studio-reveal">
-        <div className="studio-hero p-6 sm:p-8 relative z-[1] overflow-hidden">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 sm:gap-8">
+      {/* Executive profile */}
+      <div className="flex flex-col gap-5 studio-reveal">
+        <div className="executive-profile p-6 sm:p-10 relative z-[1]">
+          <div className="relative z-10 flex flex-col lg:flex-row items-center lg:items-end gap-8 lg:gap-12">
             <div className="relative shrink-0">
+              <div className="absolute -inset-3 rounded-[1.75rem] border border-gold/20 pointer-events-none" />
               <UserPortrait
                 userId={currentUser?.id || ''}
                 name={currentUser?.name || 'User'}
@@ -159,32 +157,35 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
               />
               <Link
                 to="/profile"
-                className="absolute -bottom-2 -right-2 bg-white/95 text-maroon-800 text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg hover:bg-white transition-colors"
+                className="absolute -bottom-2 -right-2 bg-charcoal/90 border border-gold/30 text-gold-light text-[9px] font-medium uppercase tracking-widest px-3 py-1.5 rounded-full backdrop-blur-md hover:border-gold/50 transition-colors"
               >
-                Edit photo
+                Edit portrait
               </Link>
             </div>
-            <div className="flex-1 text-center sm:text-left pb-2">
-              <p className="studio-kicker text-white/50">{greeting()}</p>
-              <p className="font-display text-3xl sm:text-4xl lg:text-5xl font-semibold mt-2 text-white">
+            <div className="flex-1 text-center lg:text-left pb-1 min-w-0">
+              <p className="studio-kicker">{greeting()}</p>
+              <h2 className="font-display text-4xl sm:text-5xl lg:text-[3.25rem] font-medium mt-3 text-ivory tracking-tight leading-[1.05]">
                 {currentUser?.name || data?.greeting || 'there'}
+              </h2>
+              <div className="executive-profile-divider my-5 max-w-md mx-auto lg:mx-0" />
+              <p className="text-sm text-gold-muted tracking-wide">
+                {currentUser?.title || currentUser?.role}
+                <span className="text-gold/40 mx-2">·</span>
+                {currentUser?.department}
               </p>
-              <p className="text-sm text-white/60 mt-2">
-                {currentUser?.title || currentUser?.role} · {currentUser?.department}
-              </p>
-              <p className="text-sm text-white/50 mt-3 max-w-lg leading-relaxed">
-                Your team overview — attendance, leaves, projects, and tasks at a glance.
+              <p className="text-sm text-ivory-muted mt-4 max-w-xl leading-relaxed mx-auto lg:mx-0">
+                Executive overview — team performance, attendance, projects, and priorities at a glance.
               </p>
             </div>
+            <div className="shrink-0 pb-1">
+              <PeriodToggle value={period} onChange={setPeriod} />
+            </div>
           </div>
-        </div>
-        <div className="flex justify-end">
-          <PeriodToggle value={period} onChange={setPeriod} />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-maroon-100 pb-0 studio-reveal studio-reveal-d1">
+      <div className="flex gap-1 premium-tabs studio-reveal studio-reveal-d1">
         {([
           { key: 'team' as const, label: 'My Team', icon: Users },
           { key: 'todo' as const, label: 'To Do', icon: ListTodo },
@@ -192,18 +193,14 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
           <button
             key={t.key}
             type="button"
+            data-active={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={cn(
-              'flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors',
-              tab === t.key
-                ? 'border-maroon-700 text-maroon-900'
-                : 'border-transparent text-maroon-400 hover:text-maroon-700',
-            )}
+            className="premium-tab"
           >
-            <t.icon className="w-4 h-4" />
+            <t.icon className="w-4 h-4 opacity-70" />
             {t.label}
             {t.key === 'todo' && data?.todos.length ? (
-              <span className="studio-chip text-[10px] py-0.5 px-2">{data.todos.length}</span>
+              <span className="studio-chip text-[9px] py-0.5 px-2">{data.todos.length}</span>
             ) : null}
           </button>
         ))}
@@ -211,9 +208,9 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
 
       {isManager && reviewTasks.length > 0 && (
         <div className="studio-card overflow-hidden studio-reveal studio-reveal-d1">
-          <div className="px-6 py-4 border-b border-maroon-100 bg-maroon-50/50 flex justify-between items-center">
-            <h3 className="font-display text-base font-semibold text-maroon-950 flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-maroon-500" /> Pending Approvals
+          <div className="premium-panel-header flex justify-between items-center">
+            <h3 className="font-display text-base font-medium text-ivory flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-gold" /> Pending Approvals
             </h3>
             <span className="studio-chip studio-chip-live">{reviewTasks.length}</span>
           </div>
@@ -244,7 +241,7 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
       )}
 
       {isLoading || !data ? (
-        <div className="py-20 text-center text-maroon-400 text-sm">Loading dashboard…</div>
+        <div className="py-20 text-center text-ivory-muted text-sm">Loading dashboard…</div>
       ) : tab === 'team' ? (
         <div className="space-y-6 studio-reveal studio-reveal-d2">
           {/* Row 1: Headline stats */}
@@ -295,8 +292,8 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
                   Day {data.payPeriod.dayOfMonth} of {data.payPeriod.daysInPeriod}
                 </span>
               </div>
-              <div className="w-full h-2 bg-maroon-100 rounded-full overflow-hidden">
-                <div className="h-full bg-maroon-700 rounded-full transition-all" style={{ width: `${payProgress}%` }} />
+              <div className="w-full h-1 bg-charcoal rounded-full overflow-hidden border border-gold/10">
+                <div className="h-full bg-gradient-to-r from-gold-muted to-gold rounded-full transition-all" style={{ width: `${payProgress}%` }} />
               </div>
               <p className="text-xs text-maroon-500 mt-2">{data.payPeriod.daysRemaining} days until reset</p>
             </div>
@@ -405,7 +402,7 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
                     return (
                       <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
                         <div
-                          className="w-full bg-maroon-700 rounded-t-sm min-h-[4px] transition-all"
+                          className="w-full bg-gradient-to-t from-gold-muted to-gold rounded-t min-h-[4px] transition-all opacity-80 hover:opacity-100"
                           style={{ height: `${h}%` }}
                           title={`${d.present} present, ${d.hours}h`}
                         />

@@ -218,19 +218,19 @@ function HRMSApp() {
 
   if (loading || !currentUser) {
     return (
-      <div className="min-h-screen kaala-mesh kaala-grain studio-grid flex flex-col items-center justify-center gap-8">
+      <div className="min-h-screen kaala-mesh kaala-grain kaala-jaali flex flex-col items-center justify-center gap-8">
         <div className="relative studio-reveal">
           <div
-            className="w-24 h-24 rounded-[1.75rem] bg-gradient-to-br from-maroon-700 to-ink flex items-center justify-center font-display text-4xl text-white font-bold shadow-2xl shadow-maroon-950/40"
+            className="w-24 h-24 rounded-2xl border border-gold/25 bg-charcoal flex items-center justify-center font-display text-4xl text-gold-light font-medium shadow-2xl"
             style={{ animation: 'float-slow 4s ease-in-out infinite' }}
           >
             K
           </div>
-          <div className="absolute -inset-5 rounded-[2.25rem] border border-maroon-300/25 animate-pulse" />
+          <div className="absolute -inset-5 rounded-3xl border border-gold/15" style={{ animation: 'pulse-gold 3s ease-in-out infinite' }} />
         </div>
         <div className="text-center studio-reveal studio-reveal-d1">
-          <p className="studio-kicker text-maroon-500">House of Kaala</p>
-          <p className="font-display text-xl text-maroon-900 mt-2">Preparing your studio</p>
+          <p className="studio-kicker">House of Kaala</p>
+          <p className="font-display text-xl text-ivory mt-2">Preparing your workspace</p>
         </div>
       </div>
     );
@@ -248,7 +248,7 @@ function HRMSApp() {
   const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
 
   return (
-    <div className="flex h-screen kaala-mesh kaala-grain studio-grid text-ink overflow-hidden relative">
+    <div className="flex h-screen kaala-mesh kaala-grain kaala-jaali text-ivory overflow-hidden relative">
       <div className="studio-watermark" aria-hidden>K</div>
 
       {/* Sidebar navigation */}
@@ -256,8 +256,8 @@ function HRMSApp() {
         <Link to="/dashboard" className="studio-brand mb-4 mx-1 px-3 py-3 flex items-center gap-3 hover:bg-white/12 transition-colors">
           <img src="/logo.svg" alt="" className="w-10 h-10 shrink-0 rounded-xl" />
           <span className="min-w-0">
-            <span className="font-display text-sm font-semibold text-white leading-tight block truncate">House of Kaala</span>
-            <span className="text-[10px] uppercase tracking-wider text-white/45 block truncate">{portalMeta.title}</span>
+            <span className="font-display text-sm font-medium text-ivory leading-tight block truncate">House of Kaala</span>
+            <span className="text-[10px] uppercase tracking-wider text-gold-muted block truncate">{portalMeta.title}</span>
           </span>
         </Link>
 
@@ -310,7 +310,7 @@ function HRMSApp() {
           <VisibleNavItem route="settings" icon={Settings} label="Settings" to="/settings" active={activeTab === 'settings'} />
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-ivory-muted hover:text-gold-light hover:bg-gold/5 transition-colors"
           >
             <span className="shrink-0 flex items-center justify-center w-8 h-8">
               <LogOut className="w-[18px] h-[18px]" />
@@ -326,19 +326,19 @@ function HRMSApp() {
           <div className="studio-header shrink-0 flex items-center justify-between gap-4 px-6 lg:px-8 py-4">
             <div className="flex items-center gap-3 min-w-0">
               {pageMeta.index && (
-                <span className="hidden sm:inline studio-kicker text-maroon-400 tabular-nums">{pageMeta.index}</span>
+                <span className="hidden sm:inline studio-kicker text-gold-muted tabular-nums">{pageMeta.index}</span>
               )}
               <div className="min-w-0">
-                <p className="hidden sm:block studio-kicker text-maroon-500 truncate">{portalMeta.title}</p>
+                <p className="hidden sm:block studio-kicker truncate">{portalMeta.title}</p>
                 {activeTab !== 'dashboard' && (
-                  <p className="hidden md:block font-display text-lg text-maroon-950 truncate leading-tight">{pageMeta.title}</p>
+                  <p className="hidden md:block font-display text-lg text-ivory truncate leading-tight">{pageMeta.title}</p>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <AttendanceHeaderButton onStatusChange={loadData} />
               <div className="hidden md:flex studio-chip">
-                <span className="w-1.5 h-1.5 rounded-full bg-maroon-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-gold" style={{ animation: 'pulse-gold 2s ease-in-out infinite' }} />
                 Live
               </div>
               <div className="studio-points flex items-center gap-1.5">
@@ -348,7 +348,7 @@ function HRMSApp() {
               </div>
               <NotificationsPanel open={notifOpen} onToggle={() => setNotifOpen(!notifOpen)} onClose={() => setNotifOpen(false)} />
               <Link to="/profile" className="flex items-center gap-2 group">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-maroon-600 to-maroon-950 text-white flex items-center justify-center text-xs font-bold uppercase ring-2 ring-white shadow-md group-hover:scale-105 transition-transform">
+                <div className="w-9 h-9 rounded-full bg-charcoal text-gold-light flex items-center justify-center text-xs font-medium uppercase ring-1 ring-gold/30 shadow-md group-hover:scale-105 transition-transform">
                   {currentUser.name.charAt(0)}
                 </div>
               </Link>
@@ -420,16 +420,16 @@ function HRMSApp() {
             </div>
           </main>
 
-          <footer className="shrink-0 flex items-center justify-between px-6 lg:px-8 py-2.5 border-t border-maroon-100/50 text-[9px] studio-kicker text-maroon-500/60">
+          <footer className="shrink-0 flex items-center justify-between px-6 lg:px-8 py-2.5 border-t border-gold/10 text-[9px] studio-kicker text-ivory-muted/60">
             <div className="flex items-center gap-4">
               <span>Connected</span>
-              <span className="text-maroon-300">·</span>
+              <span className="text-gold/25">·</span>
               <span>Active</span>
               {showAdminCrons && (
                 <>
-                  <span className="text-maroon-300">·</span>
-                  <button onClick={triggerFridayCron} className="hover:text-maroon-800 transition-colors">Fri cron</button>
-                  <button onClick={triggerSundayCron} className="hover:text-maroon-800 transition-colors">Sun cron</button>
+                  <span className="text-gold/25">·</span>
+                  <button onClick={triggerFridayCron} className="hover:text-gold-light transition-colors">Fri cron</button>
+                  <button onClick={triggerSundayCron} className="hover:text-gold-light transition-colors">Sun cron</button>
                 </>
               )}
             </div>
