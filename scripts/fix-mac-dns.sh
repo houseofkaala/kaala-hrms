@@ -28,6 +28,7 @@ sudo tee -a "${HOSTS}" >/dev/null <<EOF
 ${MARKER}
 ${VPS_IP} admin.${DOMAIN}
 ${VPS_IP} employee.${DOMAIN}
+${VPS_IP} sales.${DOMAIN}
 ${VPS_IP} ${DOMAIN}
 ${VPS_IP} www.${DOMAIN}
 EOF
@@ -45,6 +46,7 @@ echo ""
 echo "Done. Open in Chrome:"
 echo "  https://admin.${DOMAIN}"
 echo "  https://employee.${DOMAIN}"
+echo "  https://sales.${DOMAIN}"
 echo ""
 echo "Admin login: admin@${DOMAIN}"
 echo "Password:    Kaala@Admin2026!"
