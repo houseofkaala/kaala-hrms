@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 import { Plus, Link as LinkIcon, Edit2 } from 'lucide-react';
 import { 
@@ -17,33 +17,21 @@ import { format } from 'date-fns';
 import { cn, fetcher } from './utils';
 import { clearToken, isAuthenticated } from './auth';
 import type { User, Task, Transaction } from './types';
-import { 
-  RecruitView, PeopleView, AttendanceView, PayrollView, 
-  AssetsView, ProjectsView, TasksView, PerformanceView, 
-  LearningView, ChatView, SurveyView, FieldView, 
-  FinanceView, AIView, LeaderboardView 
-} from './views';
-import { CommunityView } from './views/CommunityView';
-import { HelpDeskView } from './views/HelpDeskView';
-import { ReportsView } from './views/ReportsView';
-import { RewardsView } from './views/RewardsView';
-import { EmployeeManagementView } from './views/EmployeeManagementView';
-import { LeaveManagementView } from './views/LeaveManagementView';
-import { DocumentsView } from './views/DocumentsView';
-import { ProfileView } from './views/ProfileView';
-import { SettingsView } from './views/SettingsView';
-import { RolesView } from './views/RolesView';
-import { NotificationsView } from './views/NotificationsView';
-import { OnboardingView } from './views/OnboardingView';
-import { ExpensesView } from './views/ExpensesView';
-import { OrgChartView } from './views/OrgChartView';
-import { HolidaysView } from './views/HolidaysView';
-import { TimesheetsView } from './views/TimesheetsView';
-import { PoliciesView } from './views/PoliciesView';
-import { DashboardView } from './views/DashboardView';
+import {
+  DashboardView, RecruitView, PeopleView, AttendanceView, PayrollView,
+  AssetsView, ProjectsView, TasksView, PerformanceView,
+  LearningView, ChatView, SurveyView, FieldView,
+  FinanceView, AIView, LeaderboardView,
+  CommunityView, HelpDeskView, ReportsView, RewardsView,
+  EmployeeManagementView, LeaveManagementView, DocumentsView,
+  ProfileView, SettingsView, RolesView, NotificationsView,
+  OnboardingView, ExpensesView, OrgChartView, HolidaysView,
+  TimesheetsView, PoliciesView,
+} from './lazy-views';
 import { NotificationsPanel } from './components/NotificationsPanel';
 import { AttendanceHeaderButton } from './components/AttendanceHeaderButton';
-import { FloatingChatWidget } from './components/FloatingChatWidget';
+import { DeferredChatWidget } from './components/DeferredChatWidget';
+import { ViewFallback } from './components/ViewFallback';
 import { AtelierPageHeader, RailNavItem, RailSection, getPageMeta } from './components/AtelierChrome';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
@@ -100,24 +88,46 @@ function HRMSApp() {
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState<{ status: string; uptime: number } | null>(null);
 
-  const loadData = async (silent = false) => {
+  const loadUser = useCallback(async () => {
+    const user = await fetcher<User>('/api/me');
+    setCurrentUser(user);
+    return user;
+  }, [setCurrentUser]);
+
+  const loadTasks = useCallback(async () => {
+    const allTasks = await fetcher<Task[]>('/api/tasks');
+    setTasks(allTasks);
+    return allTasks;
+  }, []);
+
+  const loadUsers = useCallback(async () => {
+    const allUsersRes = await fetcher<User[]>('/api/users');
+    setAllUsers(allUsersRes);
+    return allUsersRes;
+  }, []);
+
+  const loadTransactions = useCallback(async (userId: string) => {
+    const tx = await fetcher<Transaction[]>(`/api/transactions/${userId}`);
+    setTransactions(tx);
+    return tx;
+  }, []);
+
+  const loadData = useCallback(async (silent = false, scope: 'user' | 'all' = 'all') => {
     try {
-      const [user, allTasks, allUsersRes] = await Promise.all([
-        fetcher<User>('/api/me'),
-        fetcher<Task[]>('/api/tasks'),
-        fetcher<User[]>('/api/users'),
-      ]);
-      const tx = await fetcher<Transaction[]>(`/api/transactions/${user.id}`);
-      setCurrentUser(user);
-      setTasks(allTasks);
-      setTransactions(tx);
-      setAllUsers(allUsersRes);
+      const user = await loadUser();
+      if (scope === 'all') {
+        await Promise.all([
+          loadTasks(),
+          loadUsers(),
+          loadTransactions(user.id),
+        ]);
+      }
     } catch (err) {
       console.error('Failed to load data', err);
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [loadUser, loadTasks, loadUsers, loadTransactions]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -133,23 +143,52 @@ function HRMSApp() {
 
   useEffect(() => {
     if (!isAuthenticated()) return;
-    loadData(false);
-    fetcher<{ status: string; uptime: number }>('/api/health').then(setHealth).catch(() => setHealth(null));
+    loadData(false, 'user');
+
+    const idle = (cb: () => void) => {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(cb, { timeout: 3000 });
+      } else {
+        setTimeout(cb, 1200);
+      }
+    };
+    idle(() => {
+      loadTasks().catch(() => {});
+      loadUsers().catch(() => {});
+    });
+
+    const healthTimer = setTimeout(() => {
+      fetcher<{ status: string; uptime: number }>('/api/health').then(setHealth).catch(() => setHealth(null));
+    }, 5000);
 
     const refresh = () => {
-      if (document.visibilityState === 'visible') loadData(true);
+      if (document.visibilityState === 'visible') loadData(true, 'user');
     };
-    const interval = setInterval(refresh, 60_000);
+    const interval = setInterval(refresh, 300_000);
     const onVisible = () => {
-      if (document.visibilityState === 'visible') loadData(true);
+      if (document.visibilityState === 'visible') loadData(true, 'user');
     };
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
+      clearTimeout(healthTimer);
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [loadData, loadTasks, loadUsers]);
+
+  useEffect(() => {
+    if (!currentUser || loading) return;
+    if (activeTab === 'dashboard' && transactions.length === 0) {
+      loadTransactions(currentUser.id).catch(() => {});
+    }
+    if (['marketplace', 'tasks'].includes(activeTab) && tasks.length === 0) {
+      loadTasks().catch(() => {});
+    }
+    if (['leaderboard', 'chat', 'marketplace'].includes(activeTab) && allUsers.length === 0) {
+      loadUsers().catch(() => {});
+    }
+  }, [activeTab, currentUser, loading, transactions.length, tasks.length, allUsers.length, loadTransactions, loadTasks, loadUsers]);
 
   const formatUptime = (seconds: number) => {
     const d = Math.floor(seconds / 86400);
@@ -218,7 +257,7 @@ function HRMSApp() {
 
   if (loading || !currentUser) {
     return (
-      <div className="min-h-screen kaala-mesh kaala-grain kaala-jaali flex flex-col items-center justify-center gap-8">
+      <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center gap-8">
         <div className="relative studio-reveal">
           <div
             className="w-24 h-24 rounded-2xl border border-gold/25 bg-charcoal flex items-center justify-center font-display text-4xl text-gold-light font-medium shadow-2xl"
@@ -248,8 +287,8 @@ function HRMSApp() {
   const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
 
   return (
-    <div className="flex h-screen kaala-mesh kaala-grain kaala-jaali kaala-marble text-ivory overflow-hidden relative">
-      <div className="kaala-ambient" aria-hidden />
+    <div className="flex h-screen kaala-mesh kaala-grain text-ivory overflow-hidden relative">
+      <div className="kaala-ambient perf-optional" aria-hidden />
       <div className="studio-watermark" aria-hidden>K</div>
 
       {/* Sidebar navigation */}
@@ -337,7 +376,7 @@ function HRMSApp() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <AttendanceHeaderButton onStatusChange={loadData} />
+              <AttendanceHeaderButton onStatusChange={() => loadData(true, 'user')} />
               <div className="hidden md:flex studio-chip">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold" style={{ animation: 'pulse-gold 2s ease-in-out infinite' }} />
                 Live
@@ -362,7 +401,7 @@ function HRMSApp() {
                 <AtelierPageHeader activeTab={activeTab} />
               )}
               
-              {/* VIEWS */}
+              <Suspense fallback={<ViewFallback />}>
               {activeTab === 'dashboard' && (
                 <DashboardView 
                   tasks={myTasks} 
@@ -417,6 +456,7 @@ function HRMSApp() {
               {!['dashboard','marketplace','leaderboard','recruit','employees','onboarding','orgchart','people','leave','holidays','documents','attendance','timesheets','payroll','expenses','assets','projects','tasks','performance','learning','chat','survey','field','finance','ai','community','helpdesk','reports','rewards','profile','settings','roles','notifications','policies'].includes(activeTab) && (
                 <Navigate to="/dashboard" replace />
               )}
+              </Suspense>
 
             </div>
           </main>
@@ -439,7 +479,7 @@ function HRMSApp() {
         </div>
       </div>
 
-      <FloatingChatWidget users={allUsers.length ? allUsers : [currentUser]} currentUser={currentUser} />
+      <DeferredChatWidget users={allUsers.length ? allUsers : [currentUser]} currentUser={currentUser} />
     </div>
   );
 }

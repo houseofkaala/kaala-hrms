@@ -130,8 +130,9 @@
     content: '';
     position: absolute;
     border-radius: 50%;
-    filter: blur(120px);
-    animation: ambient-drift 18s ease-in-out infinite;
+    filter: blur(60px);
+    animation: ambient-drift 24s ease-in-out infinite;
+    will-change: transform;
   }
 
   .kaala-ambient::before {
@@ -284,7 +285,7 @@
 .studio-canvas,
 .atelier-workspace {
   background: color-mix(in srgb, var(--color-marble) 88%, transparent);
-  backdrop-filter: blur(48px) saturate(1.15);
+  backdrop-filter: blur(12px) saturate(1.08);
   border: 1px solid color-mix(in srgb, var(--color-gold) 16%, var(--color-slate));
   border-radius: calc(var(--radius-luxury) + 0.25rem);
   box-shadow:
@@ -1018,4 +1019,41 @@
   border: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
   box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.65);
   background: var(--color-marble);
+}
+
+/* ─── Performance mode (≤4GB RAM / reduced motion) ─── */
+.perf-lite .kaala-ambient,
+.perf-lite .perf-optional {
+  display: none;
+}
+
+.perf-lite .kaala-grain,
+.perf-lite .kaala-jaali,
+.perf-lite .kaala-marble {
+  background-image: none;
+}
+
+.perf-lite .studio-watermark,
+.perf-lite .atelier-watermark {
+  display: none;
+}
+
+.perf-lite .studio-canvas,
+.perf-lite .atelier-workspace,
+.perf-lite .studio-brand,
+.perf-lite .studio-login-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.perf-lite .studio-reveal,
+.perf-lite .atelier-reveal,
+.perf-lite .studio-reveal-d1,
+.perf-lite .studio-reveal-d2,
+.perf-lite .studio-reveal-d3 {
+  animation: none;
+}
+
+.perf-lite * {
+  scroll-behavior: auto;
 }

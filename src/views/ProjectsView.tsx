@@ -285,7 +285,7 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
     queryKey: ['project-chat', projectId],
     queryFn: () => fetcher(`/api/projects/${projectId}/chat`),
     enabled: tab === 'chat',
-    refetchInterval: tab === 'chat' ? 8000 : false,
+    refetchInterval: tab === 'chat' ? 30_000 : false,
   });
 
   const refresh = () => {

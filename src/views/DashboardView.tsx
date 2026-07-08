@@ -124,7 +124,7 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['dashboard', period],
     queryFn: () => fetcher(`/api/dashboard?period=${period}`),
-    refetchInterval: 60_000,
+    refetchInterval: 300_000,
   });
 
   const greeting = () => {

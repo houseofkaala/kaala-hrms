@@ -38,7 +38,7 @@ export function AttendanceHeaderButton({ onStatusChange }: { onStatusChange?: ()
 
   useEffect(() => {
     loadStatus();
-    const id = setInterval(loadStatus, 30_000);
+    const id = setInterval(loadStatus, 120_000);
     return () => clearInterval(id);
   }, [loadStatus, currentUser?.id]);
 
