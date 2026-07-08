@@ -77,6 +77,7 @@ function applyMigrations() {
   ensureProjectSchema(db);
   ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergeCrmModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
+  mergePhase2ModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   if (!db.crmLeads) db.crmLeads = [];
   const ext = db as Database & {
     jobPostings?: unknown[];
@@ -99,6 +100,36 @@ function applyMigrations() {
     ext.orgSettings.officeGeofence = { name: 'House of Kaala Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 };
   }
   if (ext.orgSettings.geoAttendanceRequired === undefined) ext.orgSettings.geoAttendanceRequired = false;
+  const p2 = db as Database & {
+    benefitPlans?: unknown[];
+    benefitEnrollments?: unknown[];
+    signatureRequests?: unknown[];
+    investmentDeclarations?: unknown[];
+    form16Records?: unknown[];
+    webhooks?: unknown[];
+    integrations?: Record<string, unknown>;
+  };
+  if (!p2.benefitPlans?.length) {
+    if (!p2.benefitPlans) p2.benefitPlans = [];
+    const defaults = defaultDb().benefitPlans as unknown[];
+    for (const plan of defaults) {
+      const id = (plan as { id: string }).id;
+      if (!(p2.benefitPlans as { id: string }[]).some(p => p.id === id)) {
+        (p2.benefitPlans as unknown[]).push(plan);
+      }
+    }
+  }
+  if (!p2.benefitEnrollments) p2.benefitEnrollments = [];
+  if (!p2.signatureRequests) p2.signatureRequests = [];
+  if (!p2.investmentDeclarations) p2.investmentDeclarations = [];
+  if (!p2.form16Records) p2.form16Records = [];
+  if (!p2.webhooks) p2.webhooks = [];
+  if (!p2.integrations) {
+    p2.integrations = {
+      googleSso: { enabled: false, clientId: '', allowedDomain: 'bymarketingonly.com' },
+      slack: { enabled: false, webhookUrl: '' },
+    };
+  }
   seedOperationalContent(db);
 }
 
@@ -107,6 +138,16 @@ function mergeCrmModuleAccess(rolePermissions: Record<string, { modules: string[
     const cfg = rolePermissions[role];
     if (!cfg || cfg.modules.includes('*')) continue;
     if (!cfg.modules.includes('crm')) cfg.modules.push('crm');
+  }
+}
+
+function mergePhase2ModuleAccess(rolePermissions: Record<string, { modules: string[]; description: string }>) {
+  for (const role of ['employee', 'sales', 'executive_assistant']) {
+    const cfg = rolePermissions[role];
+    if (!cfg || cfg.modules.includes('*')) continue;
+    for (const mod of ['benefits', 'tax']) {
+      if (!cfg.modules.includes(mod)) cfg.modules.push(mod);
+    }
   }
 }
 

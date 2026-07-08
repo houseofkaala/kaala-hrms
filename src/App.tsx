@@ -11,7 +11,7 @@ import {
   AlertCircle, ArrowRight, Users, Calendar, DollarSign, Monitor, FolderKanban, 
   CheckSquare, Activity, GraduationCap, MessageSquare, FileText, Map, PieChart, Gift, 
   Sparkles, ShieldAlert, XCircle, FolderOpen, Shield,
-  ClipboardList, Network, Timer, Receipt, Target
+  ClipboardList, Network, Timer, Receipt, Target, Heart, FileSpreadsheet
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn, fetcher } from './utils';
@@ -26,7 +26,7 @@ import {
   EmployeeManagementView, LeaveManagementView, DocumentsView,
   ProfileView, SettingsView, RolesView, NotificationsView,
   OnboardingView, OffboardingView, ExpensesView, OrgChartView, HolidaysView,
-  TimesheetsView, PoliciesView, CRMView,
+  TimesheetsView, PoliciesView, CRMView, BenefitsView, TaxComplianceView,
 } from './lazy-views';
 import { NotificationsPanel } from './components/NotificationsPanel';
 import { AttendanceHeaderButton } from './components/AttendanceHeaderButton';
@@ -316,6 +316,8 @@ function HRMSApp() {
             <VisibleNavItem route="offboarding" icon={LogOut} label="Offboarding" to="/offboarding" active={activeTab === 'offboarding'} />
             <VisibleNavItem route="orgchart" icon={Network} label="Org Chart" to="/orgchart" active={activeTab === 'orgchart'} />
             <VisibleNavItem route="payroll" icon={DollarSign} label="Payroll" to="/payroll" active={activeTab === 'payroll'} />
+            <VisibleNavItem route="tax" icon={FileSpreadsheet} label="Tax & Form 16" to="/tax" active={activeTab === 'tax'} />
+            <VisibleNavItem route="benefits" icon={Heart} label="Benefits" to="/benefits" active={activeTab === 'benefits'} />
             <VisibleNavItem route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
             <VisibleNavItem route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
             <VisibleNavItem route="finance" icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
@@ -362,6 +364,8 @@ function HRMSApp() {
             <VisibleNavItem route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
             <VisibleNavItem route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
             <VisibleNavItem route="policies" icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
+            <VisibleNavItem route="benefits" icon={Heart} label="Benefits" to="/benefits" active={activeTab === 'benefits'} />
+            <VisibleNavItem route="tax" icon={FileSpreadsheet} label="Tax & Form 16" to="/tax" active={activeTab === 'tax'} />
           </>
         )}
 
@@ -449,6 +453,8 @@ function HRMSApp() {
               {activeTab === 'documents' && <GuardedView module="documents"><DocumentsView /></GuardedView>}
               {activeTab === 'attendance' && <GuardedView module="attendance"><AttendanceView /></GuardedView>}
               {activeTab === 'payroll' && <GuardedView module="payroll"><PayrollView /></GuardedView>}
+              {activeTab === 'tax' && <GuardedView module="tax"><TaxComplianceView /></GuardedView>}
+              {activeTab === 'benefits' && <GuardedView module="benefits"><BenefitsView /></GuardedView>}
               {activeTab === 'assets' && <GuardedView module="assets"><AssetsView /></GuardedView>}
               {(activeTab === 'projects' || location.pathname.startsWith('/projects/')) && <GuardedView module="projects"><ProjectsView /></GuardedView>}
               {activeTab === 'tasks' && <GuardedView module="tasks"><TasksView /></GuardedView>}
@@ -475,7 +481,7 @@ function HRMSApp() {
               {activeTab === 'holidays' && <GuardedView module="holidays"><HolidaysView /></GuardedView>}
               {activeTab === 'timesheets' && <GuardedView module="timesheets"><TimesheetsView /></GuardedView>}
               {activeTab === 'policies' && <GuardedView module="policies"><PoliciesView /></GuardedView>}
-              {!['dashboard','marketplace','leaderboard','recruit','employees','onboarding','offboarding','orgchart','people','leave','holidays','documents','attendance','timesheets','payroll','expenses','assets','projects','tasks','performance','learning','chat','survey','field','crm','finance','ai','community','helpdesk','reports','rewards','profile','settings','roles','notifications','policies'].includes(activeTab) && (
+              {!['dashboard','marketplace','leaderboard','recruit','employees','onboarding','offboarding','orgchart','people','leave','holidays','documents','attendance','timesheets','payroll','tax','benefits','expenses','assets','projects','tasks','performance','learning','chat','survey','field','crm','finance','ai','community','helpdesk','reports','rewards','profile','settings','roles','notifications','policies'].includes(activeTab) && (
                 <Navigate to="/dashboard" replace />
               )}
               </Suspense>

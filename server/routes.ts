@@ -12,6 +12,7 @@ import { registerExtraRoutes } from './extra-routes';
 import { registerProjectRoutes } from './project-routes';
 import { registerCrmRoutes } from './crm-routes';
 import { registerEnterpriseRoutes } from './enterprise-routes';
+import { registerPhase2Routes } from './phase2-routes';
 import { validateGeofence, DEFAULT_GEOFENCE } from './geo-attendance';
 import { computePayroll, defaultSalaryStructure } from './payroll-engine';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
@@ -1182,5 +1183,6 @@ export async function registerRoutes(app: Express) {
   registerProjectRoutes(app);
   registerCrmRoutes(app);
   registerEnterpriseRoutes(app);
+  registerPhase2Routes(app);
   registerExtraRoutes(app);
 }

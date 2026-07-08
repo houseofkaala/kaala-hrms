@@ -70,7 +70,7 @@ export function createEmptyOperationalDb() {
     emailDigestQueue: [] as { id: string; userId: string; triggerId: string; title: string; message: string; digestType: 'daily' | 'weekly' | 'monthly'; createdAt: string }[],
     emailDigestMeta: {} as { lastDaily?: string; lastWeekly?: string; lastMonthly?: string },
     rolePermissions: {
-      employee: { modules: ['dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart', 'projects', 'tasks', 'settings'], description: 'Standard employee access' },
+      employee: { modules: ['dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart', 'projects', 'tasks', 'settings', 'benefits', 'tax'], description: 'Standard employee access' },
       sales: { modules: ['dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses', 'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'settings'], description: 'Sales team — CRM, deals, field ops, pipeline, and core HR' },
       executive_assistant: { modules: ['dashboard', 'crm', 'people', 'documents', 'tasks', 'projects', 'field', 'expenses', 'chat', 'ai', 'attendance', 'leave', 'timesheets', 'profile', 'notifications', 'settings'], description: 'Executive Assistant — CRM, pipeline, and executive support' },
       manager: { modules: ['*'], description: 'Team management and approvals' },
@@ -95,6 +95,21 @@ export function createEmptyOperationalDb() {
     biometricDevices: [] as { id: string; name: string; location: string; status: string; lastSync: string }[],
     courseProgress: {} as Record<string, Record<string, number>>,
     crmLeads: [] as import('./crm').CrmLeadRecord[],
-    dataVersion: 4,
+    benefitPlans: [
+      { id: 'bp1', name: 'Group Health Insurance', type: 'health', provider: 'Star Health', description: 'Family floater cover ₹5L', employerContribution: 8000, employeeContribution: 2000, status: 'active', enrollmentOpen: true },
+      { id: 'bp2', name: 'Term Life Insurance', type: 'life', provider: 'HDFC Life', description: '10× annual CTC coverage', employerContribution: 3000, employeeContribution: 0, status: 'active', enrollmentOpen: true },
+      { id: 'bp3', name: 'Provident Fund (EPF)', type: 'pf', provider: 'EPFO', description: 'Mandatory 12% employee + 12% employer', employerContribution: 0, employeeContribution: 0, status: 'active', enrollmentOpen: true, autoEnroll: true },
+      { id: 'bp4', name: 'NPS Contribution', type: 'nps', provider: 'NPS Trust', description: 'Additional retirement savings u/s 80CCD(1B)', employerContribution: 0, employeeContribution: 5000, status: 'active', enrollmentOpen: true },
+    ] as { id: string; name: string; type: string; provider: string; description: string; employerContribution: number; employeeContribution: number; status: string; enrollmentOpen: boolean; autoEnroll?: boolean }[],
+    benefitEnrollments: [] as { id: string; userId: string; planId: string; status: string; enrolledAt: string; dependents: string[] }[],
+    signatureRequests: [] as { id: string; documentId: string; documentName: string; userId: string; requestedBy: string; title: string; status: string; createdAt: string; signedAt?: string; signatureData?: string }[],
+    investmentDeclarations: [] as import('./tax-compliance').InvestmentDeclaration[],
+    form16Records: [] as { id: string; userId: string; financialYear: string; generatedAt: string; data: unknown }[],
+    webhooks: [] as { id: string; url: string; events: string[]; secret: string; active: boolean; createdAt: string }[],
+    integrations: {
+      googleSso: { enabled: false, clientId: '', allowedDomain: 'bymarketingonly.com' },
+      slack: { enabled: false, webhookUrl: '' },
+    },
+    dataVersion: 5,
   };
 }

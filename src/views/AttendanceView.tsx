@@ -5,7 +5,7 @@ import { cn, fetcher } from '../utils';
 import { useQuery } from '@tanstack/react-query';
 import { useRBACStore } from '../store';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { AttendanceRegularization, ShiftRequests, OTDashboard, RemoteWorkRequests, BiometricDevices, AttendancePolicies, EarlyClockOutApprovals } from './AttendanceEnhancements';
+import { AttendanceRegularization, ShiftRequests, ShiftRoster, OTDashboard, RemoteWorkRequests, BiometricDevices, AttendancePolicies, EarlyClockOutApprovals } from './AttendanceEnhancements';
 
 function AttendanceLogs({ viewMode, checkedIn }: { viewMode: string, checkedIn?: boolean }) {
   const [page, setPage] = useState(1);
@@ -385,6 +385,7 @@ export function AttendanceView() {
             <ShiftRequests />
             <AttendanceRegularization />
             <RemoteWorkRequests />
+            <ShiftRoster />
             {viewMode === 'manager' && (
               <>
                 <BiometricDevices />

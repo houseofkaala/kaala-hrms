@@ -6,7 +6,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, { modules: string[]; descr
       'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace',
       'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications',
       'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart',
-      'projects', 'tasks', 'settings',
+      'projects', 'tasks', 'settings', 'benefits', 'tax',
     ],
     description: 'Standard employee access',
   },
@@ -14,7 +14,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, { modules: string[]; descr
     modules: [
       'dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
       'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
-      'chat', 'ai', 'profile', 'notifications', 'settings',
+      'chat', 'ai', 'profile', 'notifications', 'settings', 'benefits', 'tax',
     ],
     description: 'Sales team — CRM, deals, field ops, pipeline, and core HR',
   },

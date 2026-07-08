@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, Settings, Smartphone, MapPin } from 'lucide-react';
+import { AlertCircle, Settings, Smartphone, MapPin, Calendar, Plus, Trash2 } from 'lucide-react';
 import { cn, fetcher } from '../utils';
 import { useRBACStore } from '../store';
 
@@ -398,6 +398,121 @@ export function BiometricDevices() {
             <p className="text-xs text-gray-400">Last sync: {timeAgo(d.lastSync)}</p>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+interface RosterEntry {
+  id: string; userId: string; date: string; shiftType: string; startTime: string; endTime: string; location: string;
+  employee?: { name: string };
+}
+
+export function ShiftRoster() {
+  const { currentUser } = useRBACStore();
+  const qc = useQueryClient();
+  const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ userId: '', date: '', shiftType: 'Morning', startTime: '09:00', endTime: '18:00', location: 'Office' });
+
+  const weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1 + weekOffset * 7);
+  const weekLabel = weekStart.toISOString().slice(0, 7);
+
+  const { data: roster = [] } = useQuery<RosterEntry[]>({
+    queryKey: ['shift-roster', weekLabel],
+    queryFn: () => fetcher(`/api/shifts/roster?week=${weekLabel}`),
+  });
+
+  const { data: users = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['users-roster'],
+    queryFn: () => fetcher('/api/users'),
+    enabled: isManager,
+  });
+
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+
+  const assign = async () => {
+    await fetcher('/api/shifts/roster', { method: 'POST', body: JSON.stringify(form) });
+    qc.invalidateQueries({ queryKey: ['shift-roster'] });
+    setShowForm(false);
+  };
+
+  const remove = async (id: string) => {
+    await fetcher(`/api/shifts/roster/${id}`, { method: 'DELETE' });
+    qc.invalidateQueries({ queryKey: ['shift-roster'] });
+  };
+
+  return (
+    <div className="bg-white p-5 border border-gray-200 rounded-2xl shadow-sm space-y-4 col-span-full">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900 flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" />Shift Roster</h3>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setWeekOffset(w => w - 1)} className="text-xs text-gray-500 hover:text-gray-900">← Prev</button>
+          <span className="text-xs font-medium text-gray-700">Week of {weekStart.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</span>
+          <button onClick={() => setWeekOffset(w => w + 1)} className="text-xs text-gray-500 hover:text-gray-900">Next →</button>
+          {isManager && (
+            <button onClick={() => setShowForm(!showForm)} className="ml-2 bg-gray-900 text-white px-2 py-1 rounded text-[10px] font-semibold flex items-center gap-1">
+              <Plus className="w-3 h-3" /> Assign
+            </button>
+          )}
+        </div>
+      </div>
+
+      {showForm && isManager && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+          <select value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-2 py-1.5">
+            <option value="">Employee</option>
+            {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+          <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-2 py-1.5" />
+          <select value={form.shiftType} onChange={e => setForm(f => ({ ...f, shiftType: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-2 py-1.5">
+            <option>Morning</option><option>Evening</option><option>Night</option><option>WFH</option>
+          </select>
+          <button onClick={assign} className="bg-emerald-600 text-white text-sm font-semibold rounded-lg">Save</button>
+        </div>
+      )}
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr className="border-b border-gray-100 text-gray-400 uppercase tracking-wider">
+              <th className="py-2 pr-3">Employee</th>
+              {weekDays.map(d => (
+                <th key={d} className="py-2 px-1 text-center min-w-[72px]">{new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' })}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(isManager ? users : [{ id: currentUser?.id || '', name: currentUser?.name || 'Me' }]).map(u => (
+              <tr key={u.id} className="border-b border-gray-50">
+                <td className="py-2 pr-3 font-medium text-gray-900">{u.name}</td>
+                {weekDays.map(d => {
+                  const entry = roster.find(r => r.userId === u.id && r.date === d);
+                  return (
+                    <td key={d} className="py-2 px-1 text-center">
+                      {entry ? (
+                        <div className="group relative inline-block">
+                          <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold', entry.shiftType === 'WFH' ? 'bg-blue-50 text-blue-600' : entry.shiftType === 'Night' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600')}>
+                            {entry.shiftType.slice(0, 3)}
+                          </span>
+                          {isManager && (
+                            <button onClick={() => remove(entry.id)} className="absolute -top-1 -right-1 hidden group-hover:block text-red-500"><Trash2 className="w-3 h-3" /></button>
+                          )}
+                        </div>
+                      ) : <span className="text-gray-200">—</span>}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

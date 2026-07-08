@@ -37,6 +37,8 @@ const ROUTE_MODULE: Record<string, string> = {
   roles: 'roles',
   notifications: 'notifications',
   policies: 'policies',
+  benefits: 'benefits',
+  tax: 'tax',
 };
 
 const EMPLOYEE_MODULES = new Set([
@@ -44,7 +46,7 @@ const EMPLOYEE_MODULES = new Set([
   'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace',
   'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications',
   'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart',
-  'projects', 'tasks', 'settings',
+  'projects', 'tasks', 'settings', 'benefits', 'tax',
 ]);
 
 export function moduleForRoute(route: string): string {

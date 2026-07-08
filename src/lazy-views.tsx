@@ -38,4 +38,6 @@ export const OrgChartView = lazy(() => import('./views/OrgChartView').then(m => 
 export const HolidaysView = lazy(() => import('./views/HolidaysView').then(m => ({ default: m.HolidaysView })));
 export const TimesheetsView = lazy(() => import('./views/TimesheetsView').then(m => ({ default: m.TimesheetsView })));
 export const PoliciesView = lazy(() => import('./views/PoliciesView').then(m => ({ default: m.PoliciesView })));
+export const BenefitsView = lazy(() => import('./views/BenefitsView').then(m => ({ default: m.BenefitsView })));
+export const TaxComplianceView = lazy(() => import('./views/TaxComplianceView').then(m => ({ default: m.TaxComplianceView })));
 export const FloatingChatWidget = lazy(() => import('./components/FloatingChatWidget').then(m => ({ default: m.FloatingChatWidget })));

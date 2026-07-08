@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Plus, Upload, Trash2, Download } from 'lucide-react';
+import { FileText, Plus, Upload, Trash2, Download, PenLine } from 'lucide-react';
 import { fetcher } from '../utils';
 import { getToken } from '../auth';
+import { useRBACStore } from '../store';
+import { SignaturePad } from '../components/SignaturePad';
 
 interface Document {
   id: string;
@@ -13,9 +15,17 @@ interface Document {
   storageKey?: string;
 }
 
+interface SignatureRequest {
+  id: string; documentId: string; documentName: string; title: string; status: string; createdAt: string;
+}
+
 export function DocumentsView() {
+  const { currentUser } = useRBACStore();
   const queryClient = useQueryClient();
+  const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
   const [showForm, setShowForm] = useState(false);
+  const [signingId, setSigningId] = useState<string | null>(null);
+  const [signatureData, setSignatureData] = useState('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState('General');
   const [fileSize, setFileSize] = useState('');
@@ -27,6 +37,28 @@ export function DocumentsView() {
     queryKey: ['documents'],
     queryFn: () => fetcher('/api/documents'),
   });
+
+  const { data: signatures = [] } = useQuery<SignatureRequest[]>({
+    queryKey: ['signatures'],
+    queryFn: () => fetcher('/api/signatures'),
+  });
+
+  const pendingSigs = signatures.filter(s => s.status === 'pending');
+  const submitSignature = async () => {
+    if (!signingId || !signatureData) return;
+    await fetcher(`/api/signatures/${signingId}/sign`, { method: 'POST', body: JSON.stringify({ signatureData }) });
+    setSigningId(null);
+    setSignatureData('');
+    queryClient.invalidateQueries({ queryKey: ['signatures'] });
+  };
+
+  const requestSignature = async (docId: string, docName: string) => {
+    await fetcher(`/api/documents/${docId}/request-signature`, {
+      method: 'POST',
+      body: JSON.stringify({ title: `Sign: ${docName}` }),
+    });
+    queryClient.invalidateQueries({ queryKey: ['signatures'] });
+  };
 
   const handleFile = (file: File | null) => {
     if (!file) return;
@@ -113,6 +145,34 @@ export function DocumentsView() {
         </button>
       </div>
 
+      {pendingSigs.length > 0 && (
+        <div className="studio-card p-5 border-amber-500/30 space-y-3">
+          <h3 className="font-medium text-ivory flex items-center gap-2"><PenLine className="w-4 h-4 text-gold-light" /> Pending signatures ({pendingSigs.length})</h3>
+          {pendingSigs.map(sig => (
+            <div key={sig.id} className="flex items-center justify-between p-3 rounded-xl border border-gold/10">
+              <div>
+                <p className="text-sm font-medium text-ivory">{sig.title}</p>
+                <p className="text-xs text-ivory-muted">{sig.documentName}</p>
+              </div>
+              <button onClick={() => setSigningId(sig.id)} className="btn-primary text-xs">Sign now</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {signingId && (
+        <div className="fixed inset-0 bg-ink/50 z-50 flex items-center justify-center p-4" onClick={() => setSigningId(null)}>
+          <div className="studio-card max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-display text-lg text-ivory mb-4">Sign document</h3>
+            <SignaturePad onChange={setSignatureData} />
+            <div className="flex gap-2 justify-end mt-4">
+              <button onClick={() => setSigningId(null)} className="btn-secondary text-xs">Cancel</button>
+              <button onClick={submitSignature} disabled={!signatureData} className="btn-primary text-xs">Submit signature</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <form onSubmit={handleUpload} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
           <div>
@@ -165,6 +225,13 @@ export function DocumentsView() {
                       className="p-1.5 text-gray-400 hover:text-maroon-600 hover:bg-maroon-50 rounded"
                       title="Download"
                     ><Download className="w-4 h-4" /></button>
+                  )}
+                  {isManager && (
+                    <button
+                      onClick={() => requestSignature(doc.id, doc.name)}
+                      className="p-1.5 text-gray-400 hover:text-gold-600 hover:bg-amber-50 rounded"
+                      title="Request signature"
+                    ><PenLine className="w-4 h-4" /></button>
                   )}
                   <button
                     onClick={async () => {

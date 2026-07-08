@@ -4,6 +4,7 @@ import { Settings, Bell, Shield, Clock, Zap, Play } from 'lucide-react';
 import { fetcher } from '../utils';
 import { useRBACStore } from '../store';
 import { EmailNotificationsSettings } from './EmailNotificationsSettings';
+import { IntegrationsSettings } from './IntegrationsSettings';
 
 interface OrgSettings {
   companyName: string;
@@ -246,6 +247,7 @@ export function SettingsView() {
         </div>
       )}
 
+      {currentUser?.role === 'admin' && <IntegrationsSettings />}
       {currentUser?.role === 'admin' && <EmailNotificationsSettings />}
     </div>
   );
