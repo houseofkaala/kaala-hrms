@@ -93,7 +93,7 @@ export function getAllowedModules(role: string): string[] {
   return cfg.modules;
 }
 
-const VALID_ROLES = new Set(['employee', 'manager', 'admin', 'sales']);
+const VALID_ROLES = new Set(['employee', 'manager', 'admin', 'sales', 'executive_assistant']);
 
 export function countActiveAdmins() {
   return getDb().users.filter(u => u.role === 'admin' && u.status === 'Active').length;
@@ -105,7 +105,7 @@ export function assertValidRoleChange(
   res: Response,
 ): boolean {
   if (!VALID_ROLES.has(newRole)) {
-    res.status(400).json({ error: 'Invalid role. Must be employee, sales, manager, or admin.' });
+    res.status(400).json({ error: 'Invalid role. Must be employee, sales, executive_assistant, manager, or admin.' });
     return false;
   }
   if (target.role === 'admin' && newRole !== 'admin' && countActiveAdmins() <= 1) {

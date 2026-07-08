@@ -62,7 +62,8 @@ export function createEmptyOperationalDb() {
     emailDigestMeta: {} as { lastDaily?: string; lastWeekly?: string; lastMonthly?: string },
     rolePermissions: {
       employee: { modules: ['dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart', 'projects', 'tasks', 'settings'], description: 'Standard employee access' },
-      sales: { modules: ['dashboard', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses', 'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'settings'], description: 'Sales team — deals, field ops, pipeline, and core HR' },
+      sales: { modules: ['dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses', 'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'settings'], description: 'Sales team — CRM, deals, field ops, pipeline, and core HR' },
+      executive_assistant: { modules: ['dashboard', 'crm', 'people', 'documents', 'tasks', 'projects', 'field', 'expenses', 'chat', 'ai', 'attendance', 'leave', 'timesheets', 'profile', 'notifications', 'settings'], description: 'Executive Assistant — CRM, pipeline, and executive support' },
       manager: { modules: ['*'], description: 'Team management and approvals' },
       admin: { modules: ['*'], description: 'Full system access' },
     },
@@ -84,6 +85,7 @@ export function createEmptyOperationalDb() {
     timesheets: [] as { id: string; userId: string; projectId: string; projectName: string; date: string; hours: number; description: string; status: string }[],
     biometricDevices: [] as { id: string; name: string; location: string; status: string; lastSync: string }[],
     courseProgress: {} as Record<string, Record<string, number>>,
+    crmLeads: [] as import('./crm').CrmLeadRecord[],
     dataVersion: 3,
   };
 }

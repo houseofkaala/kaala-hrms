@@ -12,11 +12,18 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, { modules: string[]; descr
   },
   sales: {
     modules: [
-      'dashboard', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
+      'dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
       'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
       'chat', 'ai', 'profile', 'notifications', 'settings',
     ],
-    description: 'Sales team — deals, field ops, pipeline, and core HR',
+    description: 'Sales team — CRM, deals, field ops, pipeline, and core HR',
+  },
+  executive_assistant: {
+    modules: [
+      'dashboard', 'crm', 'people', 'documents', 'tasks', 'projects', 'field', 'expenses',
+      'chat', 'ai', 'attendance', 'leave', 'timesheets', 'profile', 'notifications', 'settings',
+    ],
+    description: 'Executive Assistant — CRM, pipeline, and executive support',
   },
   manager: { modules: ['*'], description: 'Team management and approvals' },
   admin: { modules: ['*'], description: 'Full system access' },

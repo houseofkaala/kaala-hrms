@@ -26,6 +26,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string; index: stri
   chat: { title: 'Chat', subtitle: 'Team messages', index: '21' },
   survey: { title: 'Surveys', subtitle: 'Employee feedback', index: '22' },
   field: { title: 'Field Operations', subtitle: 'On-ground team', index: '23' },
+  crm: { title: 'CRM', subtitle: 'Leads & pipeline', index: '23a' },
   finance: { title: 'Finance', subtitle: 'Budget overview', index: '24' },
   ai: { title: 'HR Assistant', subtitle: 'Ask anything about HR', index: '25' },
   community: { title: 'Community', subtitle: 'Announcements', index: '26' },

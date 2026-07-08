@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   points: number;
-  role: 'employee' | 'manager' | 'admin' | 'sales';
+  role: 'employee' | 'manager' | 'admin' | 'sales' | 'executive_assistant';
   department: string;
   status?: string;
   email?: string;

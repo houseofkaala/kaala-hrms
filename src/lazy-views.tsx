@@ -13,6 +13,7 @@ export const ChatView = lazy(() =>
 );
 export const SurveyView = lazy(() => import('./views/SurveyView').then(m => ({ default: m.SurveyView })));
 export const FieldView = lazy(() => import('./views/FieldView').then(m => ({ default: m.FieldView })));
+export const CRMView = lazy(() => import('./views/CRMView').then(m => ({ default: m.CRMView })));
 export const FinanceView = lazy(() => import('./views/FinanceView').then(m => ({ default: m.FinanceView })));
 export const AIView = lazy(() => import('./views/AIViewWired').then(m => ({ default: m.AIViewWired })));
 export const PerformanceView = lazy(() => import('./views/Performance').then(m => ({ default: m.PerformanceView })));

@@ -43,7 +43,7 @@ export function registerProjectRoutes(app: Express) {
     if (!u) return res.status(401).json({ error: 'Unauthorized' });
 
     let list = db().projects.map(p => normalizeProject(p as ProjectRecord));
-    if (u.role === 'employee' || u.role === 'sales') {
+    if (u.role === 'employee' || u.role === 'sales' || u.role === 'executive_assistant') {
       list = list.filter(p => p.memberIds.includes(req.userId!));
     }
     list = list.filter(p => p.status !== 'archived');

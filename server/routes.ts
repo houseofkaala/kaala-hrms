@@ -10,6 +10,7 @@ import { saveAvatar, getAvatarPath, deleteAvatar, avatarMime } from './avatar-st
 import { buildDashboard, type DashboardPeriod } from './dashboard';
 import { registerExtraRoutes } from './extra-routes';
 import { registerProjectRoutes } from './project-routes';
+import { registerCrmRoutes } from './crm-routes';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
 import { portalForRole, portalLabel } from './portal-config';
 import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifications/registry';
@@ -209,7 +210,7 @@ export async function registerRoutes(app: Express) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-    const userRole = (['employee', 'sales', 'manager', 'admin'].includes(role) ? role : 'employee') as UserRecord['role'];
+    const userRole = (['employee', 'sales', 'executive_assistant', 'manager', 'admin'].includes(role) ? role : 'employee') as UserRecord['role'];
     const resolvedManager =
       managerId ||
       (userRole === 'employee'
@@ -1128,5 +1129,6 @@ export async function registerRoutes(app: Express) {
   });
 
   registerProjectRoutes(app);
+  registerCrmRoutes(app);
   registerExtraRoutes(app);
 }

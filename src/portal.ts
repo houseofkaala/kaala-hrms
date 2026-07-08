@@ -33,7 +33,7 @@ export function getPortal(hostname = window.location.hostname): Portal {
 
 export function portalForRole(role: User['role']): Portal {
   if (role === 'employee') return 'employee';
-  if (role === 'sales') return 'sales';
+  if (role === 'sales' || role === 'executive_assistant') return 'sales';
   return 'admin';
 }
 

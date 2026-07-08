@@ -110,6 +110,7 @@ export function RolesView() {
                   >
                     <option value="employee">Employee</option>
                     <option value="sales">Sales</option>
+                    <option value="executive_assistant">Executive Assistant</option>
                     <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
                   </select>

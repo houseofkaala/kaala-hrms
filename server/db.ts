@@ -37,7 +37,7 @@ export interface UserRecord {
   id: string;
   name: string;
   points: number;
-  role: 'employee' | 'manager' | 'admin' | 'sales';
+  role: 'employee' | 'manager' | 'admin' | 'sales' | 'executive_assistant';
   department: string;
   status: string;
   email: string;
@@ -76,7 +76,17 @@ function applyMigrations() {
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
   ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
+  mergeCrmModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
+  if (!db.crmLeads) db.crmLeads = [];
   seedOperationalContent(db);
+}
+
+function mergeCrmModuleAccess(rolePermissions: Record<string, { modules: string[]; description: string }>) {
+  for (const role of ['sales', 'executive_assistant', 'manager', 'admin']) {
+    const cfg = rolePermissions[role];
+    if (!cfg || cfg.modules.includes('*')) continue;
+    if (!cfg.modules.includes('crm')) cfg.modules.push('crm');
+  }
 }
 
 function hydrateStore(raw: Partial<Database> | null) {

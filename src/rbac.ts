@@ -24,6 +24,7 @@ const ROUTE_MODULE: Record<string, string> = {
   chat: 'chat',
   survey: 'surveys',
   field: 'field',
+  crm: 'crm',
   finance: 'finance',
   ai: 'ai',
   community: 'community',
@@ -51,7 +52,7 @@ export function moduleForRoute(route: string): string {
 }
 
 const SALES_MODULES = new Set([
-  'dashboard', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
+  'dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
   'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
   'chat', 'ai', 'profile', 'notifications', 'settings',
 ]);
@@ -62,7 +63,7 @@ export function canAccessModule(user: User | null, route: string): boolean {
   const mod = moduleForRoute(route);
   if (user.allowedModules?.includes('*')) return true;
   if (user.allowedModules?.length) return user.allowedModules.includes(mod);
-  if (user.role === 'sales') return SALES_MODULES.has(mod);
+  if (user.role === 'sales' || user.role === 'executive_assistant') return SALES_MODULES.has(mod) || mod === 'crm';
   return EMPLOYEE_MODULES.has(mod);
 }
 
