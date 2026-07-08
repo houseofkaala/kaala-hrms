@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Send } from 'lucide-react';
+import { ArrowLeft, Search, Send } from 'lucide-react';
+import { cn } from '../utils';
 import { fetcher } from '../utils';
 import type { User } from '../types';
 
@@ -18,6 +19,7 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
   }, [initialUserId]);
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
+  const [mobileShowList, setMobileShowList] = useState(true);
   const [sendError, setSendError] = useState('');
   const [sending, setSending] = useState(false);
   const qc = useQueryClient();
@@ -55,8 +57,13 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
   const partner = users.find(u => u.id === selectedId);
 
   return (
-    <div className={compact ? 'flex h-full overflow-hidden bg-white' : 'bg-white border border-gray-200 rounded-2xl shadow-sm flex h-[700px] overflow-hidden'}>
-      <div className={compact ? 'w-36 sm:w-44 border-r border-gray-200 flex flex-col bg-gray-50/30 shrink-0' : 'w-72 border-r border-gray-200 flex flex-col bg-gray-50/30'}>
+    <div className={compact ? 'flex h-full overflow-hidden bg-white' : 'bg-white border border-gray-200 rounded-2xl shadow-sm flex view-panel-height overflow-hidden'}>
+      <div
+        className={cn(
+          compact ? 'w-36 sm:w-44 border-r border-gray-200 flex flex-col bg-gray-50/30 shrink-0' : 'border-r border-gray-200 flex flex-col bg-gray-50/30 shrink-0',
+          !compact && (mobileShowList ? 'flex w-full md:w-72' : 'hidden md:flex md:w-72'),
+        )}
+      >
         {!compact && (
           <div className="p-4 border-b border-gray-200">
             <div className="relative">
@@ -67,7 +74,11 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
         )}
         <div className="flex-1 overflow-y-auto">
           {filtered.map(c => (
-            <button key={c.userId} onClick={() => setSelectedId(c.userId)} className={`w-full p-4 border-b border-gray-100 flex items-center gap-3 hover:bg-gray-50 text-left ${selectedId === c.userId ? 'bg-gray-100' : ''}`}>
+            <button
+              key={c.userId}
+              onClick={() => { setSelectedId(c.userId); setMobileShowList(false); }}
+              className={`w-full p-4 border-b border-gray-100 flex items-center gap-3 hover:bg-gray-50 text-left min-h-[44px] ${selectedId === c.userId ? 'bg-gray-100' : ''}`}
+            >
               <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 text-gray-600 flex items-center justify-center text-sm font-semibold shrink-0 uppercase">{c.name.charAt(0)}</div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
@@ -77,10 +88,20 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
           ))}
         </div>
       </div>
-      <div className="flex-1 flex flex-col bg-white">
+      <div className={cn('flex-1 flex flex-col bg-white min-w-0', !compact && mobileShowList && 'hidden md:flex')}>
         {partner ? (
           <>
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-4">
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex items-center gap-3 sm:gap-4">
+              {!compact && (
+                <button
+                  type="button"
+                  onClick={() => setMobileShowList(true)}
+                  className="md:hidden shrink-0 flex items-center justify-center w-10 h-10 min-h-[44px] min-w-[44px] rounded-lg text-gray-500 hover:bg-gray-100"
+                  aria-label="Back to conversations"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              )}
               <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 text-gray-600 flex items-center justify-center text-sm font-semibold uppercase">{partner.name.charAt(0)}</div>
               <div><p className="font-semibold text-gray-900">{partner.name}</p><p className="text-xs text-gray-500">{partner.department}</p></div>
             </div>

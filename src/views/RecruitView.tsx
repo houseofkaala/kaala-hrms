@@ -71,13 +71,13 @@ export function RecruitView() {
   };
 
   return (
-    <div className="space-y-6 h-[700px] flex flex-col">
-      <div className="studio-card px-8 py-6 flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 view-panel-height flex flex-col">
+      <div className="studio-card px-4 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-xl text-ivory">Recruitment ATS</h2>
           <p className="text-sm text-ivory-muted mt-1">{candidates.length} candidates · {jobs.filter(j => j.status === 'Open').length} open positions</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button onClick={() => setTab('pipeline')} className={tab === 'pipeline' ? 'btn-primary text-xs' : 'btn-secondary text-xs'}>Pipeline</button>
           <button onClick={() => setTab('jobs')} className={tab === 'jobs' ? 'btn-primary text-xs' : 'btn-secondary text-xs'}>Job Postings</button>
           {isManager && tab === 'pipeline' && (
@@ -136,9 +136,9 @@ export function RecruitView() {
           {jobs.length === 0 && <p className="text-ivory-muted col-span-2 text-center py-12">No job postings yet.</p>}
         </div>
       ) : (
-        <div className="flex gap-4 flex-1 overflow-x-auto pb-4">
+        <div className="flex gap-4 flex-1 overflow-x-auto pb-4 table-scroll -mx-1 px-1">
           {STAGES.map(stage => (
-            <div key={stage} className="studio-card min-w-[280px] flex flex-col p-3 gap-3">
+            <div key={stage} className="studio-card min-w-[260px] sm:min-w-[280px] flex flex-col p-3 gap-3 shrink-0">
               <h3 className="text-xs font-semibold text-ivory-muted uppercase tracking-wider px-1">{stage}</h3>
               {candidates.filter(c => c.stage === stage || (stage === 'Applied' && !STAGES.includes(c.stage as typeof STAGES[number]))).map(c => (
                 <div key={c.id} onClick={() => setSelected(c)} className="studio-card p-4 cursor-pointer hover:border-gold/30 transition-colors">

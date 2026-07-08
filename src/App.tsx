@@ -11,7 +11,7 @@ import {
   AlertCircle, ArrowRight, Users, Calendar, DollarSign, Monitor, FolderKanban, 
   CheckSquare, Activity, GraduationCap, MessageSquare, FileText, Map, PieChart, Gift, 
   Sparkles, ShieldAlert, XCircle, FolderOpen, Shield,
-  ClipboardList, Network, Timer, Receipt, Target, Heart, FileSpreadsheet
+  ClipboardList, Network, Timer, Receipt, Target, Heart, FileSpreadsheet, Menu, X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn, fetcher } from './utils';
@@ -49,6 +49,7 @@ function VisibleNavItem({
   to,
   active,
   badge,
+  onNavigate,
 }: {
   route: string;
   icon: LucideIcon;
@@ -56,10 +57,11 @@ function VisibleNavItem({
   to: string;
   active: boolean;
   badge?: number;
+  onNavigate?: () => void;
 }) {
   const { currentUser } = useRBACStore();
   if (!canAccessModule(currentUser, route)) return null;
-  return <RailNavItem icon={icon} label={label} to={to} active={active} badge={badge} />;
+  return <RailNavItem icon={icon} label={label} to={to} active={active} badge={badge} onNavigate={onNavigate} />;
 }
 
 function GuardedView({ module, children }: { module: string; children: React.ReactNode }) {
@@ -80,6 +82,7 @@ function HRMSApp() {
   const navigate = useNavigate();
   const activeTab = location.pathname.split('/')[1] || 'dashboard';
   const [notifOpen, setNotifOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const { currentUser, setCurrentUser } = useRBACStore();
   
@@ -141,6 +144,15 @@ function HRMSApp() {
       navigate('/dashboard', { replace: true });
     }
   }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = navOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [navOpen]);
 
   useEffect(() => {
     if (!isAuthenticated()) return;
@@ -258,7 +270,7 @@ function HRMSApp() {
 
   if (loading || !currentUser) {
     return (
-      <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center gap-8">
+      <div className="min-h-[100dvh] bg-obsidian flex flex-col items-center justify-center gap-8">
         <div className="relative studio-reveal">
           <div
             className="w-24 h-24 rounded-2xl border border-gold/25 bg-charcoal flex items-center justify-center font-display text-4xl text-gold-light font-medium shadow-2xl"
@@ -277,6 +289,7 @@ function HRMSApp() {
   }
 
   const pageMeta = getPageMeta(activeTab);
+  const closeNav = () => setNavOpen(false);
 
   const myTasks = tasks.filter(t => t.ownerId === currentUser.id || t.claimedById === currentUser.id);
   const marketplaceTasks = tasks.filter(t => t.status === 'marketplace');
@@ -291,13 +304,29 @@ function HRMSApp() {
   const showAdminCrons = isAdminPortal && currentUser.role === 'admin';
 
   return (
-    <div className="flex h-screen kaala-mesh kaala-grain text-ivory overflow-hidden relative">
+    <div className="flex h-[100dvh] kaala-mesh kaala-grain text-ivory overflow-hidden relative">
       <div className="kaala-ambient perf-optional" aria-hidden />
       <div className="studio-watermark" aria-hidden>K</div>
 
+      {navOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          className="fixed inset-0 bg-obsidian/70 backdrop-blur-sm z-30 lg:hidden"
+          onClick={closeNav}
+        />
+      )}
+
       {/* Sidebar navigation */}
-      <aside className="studio-sidebar w-64 shrink-0 flex flex-col items-stretch py-5 px-2 gap-0.5 relative z-20 overflow-y-auto hide-scrollbar">
-        <Link to="/dashboard" className="studio-brand mb-4 mx-1 px-3 py-3 flex items-center gap-3 transition-colors">
+      <aside
+        className={cn(
+          'studio-sidebar shrink-0 flex flex-col items-stretch py-5 px-2 gap-0.5 overflow-y-auto hide-scrollbar',
+          'fixed inset-y-0 left-0 z-40 w-[min(16rem,85vw)] max-w-[85vw]',
+          'transform transition-transform duration-300 ease-out lg:static lg:translate-x-0 lg:w-64 lg:max-w-none',
+          navOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+        )}
+      >
+        <Link to="/dashboard" onClick={closeNav} className="studio-brand mb-4 mx-1 px-3 py-3 flex items-center gap-3 transition-colors">
           <img src="/logo.svg" alt="" className="w-10 h-10 shrink-0 rounded-xl ring-1 ring-gold/25" />
           <span className="min-w-0">
             <span className="font-display text-sm font-medium text-ivory leading-tight block truncate">House of Kaala</span>
@@ -305,29 +334,29 @@ function HRMSApp() {
           </span>
         </Link>
 
-        <VisibleNavItem route="dashboard" icon={LayoutDashboard} label="Dashboard" to="/dashboard" active={activeTab === 'dashboard'} />
+        <VisibleNavItem onNavigate={closeNav} route="dashboard" icon={LayoutDashboard} label="Dashboard" to="/dashboard" active={activeTab === 'dashboard'} />
 
         {showAdminSection && (
           <>
             <RailSection label="Admin & HR" />
-            <VisibleNavItem route="recruit" icon={Users} label="Recruit" to="/recruit" active={activeTab === 'recruit'} />
-            <VisibleNavItem route="employees" icon={Users} label="Employees" to="/employees" active={activeTab === 'employees'} />
-            <VisibleNavItem route="onboarding" icon={ClipboardList} label="Onboarding" to="/onboarding" active={activeTab === 'onboarding'} />
-            <VisibleNavItem route="offboarding" icon={LogOut} label="Offboarding" to="/offboarding" active={activeTab === 'offboarding'} />
-            <VisibleNavItem route="orgchart" icon={Network} label="Org Chart" to="/orgchart" active={activeTab === 'orgchart'} />
-            <VisibleNavItem route="payroll" icon={DollarSign} label="Payroll" to="/payroll" active={activeTab === 'payroll'} />
-            <VisibleNavItem route="tax" icon={FileSpreadsheet} label="Tax & Form 16" to="/tax" active={activeTab === 'tax'} />
-            <VisibleNavItem route="benefits" icon={Heart} label="Benefits" to="/benefits" active={activeTab === 'benefits'} />
-            <VisibleNavItem route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
-            <VisibleNavItem route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
-            <VisibleNavItem route="finance" icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
-            <VisibleNavItem route="reports" icon={FileText} label="Reports" to="/reports" active={activeTab === 'reports'} />
+            <VisibleNavItem onNavigate={closeNav} route="recruit" icon={Users} label="Recruit" to="/recruit" active={activeTab === 'recruit'} />
+            <VisibleNavItem onNavigate={closeNav} route="employees" icon={Users} label="Employees" to="/employees" active={activeTab === 'employees'} />
+            <VisibleNavItem onNavigate={closeNav} route="onboarding" icon={ClipboardList} label="Onboarding" to="/onboarding" active={activeTab === 'onboarding'} />
+            <VisibleNavItem onNavigate={closeNav} route="offboarding" icon={LogOut} label="Offboarding" to="/offboarding" active={activeTab === 'offboarding'} />
+            <VisibleNavItem onNavigate={closeNav} route="orgchart" icon={Network} label="Org Chart" to="/orgchart" active={activeTab === 'orgchart'} />
+            <VisibleNavItem onNavigate={closeNav} route="payroll" icon={DollarSign} label="Payroll" to="/payroll" active={activeTab === 'payroll'} />
+            <VisibleNavItem onNavigate={closeNav} route="tax" icon={FileSpreadsheet} label="Tax & Form 16" to="/tax" active={activeTab === 'tax'} />
+            <VisibleNavItem onNavigate={closeNav} route="benefits" icon={Heart} label="Benefits" to="/benefits" active={activeTab === 'benefits'} />
+            <VisibleNavItem onNavigate={closeNav} route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
+            <VisibleNavItem onNavigate={closeNav} route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
+            <VisibleNavItem onNavigate={closeNav} route="finance" icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
+            <VisibleNavItem onNavigate={closeNav} route="reports" icon={FileText} label="Reports" to="/reports" active={activeTab === 'reports'} />
             <RailSection label="Sales & CRM" />
-            <VisibleNavItem route="crm" icon={Target} label="CRM & Leads" to="/crm" active={activeTab === 'crm'} />
-            <VisibleNavItem route="field" icon={Map} label="Field Ops" to="/field" active={activeTab === 'field'} />
-            <VisibleNavItem route="projects" icon={FolderKanban} label="Deals & Projects" to="/projects" active={activeTab === 'projects'} />
+            <VisibleNavItem onNavigate={closeNav} route="crm" icon={Target} label="CRM & Leads" to="/crm" active={activeTab === 'crm'} />
+            <VisibleNavItem onNavigate={closeNav} route="field" icon={Map} label="Field Ops" to="/field" active={activeTab === 'field'} />
+            <VisibleNavItem onNavigate={closeNav} route="projects" icon={FolderKanban} label="Deals & Projects" to="/projects" active={activeTab === 'projects'} />
             {portal === 'admin' && currentUser.role === 'admin' && (
-              <VisibleNavItem route="roles" icon={Shield} label="Roles & Permissions" to="/roles" active={activeTab === 'roles'} />
+              <VisibleNavItem onNavigate={closeNav} route="roles" icon={Shield} label="Roles & Permissions" to="/roles" active={activeTab === 'roles'} />
             )}
           </>
         )}
@@ -337,44 +366,44 @@ function HRMSApp() {
             {showSalesTools && (
               <>
                 <RailSection label={currentUser.role === 'executive_assistant' ? 'Executive Tools' : 'Sales Tools'} />
-                <VisibleNavItem route="crm" icon={Target} label="CRM & Leads" to="/crm" active={activeTab === 'crm'} />
-                <VisibleNavItem route="field" icon={Map} label="Field Visits" to="/field" active={activeTab === 'field'} />
-                <VisibleNavItem route="expenses" icon={Receipt} label="Sales Expenses" to="/expenses" active={activeTab === 'expenses'} />
+                <VisibleNavItem onNavigate={closeNav} route="crm" icon={Target} label="CRM & Leads" to="/crm" active={activeTab === 'crm'} />
+                <VisibleNavItem onNavigate={closeNav} route="field" icon={Map} label="Field Visits" to="/field" active={activeTab === 'field'} />
+                <VisibleNavItem onNavigate={closeNav} route="expenses" icon={Receipt} label="Sales Expenses" to="/expenses" active={activeTab === 'expenses'} />
               </>
             )}
             <RailSection label="My Work" />
-            <VisibleNavItem route="projects" icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
-            <VisibleNavItem route="people" icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />
-            <VisibleNavItem route="leave" icon={Calendar} label="Leave Management" to="/leave" active={activeTab === 'leave'} />
-            <VisibleNavItem route="holidays" icon={Calendar} label="Holidays" to="/holidays" active={activeTab === 'holidays'} />
-            <VisibleNavItem route="attendance" icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
-            <VisibleNavItem route="timesheets" icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
-            <VisibleNavItem route="documents" icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
-            <VisibleNavItem route="assets" icon={Monitor} label="Assets" to="/assets" active={activeTab === 'assets'} />
-            <VisibleNavItem route="performance" icon={Activity} label="Performance" to="/performance" active={activeTab === 'performance'} />
-            <VisibleNavItem route="learning" icon={GraduationCap} label="Learning" to="/learning" active={activeTab === 'learning'} />
-            <VisibleNavItem route="survey" icon={FileText} label="Surveys" to="/survey" active={activeTab === 'survey'} />
+            <VisibleNavItem onNavigate={closeNav} route="projects" icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
+            <VisibleNavItem onNavigate={closeNav} route="people" icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />
+            <VisibleNavItem onNavigate={closeNav} route="leave" icon={Calendar} label="Leave Management" to="/leave" active={activeTab === 'leave'} />
+            <VisibleNavItem onNavigate={closeNav} route="holidays" icon={Calendar} label="Holidays" to="/holidays" active={activeTab === 'holidays'} />
+            <VisibleNavItem onNavigate={closeNav} route="attendance" icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
+            <VisibleNavItem onNavigate={closeNav} route="timesheets" icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
+            <VisibleNavItem onNavigate={closeNav} route="documents" icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
+            <VisibleNavItem onNavigate={closeNav} route="assets" icon={Monitor} label="Assets" to="/assets" active={activeTab === 'assets'} />
+            <VisibleNavItem onNavigate={closeNav} route="performance" icon={Activity} label="Performance" to="/performance" active={activeTab === 'performance'} />
+            <VisibleNavItem onNavigate={closeNav} route="learning" icon={GraduationCap} label="Learning" to="/learning" active={activeTab === 'learning'} />
+            <VisibleNavItem onNavigate={closeNav} route="survey" icon={FileText} label="Surveys" to="/survey" active={activeTab === 'survey'} />
 
             <RailSection label="Culture" />
-            <VisibleNavItem route="community" icon={Users} label="Community" to="/community" active={activeTab === 'community'} />
-            <VisibleNavItem route="helpdesk" icon={MessageSquare} label="Help Desk" to="/helpdesk" active={activeTab === 'helpdesk'} />
-            <VisibleNavItem route="marketplace" icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
-            <VisibleNavItem route="rewards" icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
-            <VisibleNavItem route="leaderboard" icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
-            <VisibleNavItem route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
-            <VisibleNavItem route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
-            <VisibleNavItem route="policies" icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
-            <VisibleNavItem route="benefits" icon={Heart} label="Benefits" to="/benefits" active={activeTab === 'benefits'} />
-            <VisibleNavItem route="tax" icon={FileSpreadsheet} label="Tax & Form 16" to="/tax" active={activeTab === 'tax'} />
+            <VisibleNavItem onNavigate={closeNav} route="community" icon={Users} label="Community" to="/community" active={activeTab === 'community'} />
+            <VisibleNavItem onNavigate={closeNav} route="helpdesk" icon={MessageSquare} label="Help Desk" to="/helpdesk" active={activeTab === 'helpdesk'} />
+            <VisibleNavItem onNavigate={closeNav} route="marketplace" icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
+            <VisibleNavItem onNavigate={closeNav} route="rewards" icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
+            <VisibleNavItem onNavigate={closeNav} route="leaderboard" icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
+            <VisibleNavItem onNavigate={closeNav} route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
+            <VisibleNavItem onNavigate={closeNav} route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
+            <VisibleNavItem onNavigate={closeNav} route="policies" icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
+            <VisibleNavItem onNavigate={closeNav} route="benefits" icon={Heart} label="Benefits" to="/benefits" active={activeTab === 'benefits'} />
+            <VisibleNavItem onNavigate={closeNav} route="tax" icon={FileSpreadsheet} label="Tax & Form 16" to="/tax" active={activeTab === 'tax'} />
           </>
         )}
 
         <div className="mt-auto flex flex-col gap-0.5 pt-4">
-          <VisibleNavItem route="notifications" icon={Bell} label="Notifications" to="/notifications" active={activeTab === 'notifications'} />
-          <VisibleNavItem route="settings" icon={Settings} label="Settings" to="/settings" active={activeTab === 'settings'} />
+          <VisibleNavItem onNavigate={closeNav} route="notifications" icon={Bell} label="Notifications" to="/notifications" active={activeTab === 'notifications'} />
+          <VisibleNavItem onNavigate={closeNav} route="settings" icon={Settings} label="Settings" to="/settings" active={activeTab === 'settings'} />
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-ivory-muted hover:text-gold-light hover:bg-gold/5 transition-colors"
+            className="flex items-center gap-3 w-full px-3 py-2.5 min-h-[44px] rounded-xl text-ivory-muted hover:text-gold-light hover:bg-gold/5 transition-colors"
           >
             <span className="shrink-0 flex items-center justify-center w-8 h-8">
               <LogOut className="w-[18px] h-[18px]" />
@@ -385,21 +414,33 @@ function HRMSApp() {
       </aside>
 
       {/* Floating workspace panel */}
-      <div className="flex-1 flex flex-col min-w-0 p-3 pl-2 pb-3 relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-3 pl-2 pb-2 sm:pb-3 relative z-10">
         <div className="studio-canvas flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="studio-header shrink-0 flex items-center justify-between gap-4 px-6 lg:px-8 py-4">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="studio-header shrink-0 flex items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 safe-top">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <button
+                type="button"
+                className="lg:hidden shrink-0 flex items-center justify-center w-10 h-10 min-h-[44px] min-w-[44px] rounded-xl text-ivory-muted hover:text-gold-light hover:bg-gold/5 transition-colors"
+                onClick={() => setNavOpen(o => !o)}
+                aria-label={navOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={navOpen}
+              >
+                {navOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
               {pageMeta.index && (
                 <span className="hidden sm:inline studio-kicker text-gold-muted tabular-nums">{pageMeta.index}</span>
               )}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="hidden sm:block studio-kicker truncate">{portalMeta.title}</p>
                 {activeTab !== 'dashboard' && (
-                  <p className="hidden md:block font-display text-lg text-ivory truncate leading-tight">{pageMeta.title}</p>
+                  <>
+                    <p className="lg:hidden font-display text-base sm:text-lg text-ivory truncate leading-tight">{pageMeta.title}</p>
+                    <p className="hidden lg:block font-display text-lg text-ivory truncate leading-tight">{pageMeta.title}</p>
+                  </>
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <AttendanceHeaderButton onStatusChange={() => loadData(true, 'user')} />
               <div className="hidden md:flex studio-chip">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold" style={{ animation: 'pulse-gold 2s ease-in-out infinite' }} />
@@ -419,10 +460,12 @@ function HRMSApp() {
             </div>
           </div>
 
-          <main className="flex-1 overflow-auto premium-scrollbar px-6 lg:px-10 py-6 lg:py-8 relative z-[1]">
-            <div className="max-w-7xl mx-auto pb-12 kaala-content">
+          <main className="flex-1 overflow-auto premium-scrollbar px-4 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-8 relative z-[1]">
+            <div className="max-w-7xl mx-auto pb-8 sm:pb-12 kaala-content">
               {activeTab !== 'dashboard' && !location.pathname.match(/^\/projects\/[^/]+/) && (
-                <AtelierPageHeader activeTab={activeTab} />
+                <div className="hidden lg:block">
+                  <AtelierPageHeader activeTab={activeTab} />
+                </div>
               )}
               
               <Suspense fallback={<ViewFallback />}>
@@ -489,8 +532,8 @@ function HRMSApp() {
             </div>
           </main>
 
-          <footer className="shrink-0 flex items-center justify-between px-6 lg:px-8 py-2.5 border-t border-gold/10 text-[9px] studio-kicker text-ivory-muted/60">
-            <div className="flex items-center gap-4">
+          <footer className="shrink-0 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-2 border-t border-gold/10 text-[9px] studio-kicker text-ivory-muted/60 safe-bottom">
+            <div className="hidden sm:flex items-center gap-4">
               <span>Connected</span>
               <span className="text-gold/25">·</span>
               <span>Active</span>

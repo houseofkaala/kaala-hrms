@@ -48,7 +48,7 @@ export function AtelierPageHeader({ activeTab }: { activeTab: string }) {
       <span className="studio-page-index" aria-hidden>{meta.index}</span>
       <div className="relative z-10">
         <p className="studio-kicker mb-2">{meta.subtitle}</p>
-        <h1 className="font-display text-4xl sm:text-5xl font-medium text-ivory tracking-tight">{meta.title}</h1>
+        <h1 className="font-display text-2xl sm:text-4xl lg:text-5xl font-medium text-ivory tracking-tight">{meta.title}</h1>
       </div>
     </header>
   );
@@ -60,19 +60,22 @@ export function RailNavItem({
   to,
   active,
   badge,
+  onNavigate,
 }: {
   icon: LucideIcon;
   label: string;
   to: string;
   active: boolean;
   badge?: number;
+  onNavigate?: () => void;
 }) {
   return (
     <Link
       to={to}
+      onClick={onNavigate}
       data-active={active}
       className={cn(
-        'studio-nav-item group relative flex items-center gap-3 w-full px-3 py-2.5',
+        'studio-nav-item group relative flex items-center gap-3 w-full px-3 py-2.5 min-h-[44px]',
         active ? 'text-gold-light' : 'text-ivory-muted',
       )}
     >

@@ -57,7 +57,7 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
     <div className="relative" ref={panelRef}>
       <button
         onClick={onToggle}
-        className="relative p-2.5 text-maroon-500 hover:text-maroon-900 hover:bg-maroon-50 rounded-xl transition-colors"
+        className="relative p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-maroon-500 hover:text-maroon-900 hover:bg-maroon-50 rounded-xl transition-colors"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
@@ -69,7 +69,20 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 studio-card overflow-hidden z-50">
+        <>
+          <div
+            className="fixed inset-0 bg-ink/40 z-40 sm:hidden"
+            onClick={onClose}
+            aria-hidden
+          />
+          <div
+            className={cn(
+              'studio-card overflow-hidden z-50',
+              'fixed left-2 right-2 bottom-2 max-h-[min(70dvh,32rem)] sm:max-h-none',
+              'sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:left-auto sm:bottom-auto',
+              'w-auto sm:w-[min(20rem,calc(100vw-1rem))]',
+            )}
+          >
           <div className="px-4 py-3 border-b border-maroon-100 flex items-center justify-between bg-maroon-50/60">
             <h3 className="font-display text-sm font-semibold text-maroon-950">Notifications</h3>
             {unread > 0 && (
@@ -78,7 +91,7 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
               </button>
             )}
           </div>
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-[min(50dvh,20rem)] sm:max-h-80 overflow-y-auto">
             {notifications.length === 0 ? (
               <p className="px-4 py-8 text-sm text-maroon-400 text-center">No notifications</p>
             ) : (
@@ -108,6 +121,7 @@ export function NotificationsPanel({ open, onToggle, onClose }: NotificationsPan
             View all notifications
           </Link>
         </div>
+        </>
       )}
     </div>
   );

@@ -167,6 +167,25 @@
     background: color-mix(in srgb, var(--color-gold) 55%, transparent);
   }
 
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .safe-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  }
+
+  .safe-bottom {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .view-panel-height {
+    min-height: 320px;
+    height: min(700px, calc(100dvh - 12rem));
+  }
+
   .studio-grid {
     background-image:
       linear-gradient(color-mix(in srgb, var(--color-gold) 4%, transparent) 1px, transparent 1px),
@@ -1056,4 +1075,54 @@
 
 .perf-lite * {
   scroll-behavior: auto;
+}
+
+/* ─── Mobile & tablet responsive ─── */
+@media (max-width: 1023px) {
+  .studio-watermark,
+  .atelier-watermark {
+    display: none;
+  }
+
+  .studio-canvas,
+  .atelier-workspace {
+    border-radius: var(--radius-luxury-sm);
+  }
+
+  .studio-page-header {
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .studio-page-header h1 {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .studio-stat-value,
+  .premium-stat-value {
+    font-size: 1.75rem;
+  }
+
+  .studio-page-index {
+    font-size: 2.5rem;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .studio-nav-item,
+  .btn-primary,
+  .btn-secondary,
+  .studio-btn-primary,
+  .studio-btn-secondary {
+    min-height: 44px;
+  }
+
+  .card:hover,
+  .studio-card:hover,
+  .bento-card:hover,
+  .premium-stat:hover {
+    transform: none;
+  }
 }

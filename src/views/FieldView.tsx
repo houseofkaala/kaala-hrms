@@ -122,7 +122,7 @@ export function FieldView() {
         </form>
       )}
 
-      <div className="h-[500px] bg-gray-100 rounded-2xl border border-gray-200 relative overflow-hidden shadow-inner">
+      <div className="min-h-[280px] h-[min(500px,calc(100dvh-14rem))] bg-gray-100 rounded-2xl border border-gray-200 relative overflow-hidden shadow-inner">
         <iframe
           title="Field operations map"
           src={tileUrl}

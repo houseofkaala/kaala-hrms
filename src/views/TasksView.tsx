@@ -45,8 +45,8 @@ export function TasksView() {
   };
 
   return (
-    <div className="space-y-6 h-[700px] flex flex-col">
-      <div className="bg-white px-8 py-6 border border-gray-200 rounded-2xl flex items-center justify-between shadow-sm">
+    <div className="space-y-4 sm:space-y-6 view-panel-height flex flex-col">
+      <div className="bg-white px-4 sm:px-8 py-4 sm:py-6 border border-gray-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
         <h2 className="text-xl font-semibold text-gray-900">Task Management</h2>
         {isManager && (
           <button onClick={() => setShowForm(!showForm)} className="bg-gray-900 text-white px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 hover:bg-gray-800">
@@ -63,9 +63,9 @@ export function TasksView() {
           <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-semibold">Add</button>
         </form>
       )}
-      <div className="flex gap-6 flex-1 overflow-x-auto pb-4">
+      <div className="flex gap-4 sm:gap-6 flex-1 overflow-x-auto pb-4 table-scroll -mx-1 px-1">
         {STAGES.map(stage => (
-          <div key={stage.key} className="bg-gray-50/50 border border-gray-200 rounded-2xl p-4 min-w-[320px] flex flex-col gap-4">
+          <div key={stage.key} className="bg-gray-50/50 border border-gray-200 rounded-2xl p-4 min-w-[260px] sm:min-w-[320px] flex flex-col gap-4 shrink-0">
             <h3 className="text-sm font-semibold text-gray-700">{stage.label}</h3>
             {tasks.filter(t => t.stage === stage.key).map(t => (
               <div key={t.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">

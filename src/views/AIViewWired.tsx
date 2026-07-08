@@ -40,7 +40,7 @@ export function AIViewWired() {
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col h-[700px] overflow-hidden max-w-4xl mx-auto">
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col view-panel-height overflow-hidden max-w-4xl mx-auto">
       <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-maroon-50 to-white flex items-center gap-3 shrink-0">
         <div className="w-10 h-10 rounded-xl bg-maroon-900 text-white flex items-center justify-center"><Sparkles className="w-5 h-5" /></div>
         <div>
