@@ -60,7 +60,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-obsidian kaala-grain kaala-jaali">
+    <div className="min-h-screen relative overflow-hidden bg-obsidian kaala-grain kaala-jaali kaala-marble">
+      <div className="kaala-ambient" aria-hidden />
       <div className="login-blob w-[45vw] h-[45vw] -top-[15%] -left-[10%] bg-gold/20" />
       <div className="login-blob w-[35vw] h-[35vw] bottom-[-10%] right-[-5%] bg-gold-muted/15" />
 
@@ -90,6 +91,7 @@ export default function LoginPage() {
             </div>
 
             <div className="studio-login-card relative p-8 sm:p-10">
+              <div className="gold-corners" aria-hidden><span /></div>
               <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
 
               <div className="mb-8">

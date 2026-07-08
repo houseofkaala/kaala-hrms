@@ -71,7 +71,7 @@ export function UserPortrait({
   }, [userId, hasProfileImage]);
 
   const frame = framed
-    ? 'rounded-[1.5rem] rounded-br-md shadow-2xl ring-1 ring-gold/35 border border-gold/20'
+    ? 'rounded-[1.5rem] rounded-br-md shadow-[0_24px_48px_-12px_rgba(0,0,0,0.6),0_0_40px_-8px_rgba(201,169,98,0.15)] ring-1 ring-gold/40 border border-gold/25'
     : 'rounded-2xl';
 
   if (url && !failed) {

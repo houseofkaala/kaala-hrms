@@ -248,13 +248,14 @@ function HRMSApp() {
   const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
 
   return (
-    <div className="flex h-screen kaala-mesh kaala-grain kaala-jaali text-ivory overflow-hidden relative">
+    <div className="flex h-screen kaala-mesh kaala-grain kaala-jaali kaala-marble text-ivory overflow-hidden relative">
+      <div className="kaala-ambient" aria-hidden />
       <div className="studio-watermark" aria-hidden>K</div>
 
       {/* Sidebar navigation */}
       <aside className="studio-sidebar w-64 shrink-0 flex flex-col items-stretch py-5 px-2 gap-0.5 relative z-20 overflow-y-auto hide-scrollbar">
-        <Link to="/dashboard" className="studio-brand mb-4 mx-1 px-3 py-3 flex items-center gap-3 hover:bg-white/12 transition-colors">
-          <img src="/logo.svg" alt="" className="w-10 h-10 shrink-0 rounded-xl" />
+        <Link to="/dashboard" className="studio-brand mb-4 mx-1 px-3 py-3 flex items-center gap-3 transition-colors">
+          <img src="/logo.svg" alt="" className="w-10 h-10 shrink-0 rounded-xl ring-1 ring-gold/25" />
           <span className="min-w-0">
             <span className="font-display text-sm font-medium text-ivory leading-tight block truncate">House of Kaala</span>
             <span className="text-[10px] uppercase tracking-wider text-gold-muted block truncate">{portalMeta.title}</span>
@@ -355,8 +356,8 @@ function HRMSApp() {
             </div>
           </div>
 
-          <main className="flex-1 overflow-auto px-6 lg:px-10 py-6 lg:py-8 relative">
-            <div className="max-w-6xl mx-auto pb-10 kaala-content">
+          <main className="flex-1 overflow-auto premium-scrollbar px-6 lg:px-10 py-6 lg:py-8 relative z-[1]">
+            <div className="max-w-7xl mx-auto pb-12 kaala-content">
               {activeTab !== 'dashboard' && !location.pathname.match(/^\/projects\/[^/]+/) && (
                 <AtelierPageHeader activeTab={activeTab} />
               )}

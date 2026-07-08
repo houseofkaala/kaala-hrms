@@ -4,11 +4,10 @@ import { Link } from 'react-router-dom';
 import {
   Users, UserPlus, Calendar, Clock, Timer, FolderKanban, CheckSquare,
   TrendingUp, Briefcase, ArrowRight, ListTodo, ClipboardList, ShieldAlert,
-  CheckCircle2, XCircle, FileText,
+  CheckCircle2, XCircle, FileText, Medal, Sparkles,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn, fetcher } from '../utils';
-import { AtelierPageHeader } from '../components/AtelierChrome';
 import { UserPortrait } from '../components/UserPortrait';
 import { useRBACStore } from '../store';
 import type { Task, User } from '../types';
@@ -139,16 +138,18 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
     ? Math.round((data.payPeriod.dayOfMonth / data.payPeriod.daysInPeriod) * 100)
     : 0;
 
-  return (
-    <div className="space-y-6">
-      <AtelierPageHeader activeTab="dashboard" />
+  const today = format(new Date(), 'EEEE, MMMM d');
 
+  return (
+    <div className="space-y-8">
       {/* Executive profile */}
       <div className="flex flex-col gap-5 studio-reveal">
-        <div className="executive-profile p-6 sm:p-10 relative z-[1]">
-          <div className="relative z-10 flex flex-col lg:flex-row items-center lg:items-end gap-8 lg:gap-12">
-            <div className="relative shrink-0">
-              <div className="absolute -inset-3 rounded-[1.75rem] border border-gold/20 pointer-events-none" />
+        <div className="executive-profile p-6 sm:p-10 lg:p-12 relative z-[1]">
+          <div className="gold-corners" aria-hidden><span /></div>
+          <div className="relative z-10 flex flex-col lg:flex-row items-center lg:items-end gap-8 lg:gap-14">
+            <div className="portrait-halo relative shrink-0">
+              <div className="absolute -inset-4 rounded-[2rem] border border-gold/25 pointer-events-none" />
+              <div className="absolute -inset-1 rounded-[1.65rem] border border-gold/10 pointer-events-none" />
               <UserPortrait
                 userId={currentUser?.id || ''}
                 name={currentUser?.name || 'User'}
@@ -164,18 +165,20 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
             </div>
             <div className="flex-1 text-center lg:text-left pb-1 min-w-0">
               <p className="studio-kicker">{greeting()}</p>
-              <h2 className="font-display text-4xl sm:text-5xl lg:text-[3.25rem] font-medium mt-3 text-ivory tracking-tight leading-[1.05]">
+              <h2 className="font-display text-4xl sm:text-5xl lg:text-[3.5rem] font-medium mt-3 text-ivory tracking-tight leading-[1.02]">
                 {currentUser?.name || data?.greeting || 'there'}
               </h2>
-              <div className="executive-profile-divider my-5 max-w-md mx-auto lg:mx-0" />
-              <p className="text-sm text-gold-muted tracking-wide">
+              <div className="executive-profile-divider my-6 max-w-lg mx-auto lg:mx-0" />
+              <p className="text-sm text-gold-muted tracking-[0.08em]">
                 {currentUser?.title || currentUser?.role}
-                <span className="text-gold/40 mx-2">·</span>
+                <span className="text-gold/35 mx-2.5">·</span>
                 {currentUser?.department}
               </p>
-              <p className="text-sm text-ivory-muted mt-4 max-w-xl leading-relaxed mx-auto lg:mx-0">
-                Executive overview — team performance, attendance, projects, and priorities at a glance.
-              </p>
+              <div className="executive-meta justify-center lg:justify-start">
+                <span className="executive-meta-item"><Sparkles className="w-3 h-3 text-gold" /> {today}</span>
+                <span className="executive-meta-item"><Medal className="w-3 h-3 text-gold" /> {currentUser?.points ?? 0} KP</span>
+                <span className="executive-meta-item capitalize">{currentUser?.role || 'member'}</span>
+              </div>
             </div>
             <div className="shrink-0 pb-1">
               <PeriodToggle value={period} onChange={setPeriod} />
@@ -277,44 +280,44 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="studio-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display text-base font-semibold text-maroon-950">Pay Period</h3>
+                <h3 className="font-display text-base font-medium text-ivory">Pay Period</h3>
                 <span className="studio-chip">{data.payPeriod.status}</span>
               </div>
-              <p className="text-xs text-maroon-500 mb-3">
+              <p className="text-xs text-ivory-muted mb-3">
                 {format(new Date(data.payPeriod.start), 'MMM d')} – {format(new Date(data.payPeriod.end), 'MMM d, yyyy')}
                 · Resets {format(new Date(data.payPeriod.resetDate), 'MMM d')}
               </p>
               <div className="flex items-end justify-between mb-2">
-                <span className="font-display text-3xl font-semibold text-maroon-950">
+                <span className="font-display text-3xl font-medium premium-stat-value text-3xl">
                   {data.payPeriod.netPay != null ? `₹${data.payPeriod.netPay.toLocaleString('en-IN')}` : '—'}
                 </span>
-                <span className="text-xs text-maroon-500">
+                <span className="text-xs text-ivory-muted">
                   Day {data.payPeriod.dayOfMonth} of {data.payPeriod.daysInPeriod}
                 </span>
               </div>
               <div className="w-full h-1 bg-charcoal rounded-full overflow-hidden border border-gold/10">
                 <div className="h-full bg-gradient-to-r from-gold-muted to-gold rounded-full transition-all" style={{ width: `${payProgress}%` }} />
               </div>
-              <p className="text-xs text-maroon-500 mt-2">{data.payPeriod.daysRemaining} days until reset</p>
+              <p className="text-xs text-ivory-muted mt-2">{data.payPeriod.daysRemaining} days until reset</p>
             </div>
 
             <div className="studio-card p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display text-base font-semibold text-maroon-950">Project Status</h3>
+                <h3 className="font-display text-base font-medium text-ivory">Project Status</h3>
                 <span className="studio-chip studio-chip-live">{data.projects.efficiency}% efficiency</span>
               </div>
               <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="text-center p-3 rounded-xl bg-maroon-50 border border-maroon-100">
-                  <p className="font-display text-2xl font-semibold text-maroon-900">{data.projects.taken}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-maroon-500 mt-1">Taken</p>
+                <div className="premium-mini-stat">
+                  <p className="value">{data.projects.taken}</p>
+                  <p className="label">Taken</p>
                 </div>
-                <div className="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                  <p className="font-display text-2xl font-semibold text-emerald-800">{data.projects.completed}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-emerald-600 mt-1">Completed</p>
+                <div className="premium-mini-stat">
+                  <p className="value">{data.projects.completed}</p>
+                  <p className="label">Completed</p>
                 </div>
-                <div className="text-center p-3 rounded-xl bg-amber-50 border border-amber-100">
-                  <p className="font-display text-2xl font-semibold text-amber-800">{data.projects.inProgress}</p>
-                  <p className="text-[10px] uppercase tracking-wider text-amber-600 mt-1">In Progress</p>
+                <div className="premium-mini-stat">
+                  <p className="value">{data.projects.inProgress}</p>
+                  <p className="label">In Progress</p>
                 </div>
               </div>
               {data.projects.items.length > 0 && (
@@ -336,9 +339,9 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
           {/* Row 4: Timesheets, Latest members, Attendance chart */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div className="studio-card overflow-hidden">
-              <div className="px-5 py-4 border-b border-maroon-100 bg-maroon-50/50 flex justify-between items-center">
-                <h3 className="font-display text-sm font-semibold text-maroon-950">Timesheets</h3>
-                <Link to="/timesheets" className="text-[10px] font-semibold text-maroon-600 hover:underline">View all</Link>
+              <div className="premium-panel-header flex justify-between items-center">
+                <h3 className="font-display text-sm font-medium text-ivory">Timesheets</h3>
+                <Link to="/timesheets" className="link-gold">View all</Link>
               </div>
               <div className="p-5 space-y-3">
                 <div className="flex gap-4 text-xs">
@@ -367,9 +370,9 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
             </div>
 
             <div className="studio-card overflow-hidden">
-              <div className="px-5 py-4 border-b border-maroon-100 bg-maroon-50/50 flex justify-between items-center">
-                <h3 className="font-display text-sm font-semibold text-maroon-950">Latest Members</h3>
-                <Link to="/people" className="text-[10px] font-semibold text-maroon-600 hover:underline">Directory</Link>
+              <div className="premium-panel-header flex justify-between items-center">
+                <h3 className="font-display text-sm font-medium text-ivory">Latest Members</h3>
+                <Link to="/people" className="link-gold">Directory</Link>
               </div>
               <div className="p-5 space-y-3">
                 {data.latestMembers.map(m => (
@@ -391,8 +394,8 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
             </div>
 
             <div className="studio-card overflow-hidden">
-              <div className="px-5 py-4 border-b border-maroon-100 bg-maroon-50/50">
-                <h3 className="font-display text-sm font-semibold text-maroon-950">Attendance</h3>
+              <div className="premium-panel-header">
+                <h3 className="font-display text-sm font-medium text-ivory">Attendance</h3>
               </div>
               <div className="p-5">
                 <div className="flex items-end gap-1 h-28">
@@ -421,9 +424,9 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
           {/* Row 5: Leaves */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="studio-card overflow-hidden">
-              <div className="px-5 py-4 border-b border-maroon-100 bg-maroon-50/50 flex justify-between items-center">
-                <h3 className="font-display text-sm font-semibold text-maroon-950">Member&apos;s Leave</h3>
-                {isManager && <Link to="/leave" className="text-[10px] font-semibold text-maroon-600 hover:underline">Manage</Link>}
+              <div className="premium-panel-header flex justify-between items-center">
+                <h3 className="font-display text-sm font-medium text-ivory">Member&apos;s Leave</h3>
+                {isManager && <Link to="/leave" className="link-gold">Manage</Link>}
               </div>
               <div className="p-5 space-y-2">
                 {data.memberLeaves.length === 0 ? (
@@ -450,23 +453,23 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
             </div>
 
             <div className="studio-card overflow-hidden">
-              <div className="px-5 py-4 border-b border-maroon-100 bg-maroon-50/50 flex justify-between items-center">
-                <h3 className="font-display text-sm font-semibold text-maroon-950">My Leaves</h3>
-                <Link to="/leave" className="text-[10px] font-semibold text-maroon-600 hover:underline">Apply</Link>
+              <div className="premium-panel-header flex justify-between items-center">
+                <h3 className="font-display text-sm font-medium text-ivory">My Leaves</h3>
+                <Link to="/leave" className="link-gold">Apply</Link>
               </div>
               <div className="p-5">
                 <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="text-center p-2 rounded-lg bg-amber-50">
-                    <p className="font-display text-xl font-semibold text-amber-800">{data.leaves.pending}</p>
-                    <p className="text-[9px] uppercase text-amber-600">Pending</p>
+                  <div className="premium-mini-stat">
+                    <p className="value text-xl">{data.leaves.pending}</p>
+                    <p className="label">Pending</p>
                   </div>
-                  <div className="text-center p-2 rounded-lg bg-emerald-50">
-                    <p className="font-display text-xl font-semibold text-emerald-800">{data.leaves.approved}</p>
-                    <p className="text-[9px] uppercase text-emerald-600">Approved</p>
+                  <div className="premium-mini-stat">
+                    <p className="value text-xl">{data.leaves.approved}</p>
+                    <p className="label">Approved</p>
                   </div>
-                  <div className="text-center p-2 rounded-lg bg-maroon-50">
-                    <p className="font-display text-xl font-semibold text-maroon-800">{data.leaves.annualRemaining}</p>
-                    <p className="text-[9px] uppercase text-maroon-600">Annual left</p>
+                  <div className="premium-mini-stat">
+                    <p className="value text-xl">{data.leaves.annualRemaining}</p>
+                    <p className="label">Annual left</p>
                   </div>
                 </div>
                 {data.leaves.recent.map(l => (
@@ -481,8 +484,8 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
 
           {/* Team roster */}
           <div className="studio-card overflow-hidden">
-            <div className="px-5 py-4 border-b border-maroon-100 bg-maroon-50/50">
-              <h3 className="font-display text-sm font-semibold text-maroon-950">My Team ({data.team.length})</h3>
+            <div className="premium-panel-header">
+              <h3 className="font-display text-sm font-medium text-ivory">My Team ({data.team.length})</h3>
             </div>
             <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {data.team.map(m => (
@@ -520,11 +523,11 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
           </div>
 
           <div className="studio-card overflow-hidden">
-            <div className="px-6 py-4 border-b border-maroon-100 bg-maroon-50/50 flex justify-between items-center">
-              <h3 className="font-display text-base font-semibold text-maroon-950 flex items-center gap-2">
-                <CheckSquare className="w-4 h-4" /> To Do List
+            <div className="premium-panel-header flex justify-between items-center">
+              <h3 className="font-display text-base font-medium text-ivory flex items-center gap-2">
+                <CheckSquare className="w-4 h-4 text-gold" /> To Do List
               </h3>
-              <button type="button" onClick={onRefresh} className="text-xs font-semibold text-maroon-600 hover:underline">
+              <button type="button" onClick={onRefresh} className="link-gold">
                 Refresh
               </button>
             </div>
