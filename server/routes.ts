@@ -106,9 +106,9 @@ export async function registerRoutes(app: Express) {
     if (upgradePasswordIfNeeded(user, password)) saveDb();
 
     const rawPortal = req.headers['x-portal'] || req.body.portal;
-    const portal = rawPortal === 'manager' ? 'admin' : rawPortal;
+    const portal = rawPortal === 'manager' ? 'admin' : rawPortal === 'sales' ? 'employee' : rawPortal;
     const rolePortal = portalForRole(user.role);
-    if (portal && ['employee', 'admin', 'sales'].includes(portal) && portal !== rolePortal) {
+    if (portal && ['employee', 'admin'].includes(portal) && portal !== rolePortal) {
       return res.status(403).json({
         error: `Wrong portal. Use the ${rolePortal} portal for this account.`,
         correctPortal: rolePortal,

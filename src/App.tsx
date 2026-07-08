@@ -37,6 +37,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import { useRBACStore, useTimerStore } from './store';
 import { getPortal, PORTAL_META } from './portal';
+import { hasSalesToolkit } from './sales-access';
 import { canAccessModule } from './rbac';
 import { ModuleGuard } from './components/ModuleGuard';
 import type { LucideIcon } from 'lucide-react';
@@ -283,8 +284,8 @@ function HRMSApp() {
   const portal = getPortal();
   const portalMeta = PORTAL_META[portal];
   const isAdminPortal = portal === 'admin';
-  const isSalesPortal = portal === 'sales';
   const isEmployeePortal = portal === 'employee';
+  const showSalesTools = isEmployeePortal && hasSalesToolkit(currentUser);
   const isManagerView = isAdminPortal;
   const showAdminSection = isAdminPortal;
   const showAdminCrons = isAdminPortal && currentUser.role === 'admin';
@@ -306,32 +307,9 @@ function HRMSApp() {
 
         <VisibleNavItem route="dashboard" icon={LayoutDashboard} label="Dashboard" to="/dashboard" active={activeTab === 'dashboard'} />
 
-        {isSalesPortal && (
-          <>
-            <RailSection label={currentUser.role === 'executive_assistant' ? 'Executive Desk' : 'Sales Desk'} />
-            <VisibleNavItem route="crm" icon={Target} label="CRM" to="/crm" active={activeTab === 'crm'} />
-            <VisibleNavItem route="projects" icon={FolderKanban} label="Deals & Projects" to="/projects" active={activeTab === 'projects'} />
-            <VisibleNavItem route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
-            <VisibleNavItem route="field" icon={Map} label="Field Visits" to="/field" active={activeTab === 'field'} />
-            <VisibleNavItem route="people" icon={Users} label="Contacts" to="/people" active={activeTab === 'people'} />
-            <VisibleNavItem route="documents" icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
-            <VisibleNavItem route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
-            <RailSection label="My HR" />
-            <VisibleNavItem route="attendance" icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
-            <VisibleNavItem route="leave" icon={Calendar} label="Leave" to="/leave" active={activeTab === 'leave'} />
-            <VisibleNavItem route="timesheets" icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
-            <RailSection label="Performance" />
-            <VisibleNavItem route="marketplace" icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
-            <VisibleNavItem route="rewards" icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
-            <VisibleNavItem route="leaderboard" icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
-            <VisibleNavItem route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
-            <VisibleNavItem route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
-          </>
-        )}
-
         {showAdminSection && (
           <>
-            <RailSection label={portal === 'admin' ? 'Admin & HR' : 'Team Management'} />
+            <RailSection label="Admin & HR" />
             <VisibleNavItem route="recruit" icon={Users} label="Recruit" to="/recruit" active={activeTab === 'recruit'} />
             <VisibleNavItem route="employees" icon={Users} label="Employees" to="/employees" active={activeTab === 'employees'} />
             <VisibleNavItem route="onboarding" icon={ClipboardList} label="Onboarding" to="/onboarding" active={activeTab === 'onboarding'} />
@@ -339,10 +317,12 @@ function HRMSApp() {
             <VisibleNavItem route="payroll" icon={DollarSign} label="Payroll" to="/payroll" active={activeTab === 'payroll'} />
             <VisibleNavItem route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
             <VisibleNavItem route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
-            <VisibleNavItem route="crm" icon={Target} label="CRM" to="/crm" active={activeTab === 'crm'} />
-            <VisibleNavItem route="field" icon={Map} label="Field Ops" to="/field" active={activeTab === 'field'} />
             <VisibleNavItem route="finance" icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
             <VisibleNavItem route="reports" icon={FileText} label="Reports" to="/reports" active={activeTab === 'reports'} />
+            <RailSection label="Sales & CRM" />
+            <VisibleNavItem route="crm" icon={Target} label="CRM & Leads" to="/crm" active={activeTab === 'crm'} />
+            <VisibleNavItem route="field" icon={Map} label="Field Ops" to="/field" active={activeTab === 'field'} />
+            <VisibleNavItem route="projects" icon={FolderKanban} label="Deals & Projects" to="/projects" active={activeTab === 'projects'} />
             {portal === 'admin' && currentUser.role === 'admin' && (
               <VisibleNavItem route="roles" icon={Shield} label="Roles & Permissions" to="/roles" active={activeTab === 'roles'} />
             )}
@@ -351,6 +331,14 @@ function HRMSApp() {
 
         {isEmployeePortal && (
           <>
+            {showSalesTools && (
+              <>
+                <RailSection label={currentUser.role === 'executive_assistant' ? 'Executive Tools' : 'Sales Tools'} />
+                <VisibleNavItem route="crm" icon={Target} label="CRM & Leads" to="/crm" active={activeTab === 'crm'} />
+                <VisibleNavItem route="field" icon={Map} label="Field Visits" to="/field" active={activeTab === 'field'} />
+                <VisibleNavItem route="expenses" icon={Receipt} label="Sales Expenses" to="/expenses" active={activeTab === 'expenses'} />
+              </>
+            )}
             <RailSection label="My Work" />
             <VisibleNavItem route="projects" icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
             <VisibleNavItem route="people" icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />

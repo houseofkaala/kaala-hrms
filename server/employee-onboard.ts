@@ -1,5 +1,4 @@
 import type { UserRecord } from './db';
-import { portalForRole } from './portal-config';
 
 export function provisionNewEmployee(db: {
   onboardingTasks: { id: string; userId: string; title: string; description: string; status: string; dueDate: string; category: string }[];
@@ -31,6 +30,4 @@ export function provisionNewEmployee(db: {
 
 }
 
-export function portalLoginPath(role: UserRecord['role']) {
-  return portalForRole(role);
-}
+export { portalLoginPath } from './portal-config';

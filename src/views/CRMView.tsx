@@ -2,8 +2,9 @@ import { useState, type FormEvent, type DragEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Search, LayoutGrid, List, X, Building2, Mail, Phone,
-  IndianRupee, Flame, Thermometer, Snowflake, Calendar, User,
+  IndianRupee, Flame, Thermometer, Snowflake, Calendar, User, Trash2,
 } from 'lucide-react';
+import type { User as HrmsUser } from '../types';
 import { format } from 'date-fns';
 import { fetcher, cn } from '../utils';
 import { useRBACStore } from '../store';
@@ -73,12 +74,14 @@ function formatINR(n: number) {
 export function CRMView() {
   const qc = useQueryClient();
   const { currentUser } = useRBACStore();
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
   const [view, setView] = useState<'pipeline' | 'list'>('pipeline');
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<Lead | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ['crm-leads', search],
@@ -88,6 +91,17 @@ export function CRMView() {
   const { data: stats } = useQuery<CrmStats>({
     queryKey: ['crm-stats'],
     queryFn: () => fetcher('/api/crm/stats'),
+  });
+
+  const { data: assignees = [] } = useQuery<HrmsUser[]>({
+    queryKey: ['crm-assignees'],
+    queryFn: () => fetcher('/api/users'),
+    enabled: isAdmin,
+    select: users =>
+      users.filter(u =>
+        u.status !== 'Inactive' &&
+        (u.role === 'sales' || u.role === 'executive_assistant' || u.role === 'manager' || u.role === 'admin'),
+      ),
   });
 
   const createLead = async (e: FormEvent) => {
@@ -113,6 +127,31 @@ export function CRMView() {
       setSelected(prev => prev ? { ...prev, stage } : null);
     }
   };
+
+  const reassignOwner = async (leadId: string, ownerId: string) => {
+    const updated = await fetcher<Lead>(`/api/crm/leads/${leadId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ownerId }),
+    });
+    qc.invalidateQueries({ queryKey: ['crm-leads'] });
+    if (selected?.id === leadId) setSelected(updated);
+  };
+
+  const deleteLead = async (leadId: string) => {
+    if (!confirm('Delete this lead permanently? This cannot be undone.')) return;
+    setDeleting(true);
+    try {
+      await fetcher(`/api/crm/leads/${leadId}`, { method: 'DELETE' });
+      setSelected(null);
+      qc.invalidateQueries({ queryKey: ['crm-leads'] });
+      qc.invalidateQueries({ queryKey: ['crm-stats'] });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const ownerName = (ownerId: string) =>
+    assignees.find(u => u.id === ownerId)?.name || (ownerId === currentUser?.id ? 'You' : 'Assigned');
 
   const onDrop = (e: DragEvent, stage: Stage) => {
     e.preventDefault();
@@ -420,6 +459,24 @@ export function CRMView() {
                 <div className="flex items-center gap-3 text-sm text-ivory-muted">
                   <User className="w-4 h-4 shrink-0" />Source: {selected.source}
                 </div>
+                {isAdmin ? (
+                  <div>
+                    <label className="studio-kicker block mb-1.5">Owner</label>
+                    <select
+                      value={selected.ownerId}
+                      onChange={e => reassignOwner(selected.id, e.target.value)}
+                      className="input-field text-sm"
+                    >
+                      {assignees.map(u => (
+                        <option key={u.id} value={u.id}>{u.name} ({u.role.replace('_', ' ')})</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 text-sm text-ivory-muted">
+                    <User className="w-4 h-4 shrink-0" />Owner: {ownerName(selected.ownerId)}
+                  </div>
+                )}
                 {selected.nextFollowUp && (
                   <div className="flex items-center gap-3 text-sm text-ivory-muted">
                     <Calendar className="w-4 h-4 shrink-0" />
@@ -439,6 +496,16 @@ export function CRMView() {
                 Created {format(new Date(selected.createdAt), 'MMM d, yyyy')}
                 {currentUser?.id === selected.ownerId ? '' : ' · Assigned'}
               </p>
+
+              <button
+                type="button"
+                onClick={() => deleteLead(selected.id)}
+                disabled={deleting}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/30 text-red-300 hover:bg-red-500/10 transition-colors text-sm disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deleting ? 'Deleting…' : 'Delete Lead'}
+              </button>
             </div>
           </div>
         </>

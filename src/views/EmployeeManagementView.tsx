@@ -363,8 +363,8 @@ Please change your password after first login in Settings.`;
                 onChange={(e) => setForm({ ...form, role: e.target.value })}
               >
                 <option value="employee">Employee (employee portal)</option>
-                <option value="sales">Sales (sales portal)</option>
-                <option value="executive_assistant">Executive Assistant (sales portal)</option>
+                <option value="sales">Sales (employee portal + sales tools)</option>
+                <option value="executive_assistant">Executive Assistant (employee portal + executive tools)</option>
                 <option value="manager">Manager (admin portal)</option>
                 <option value="admin">Admin (admin portal)</option>
               </select>

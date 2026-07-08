@@ -71,7 +71,7 @@ for (const role of ['sales', 'executive_assistant', 'manager', 'admin']) {
 }
 
 fs.writeFileSync(DATA_PATH, JSON.stringify(raw, null, 2));
-console.log('Login: https://sales.bymarketingonly.com/login');
+console.log('Login: https://employee.bymarketingonly.com/login');
 console.log('Email:', USER.email);
 console.log('Password:', USER.password);
 console.log('Join date:', USER.joinDate);

@@ -119,8 +119,12 @@ setup_caddy() {
     email ${EMAIL}
 }
 
-${EMPLOYEE_HOST}, ${ADMIN_HOST}, ${SALES_HOST} {
+${EMPLOYEE_HOST}, ${ADMIN_HOST} {
     reverse_proxy 127.0.0.1:3000
+}
+
+${SALES_HOST} {
+    redir https://${EMPLOYEE_HOST}{uri} permanent
 }
 
 ${DOMAIN}, www.${DOMAIN} {
@@ -192,7 +196,7 @@ print_dns() {
   echo "Wait 10–30 min for DNS, then test:"
   echo "  https://${EMPLOYEE_HOST}"
   echo "  https://${ADMIN_HOST}"
-  echo "  https://${SALES_HOST}"
+  echo "  https://${SALES_HOST}  (redirects to employee portal)"
   echo ""
   echo "Admin login:  admin@${DOMAIN}"
   echo "Data stored:  ${DATA_DIR}/store.json (persists across reboots)"
