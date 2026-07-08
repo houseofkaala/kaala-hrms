@@ -282,9 +282,12 @@ function HRMSApp() {
   const reviewTasks = tasks.filter(t => t.status === 'under_review');
   const portal = getPortal();
   const portalMeta = PORTAL_META[portal];
-  const isManagerView = portal !== 'employee';
-  const showAdminSection = portal === 'admin';
-  const showAdminCrons = portal === 'admin' && currentUser.role === 'admin';
+  const isAdminPortal = portal === 'admin';
+  const isSalesPortal = portal === 'sales';
+  const isEmployeePortal = portal === 'employee';
+  const isManagerView = isAdminPortal;
+  const showAdminSection = isAdminPortal;
+  const showAdminCrons = isAdminPortal && currentUser.role === 'admin';
 
   return (
     <div className="flex h-screen kaala-mesh kaala-grain text-ivory overflow-hidden relative">
@@ -302,6 +305,28 @@ function HRMSApp() {
         </Link>
 
         <VisibleNavItem route="dashboard" icon={LayoutDashboard} label="Dashboard" to="/dashboard" active={activeTab === 'dashboard'} />
+
+        {isSalesPortal && (
+          <>
+            <RailSection label="Sales Desk" />
+            <VisibleNavItem route="projects" icon={FolderKanban} label="Deals & Projects" to="/projects" active={activeTab === 'projects'} />
+            <VisibleNavItem route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
+            <VisibleNavItem route="field" icon={Map} label="Field Visits" to="/field" active={activeTab === 'field'} />
+            <VisibleNavItem route="people" icon={Users} label="Contacts" to="/people" active={activeTab === 'people'} />
+            <VisibleNavItem route="documents" icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
+            <VisibleNavItem route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
+            <RailSection label="My HR" />
+            <VisibleNavItem route="attendance" icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
+            <VisibleNavItem route="leave" icon={Calendar} label="Leave" to="/leave" active={activeTab === 'leave'} />
+            <VisibleNavItem route="timesheets" icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
+            <RailSection label="Performance" />
+            <VisibleNavItem route="marketplace" icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
+            <VisibleNavItem route="rewards" icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
+            <VisibleNavItem route="leaderboard" icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
+            <VisibleNavItem route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
+            <VisibleNavItem route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
+          </>
+        )}
 
         {showAdminSection && (
           <>
@@ -322,28 +347,32 @@ function HRMSApp() {
           </>
         )}
 
-        <RailSection label="My Work" />
-        <VisibleNavItem route="projects" icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
-        <VisibleNavItem route="people" icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />
-        <VisibleNavItem route="leave" icon={Calendar} label="Leave Management" to="/leave" active={activeTab === 'leave'} />
-        <VisibleNavItem route="holidays" icon={Calendar} label="Holidays" to="/holidays" active={activeTab === 'holidays'} />
-        <VisibleNavItem route="attendance" icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
-        <VisibleNavItem route="timesheets" icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
-        <VisibleNavItem route="documents" icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
-        <VisibleNavItem route="assets" icon={Monitor} label="Assets" to="/assets" active={activeTab === 'assets'} />
-        <VisibleNavItem route="performance" icon={Activity} label="Performance" to="/performance" active={activeTab === 'performance'} />
-        <VisibleNavItem route="learning" icon={GraduationCap} label="Learning" to="/learning" active={activeTab === 'learning'} />
-        <VisibleNavItem route="survey" icon={FileText} label="Surveys" to="/survey" active={activeTab === 'survey'} />
+        {isEmployeePortal && (
+          <>
+            <RailSection label="My Work" />
+            <VisibleNavItem route="projects" icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
+            <VisibleNavItem route="people" icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />
+            <VisibleNavItem route="leave" icon={Calendar} label="Leave Management" to="/leave" active={activeTab === 'leave'} />
+            <VisibleNavItem route="holidays" icon={Calendar} label="Holidays" to="/holidays" active={activeTab === 'holidays'} />
+            <VisibleNavItem route="attendance" icon={Calendar} label="Attendance" to="/attendance" active={activeTab === 'attendance'} />
+            <VisibleNavItem route="timesheets" icon={Timer} label="Timesheets" to="/timesheets" active={activeTab === 'timesheets'} />
+            <VisibleNavItem route="documents" icon={FolderOpen} label="Documents" to="/documents" active={activeTab === 'documents'} />
+            <VisibleNavItem route="assets" icon={Monitor} label="Assets" to="/assets" active={activeTab === 'assets'} />
+            <VisibleNavItem route="performance" icon={Activity} label="Performance" to="/performance" active={activeTab === 'performance'} />
+            <VisibleNavItem route="learning" icon={GraduationCap} label="Learning" to="/learning" active={activeTab === 'learning'} />
+            <VisibleNavItem route="survey" icon={FileText} label="Surveys" to="/survey" active={activeTab === 'survey'} />
 
-        <RailSection label="Culture" />
-        <VisibleNavItem route="community" icon={Users} label="Community" to="/community" active={activeTab === 'community'} />
-        <VisibleNavItem route="helpdesk" icon={MessageSquare} label="Help Desk" to="/helpdesk" active={activeTab === 'helpdesk'} />
-        <VisibleNavItem route="marketplace" icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
-        <VisibleNavItem route="rewards" icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
-        <VisibleNavItem route="leaderboard" icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
-        <VisibleNavItem route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
-        <VisibleNavItem route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
-        <VisibleNavItem route="policies" icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
+            <RailSection label="Culture" />
+            <VisibleNavItem route="community" icon={Users} label="Community" to="/community" active={activeTab === 'community'} />
+            <VisibleNavItem route="helpdesk" icon={MessageSquare} label="Help Desk" to="/helpdesk" active={activeTab === 'helpdesk'} />
+            <VisibleNavItem route="marketplace" icon={Store} label="Marketplace" to="/marketplace" active={activeTab === 'marketplace'} badge={marketplaceTasks.length} />
+            <VisibleNavItem route="rewards" icon={Gift} label="Rewards" to="/rewards" active={activeTab === 'rewards'} />
+            <VisibleNavItem route="leaderboard" icon={Medal} label="Leaderboard" to="/leaderboard" active={activeTab === 'leaderboard'} />
+            <VisibleNavItem route="chat" icon={MessageSquare} label="Chat" to="/chat" active={activeTab === 'chat'} />
+            <VisibleNavItem route="ai" icon={Sparkles} label="HR Assistant" to="/ai" active={activeTab === 'ai'} />
+            <VisibleNavItem route="policies" icon={FileText} label="Policies" to="/policies" active={activeTab === 'policies'} />
+          </>
+        )}
 
         <div className="mt-auto flex flex-col gap-0.5 pt-4">
           <VisibleNavItem route="notifications" icon={Bell} label="Notifications" to="/notifications" active={activeTab === 'notifications'} />

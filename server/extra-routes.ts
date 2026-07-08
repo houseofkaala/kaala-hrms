@@ -3,6 +3,7 @@ import { getDb, saveDb, sanitizeUser, getUserById, pushNotification } from './db
 import { AuthedRequest, requireRole } from './middleware';
 import { hashPassword } from './password';
 import { assertValidRoleChange } from './security';
+import { portalForRole } from './portal-config';
 import { deleteDocumentFile } from './document-storage';
 
 export function registerExtraRoutes(app: Express) {
@@ -79,7 +80,7 @@ export function registerExtraRoutes(app: Express) {
     saveDb();
     pushNotification(u.id, 'Password updated', 'Your login password was reset by an administrator.', { triggerId: 'security.password_changed' });
     const baseDomain = process.env.VITE_BASE_DOMAIN || 'bymarketingonly.com';
-    const portal = u.role === 'employee' ? 'employee' : 'admin';
+    const portal = portalForRole(u.role);
     res.json({
       success: true,
       email: u.email,

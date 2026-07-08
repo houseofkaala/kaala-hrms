@@ -11,6 +11,7 @@ import { buildDashboard, type DashboardPeriod } from './dashboard';
 import { registerExtraRoutes } from './extra-routes';
 import { registerProjectRoutes } from './project-routes';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
+import { portalForRole, portalLabel } from './portal-config';
 import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifications/registry';
 import { isEmailConfigured, sendEmail } from './email/transport';
 import { notify, notifyManager } from './notifications/dispatcher';
@@ -105,8 +106,8 @@ export async function registerRoutes(app: Express) {
 
     const rawPortal = req.headers['x-portal'] || req.body.portal;
     const portal = rawPortal === 'manager' ? 'admin' : rawPortal;
-    const rolePortal = user.role === 'employee' ? 'employee' : 'admin';
-    if (portal && ['employee', 'admin'].includes(portal) && portal !== rolePortal) {
+    const rolePortal = portalForRole(user.role);
+    if (portal && ['employee', 'admin', 'sales'].includes(portal) && portal !== rolePortal) {
       return res.status(403).json({
         error: `Wrong portal. Use the ${rolePortal} portal for this account.`,
         correctPortal: rolePortal,
@@ -208,7 +209,7 @@ export async function registerRoutes(app: Express) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-    const userRole = (['employee', 'manager', 'admin'].includes(role) ? role : 'employee') as UserRecord['role'];
+    const userRole = (['employee', 'sales', 'manager', 'admin'].includes(role) ? role : 'employee') as UserRecord['role'];
     const resolvedManager =
       managerId ||
       (userRole === 'employee'
@@ -267,7 +268,7 @@ export async function registerRoutes(app: Express) {
         portal: portalSubdomain,
         loginUrl,
         role: userRole,
-        message: `${newUser.name} can sign in now at the ${userRole === 'employee' ? 'Employee' : 'Admin'} portal.`,
+        message: `${newUser.name} can sign in now at the ${portalLabel(userRole)} portal.`,
       },
     });
   });

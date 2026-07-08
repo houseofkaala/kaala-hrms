@@ -61,7 +61,8 @@ export function createEmptyOperationalDb() {
     emailDigestQueue: [] as { id: string; userId: string; triggerId: string; title: string; message: string; digestType: 'daily' | 'weekly' | 'monthly'; createdAt: string }[],
     emailDigestMeta: {} as { lastDaily?: string; lastWeekly?: string; lastMonthly?: string },
     rolePermissions: {
-      employee: { modules: ['dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart', 'projects', 'tasks'], description: 'Standard employee access' },
+      employee: { modules: ['dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart', 'projects', 'tasks', 'settings'], description: 'Standard employee access' },
+      sales: { modules: ['dashboard', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses', 'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications', 'settings'], description: 'Sales team — deals, field ops, pipeline, and core HR' },
       manager: { modules: ['*'], description: 'Team management and approvals' },
       admin: { modules: ['*'], description: 'Full system access' },
     },

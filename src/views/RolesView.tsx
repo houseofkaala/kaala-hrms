@@ -109,6 +109,7 @@ export function RolesView() {
                     className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-semibold uppercase"
                   >
                     <option value="employee">Employee</option>
+                    <option value="sales">Sales</option>
                     <option value="manager">Manager</option>
                     <option value="admin">Admin</option>
                   </select>

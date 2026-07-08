@@ -4,6 +4,7 @@ import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
 import { seedOperationalContent } from './operational-seed';
 import { hasOperationalData, isDataPreserveMode, markDataVersionCurrent } from './data-preserve';
+import { ensureRolePermissions } from './role-defaults';
 import { mergeEmailSettings } from './notifications/registry';
 import {
   flushPersistence,
@@ -36,7 +37,7 @@ export interface UserRecord {
   id: string;
   name: string;
   points: number;
-  role: 'employee' | 'manager' | 'admin';
+  role: 'employee' | 'manager' | 'admin' | 'sales';
   department: string;
   status: string;
   email: string;
@@ -74,6 +75,7 @@ function applyMigrations() {
   if (!db.sessions) db.sessions = [];
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
+  ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   seedOperationalContent(db);
 }
 
