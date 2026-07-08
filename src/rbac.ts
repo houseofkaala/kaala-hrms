@@ -7,6 +7,7 @@ const ROUTE_MODULE: Record<string, string> = {
   recruit: 'recruit',
   employees: 'employees',
   onboarding: 'onboarding',
+  offboarding: 'onboarding',
   orgchart: 'orgchart',
   people: 'people',
   leave: 'leave',

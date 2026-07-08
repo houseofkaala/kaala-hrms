@@ -78,6 +78,27 @@ function applyMigrations() {
   ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergeCrmModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   if (!db.crmLeads) db.crmLeads = [];
+  const ext = db as Database & {
+    jobPostings?: unknown[];
+    reviewCycles?: unknown[];
+    offboardingTasks?: unknown[];
+    policyAcknowledgments?: unknown[];
+    shiftRoster?: unknown[];
+    fieldVisits?: unknown[];
+    salaryStructures?: Record<string, unknown>;
+    orgSettings: { officeGeofence?: unknown; geoAttendanceRequired?: boolean };
+  };
+  if (!ext.jobPostings) ext.jobPostings = [];
+  if (!ext.reviewCycles) ext.reviewCycles = [];
+  if (!ext.offboardingTasks) ext.offboardingTasks = [];
+  if (!ext.policyAcknowledgments) ext.policyAcknowledgments = [];
+  if (!ext.shiftRoster) ext.shiftRoster = [];
+  if (!ext.fieldVisits) ext.fieldVisits = [];
+  if (!ext.salaryStructures) ext.salaryStructures = {};
+  if (!ext.orgSettings.officeGeofence) {
+    ext.orgSettings.officeGeofence = { name: 'House of Kaala Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 };
+  }
+  if (ext.orgSettings.geoAttendanceRequired === undefined) ext.orgSettings.geoAttendanceRequired = false;
   seedOperationalContent(db);
 }
 

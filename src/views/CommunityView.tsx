@@ -45,6 +45,7 @@ export function CommunityView() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<'feed' | 'announcements' | 'events' | 'recognition'>('feed');
   const [postContent, setPostContent] = useState('');
+  const [announceTitle, setAnnounceTitle] = useState('');
   const [showEventForm, setShowEventForm] = useState(false);
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '' });
   const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
@@ -66,8 +67,14 @@ export function CommunityView() {
 
   const createPost = async () => {
     if (!postContent.trim()) return;
-    await fetcher('/api/community/posts', { method: 'POST', body: JSON.stringify({ content: postContent }) });
+    const type = activeTab === 'announcements' ? 'announcement' : activeTab === 'recognition' ? 'recognition' : 'post';
+    if (type === 'announcement' && isManager) {
+      await fetcher('/api/community/announcements', { method: 'POST', body: JSON.stringify({ title: announceTitle || 'Announcement', content: postContent }) });
+    } else {
+      await fetcher('/api/community/posts', { method: 'POST', body: JSON.stringify({ content: postContent, type, title: announceTitle }) });
+    }
     setPostContent('');
+    setAnnounceTitle('');
     qc.invalidateQueries({ queryKey: ['community'] });
   };
 
@@ -153,10 +160,18 @@ export function CommunityView() {
                   {currentUser?.name?.charAt(0) || 'Y'}
                 </div>
                 <div className="flex-1 space-y-3">
+                  {activeTab === 'announcements' && isManager && (
+                    <input
+                      value={announceTitle}
+                      onChange={e => setAnnounceTitle(e.target.value)}
+                      placeholder="Announcement title"
+                      className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300"
+                    />
+                  )}
                   <textarea
                     value={postContent}
                     onChange={e => setPostContent(e.target.value)}
-                    placeholder="Share something with the team..."
+                    placeholder={activeTab === 'announcements' ? 'Write an HR announcement…' : 'Share something with the team...'}
                     className="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-gray-300 resize-none h-20"
                   />
                   <div className="flex items-center justify-between">

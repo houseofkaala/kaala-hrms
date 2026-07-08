@@ -42,14 +42,25 @@ export function AttendanceHeaderButton({ onStatusChange }: { onStatusChange?: ()
     return () => clearInterval(id);
   }, [loadStatus, currentUser?.id]);
 
+  const getGeo = (): Promise<{ lat?: number; lng?: number }> =>
+    new Promise(resolve => {
+      if (!navigator.geolocation) return resolve({});
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve({}),
+        { timeout: 8000, enableHighAccuracy: true },
+      );
+    });
+
   const handleToggle = async () => {
     if (!status) return;
     setLoading(true);
     setError('');
     try {
+      const geo = !status.checkedIn ? await getGeo() : {};
       const res = await fetcher<{ success: boolean; checkedIn: boolean; user: typeof currentUser; error?: string; code?: string }>(
         '/api/attendance/toggle',
-        { method: 'POST' },
+        { method: 'POST', body: JSON.stringify(geo) },
       );
       if (res.user) setCurrentUser(res.user);
       await loadStatus();

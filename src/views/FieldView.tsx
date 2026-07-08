@@ -31,7 +31,10 @@ export function FieldView() {
   const { currentUser } = useRBACStore();
   const qc = useQueryClient();
   const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
+  const isSales = currentUser?.role === 'sales' || currentUser?.role === 'executive_assistant';
   const [showForm, setShowForm] = useState(false);
+  const [checkInLoc, setCheckInLoc] = useState('');
+  const [checkInNotes, setCheckInNotes] = useState('');
   const [form, setForm] = useState({ name: '', location: '', lat: '12.9716', lng: '77.5946', status: 'Active' });
 
   const { data } = useQuery<{ agents: FieldAgent[]; count: number }>({
@@ -40,6 +43,28 @@ export function FieldView() {
   });
 
   const agents = data?.agents || [];
+
+  const handleCheckIn = async () => {
+    if (!checkInLoc.trim()) return;
+    let lat = 12.9716;
+    let lng = 77.5946;
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 }),
+        );
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch { /* use defaults */ }
+    }
+    await fetcher('/api/field/check-in', {
+      method: 'POST',
+      body: JSON.stringify({ location: checkInLoc.trim(), lat, lng, notes: checkInNotes }),
+    });
+    setCheckInLoc('');
+    setCheckInNotes('');
+    qc.invalidateQueries({ queryKey: ['field'] });
+  };
 
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault();
@@ -67,11 +92,19 @@ export function FieldView() {
           <h2 className="text-xl font-semibold text-gray-900">Field Operations</h2>
           <p className="text-sm text-gray-500 mt-1">Live tracking of {data?.count || 0} active field agents across Bangalore</p>
         </div>
-        {isManager && (
-          <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2 text-xs">
-            <Plus className="w-4 h-4" /> Add Agent
-          </button>
-        )}
+        <div className="flex gap-2">
+          {isSales && (
+            <div className="flex gap-2 items-center">
+              <input value={checkInLoc} onChange={e => setCheckInLoc(e.target.value)} placeholder="Visit location" className="input-field text-xs w-40" />
+              <button onClick={handleCheckIn} className="btn-primary text-xs">Check in</button>
+            </div>
+          )}
+          {isManager && (
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2 text-xs">
+              <Plus className="w-4 h-4" /> Add Agent
+            </button>
+          )}
+        </div>
       </div>
 
       {showForm && isManager && (

@@ -11,6 +11,9 @@ import { buildDashboard, type DashboardPeriod } from './dashboard';
 import { registerExtraRoutes } from './extra-routes';
 import { registerProjectRoutes } from './project-routes';
 import { registerCrmRoutes } from './crm-routes';
+import { registerEnterpriseRoutes } from './enterprise-routes';
+import { validateGeofence, DEFAULT_GEOFENCE } from './geo-attendance';
+import { computePayroll, defaultSalaryStructure } from './payroll-engine';
 import { provisionNewEmployee, portalLoginPath } from './employee-onboard';
 import { portalForRole, portalLabel } from './portal-config';
 import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifications/registry';
@@ -711,14 +714,28 @@ export async function registerRoutes(app: Express) {
       active.clockOut = new Date().toISOString();
       user.status = 'Offline';
     } else {
-      db().attendanceLogs.push({
+      const settings = db().orgSettings as { geoAttendanceRequired?: boolean; officeGeofence?: typeof DEFAULT_GEOFENCE };
+      const fence = settings.officeGeofence || DEFAULT_GEOFENCE;
+      const geo = validateGeofence(
+        req.body.lat != null ? Number(req.body.lat) : undefined,
+        req.body.lng != null ? Number(req.body.lng) : undefined,
+        fence,
+        Boolean(settings.geoAttendanceRequired),
+      );
+      if (!geo.ok) return res.status(403).json({ error: geo.message, code: 'GEOFENCE' });
+
+      const log: Record<string, unknown> = {
         id: `att_${Date.now()}`,
         userId: req.userId!,
         clockIn: new Date().toISOString(),
         clockOut: null,
         date: new Date().toISOString().split('T')[0],
         earlyClockOutApproved: false,
-      });
+      };
+      if (req.body.lat != null) log.clockInLat = Number(req.body.lat);
+      if (req.body.lng != null) log.clockInLng = Number(req.body.lng);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      db().attendanceLogs.push(log as any);
       user.status = 'Active';
       checkedIn = true;
     }
@@ -799,7 +816,17 @@ export async function registerRoutes(app: Express) {
   // Recruit
   app.get('/api/recruit/candidates', requireRole('manager', 'admin'), (_req, res) => res.json(db().candidates));
   app.post('/api/recruit/candidates', requireRole('manager', 'admin'), (req, res) => {
-    const c = { id: `c${Date.now()}`, name: req.body.name, role: req.body.role, stage: 'Applied' };
+    const c = {
+      id: `c${Date.now()}`,
+      name: req.body.name,
+      role: req.body.role,
+      stage: 'Applied',
+      email: req.body.email || '',
+      phone: req.body.phone || '',
+      jobId: req.body.jobId || '',
+      source: req.body.source || 'Other',
+      notes: req.body.notes || '',
+    };
     db().candidates.push(c); saveDb();
     res.json({ success: true, candidate: c });
   });
@@ -818,13 +845,22 @@ export async function registerRoutes(app: Express) {
     res.json(uid ? db().payrollRecords.filter(p => p.userId === uid) : db().payrollRecords);
   });
   app.post('/api/payroll/run', requireRole('manager', 'admin'), (_req, res) => {
-    const period = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
-    const salaryByRole: Record<string, number> = { employee: 7500, manager: 10500, admin: 12000 };
+    const period = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    const structures = (db() as ReturnType<typeof getDb> & { salaryStructures?: Record<string, ReturnType<typeof defaultSalaryStructure>> }).salaryStructures || {};
     db().users.filter(u => u.status !== 'Inactive').forEach(u => {
-      const gross = salaryByRole[u.role] || 7500;
-      const deductions = Math.round(gross * 0.15);
-      db().payrollRecords.unshift({ id: `pr${Date.now()}_${u.id}`, userId: u.id, period, grossPay: gross, deductions, netPay: gross - deductions, status: 'Paid' });
-      pushNotification(u.id, 'Payroll processed', `Your ${period} payslip is ready.`, { triggerId: 'payroll.payslip_generated' });
+      const structure = structures[u.id] || defaultSalaryStructure(u.role);
+      const breakdown = computePayroll(structure);
+      db().payrollRecords.unshift({
+        id: `pr${Date.now()}_${u.id}`,
+        userId: u.id,
+        period,
+        grossPay: breakdown.grossPay,
+        deductions: breakdown.deductions,
+        netPay: breakdown.netPay,
+        status: 'Paid',
+        breakdown,
+      });
+      pushNotification(u.id, 'Payroll processed', `Your ${period} payslip (₹${breakdown.netPay.toLocaleString('en-IN')}) is ready.`, { triggerId: 'payroll.payslip_generated' });
     });
     saveDb();
     res.json({ success: true, message: `Payroll run for ${period}` });
@@ -864,7 +900,18 @@ export async function registerRoutes(app: Express) {
   });
 
   // Field
-  app.get('/api/field/agents', requireRole('manager', 'admin'), (_req, res) => res.json({ agents: db().fieldAgents, count: db().fieldAgents.filter(a => a.status === 'Active').length }));
+  app.get('/api/field/agents', (req: AuthedRequest, res) => {
+    const u = getUserById(req.userId!);
+    if (!u) return res.status(401).json({ error: 'Unauthorized' });
+    const isSales = u.role === 'sales' || u.role === 'executive_assistant';
+    if (!isSales && u.role !== 'manager' && u.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const agents = (u.role === 'manager' || u.role === 'admin')
+      ? db().fieldAgents
+      : db().fieldAgents.filter(a => a.name === u.name || a.id === `fa_${u.id}`);
+    res.json({ agents, count: agents.filter(a => a.status === 'Active').length });
+  });
   app.post('/api/field/agents', requireRole('manager', 'admin'), (req, res) => {
     const a = {
       id: `fa${Date.now()}`,
@@ -981,7 +1028,11 @@ export async function registerRoutes(app: Express) {
   app.get('/api/community', (_req, res) => res.json({ posts: db().communityPosts, events: db().events, polls: db().polls }));
   app.post('/api/community/posts', (req: AuthedRequest, res) => {
     const u = getUserById(req.userId!);
-    const p = { id: `cp${Date.now()}`, userId: req.userId!, author: u?.name || 'User', type: 'post', title: '', content: req.body.content, likes: 0, comments: 0, createdAt: new Date().toISOString() };
+    const postType = ['post', 'announcement', 'recognition'].includes(req.body.type) ? req.body.type : 'post';
+    if (postType === 'announcement' && u?.role !== 'manager' && u?.role !== 'admin') {
+      return res.status(403).json({ error: 'Only managers can post announcements' });
+    }
+    const p = { id: `cp${Date.now()}`, userId: req.userId!, author: u?.name || 'User', type: postType, title: req.body.title || '', content: req.body.content, likes: 0, comments: 0, createdAt: new Date().toISOString() };
     db().communityPosts.unshift(p); saveDb();
     res.json({ success: true, post: p });
   });
@@ -1130,5 +1181,6 @@ export async function registerRoutes(app: Express) {
 
   registerProjectRoutes(app);
   registerCrmRoutes(app);
+  registerEnterpriseRoutes(app);
   registerExtraRoutes(app);
 }

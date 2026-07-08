@@ -65,6 +65,27 @@ export function registerExtraRoutes(app: Express) {
       return res.status(400).json({ error: 'Cannot deactivate the last active admin' });
     }
     u.status = 'Inactive';
+    const templates = [
+      { title: 'Exit interview scheduled', category: 'HR', days: 3 },
+      { title: 'Return company laptop & assets', category: 'IT', days: 1 },
+      { title: 'Revoke system access', category: 'IT', days: 0 },
+      { title: 'Full & final settlement', category: 'Finance', days: 15 },
+      { title: 'Experience letter issued', category: 'HR', days: 10 },
+    ];
+    const offTasks = (db() as ReturnType<typeof getDb> & { offboardingTasks?: { id: string; userId: string; title: string; description: string; status: string; dueDate: string; category: string }[] }).offboardingTasks;
+    if (offTasks) {
+      for (const t of templates) {
+        offTasks.push({
+          id: `off${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          userId: u.id,
+          title: t.title,
+          description: `Offboarding for ${u.name}`,
+          status: 'Pending',
+          dueDate: new Date(Date.now() + t.days * 86400000).toISOString().split('T')[0],
+          category: t.category,
+        });
+      }
+    }
     saveDb();
     res.json({ success: true });
   });
@@ -151,8 +172,13 @@ export function registerExtraRoutes(app: Express) {
     res.json({ success: true, shift: s });
   });
 
-  // Policies
-  app.get('/api/policies', (_req, res) => res.json(db().policies));
+  // Policies — map title → name for frontend compatibility
+  app.get('/api/policies', (_req, res) => {
+    res.json(db().policies.map(p => {
+      const pol = p as { id: string; title: string; description: string; category: string; status: string; requiresAck?: boolean };
+      return { ...pol, name: pol.title };
+    }));
+  });
 
   // Onboarding
   app.get('/api/onboarding', (req: AuthedRequest, res) => {

@@ -32,6 +32,7 @@ export const SettingsView = lazy(() => import('./views/SettingsView').then(m => 
 export const RolesView = lazy(() => import('./views/RolesView').then(m => ({ default: m.RolesView })));
 export const NotificationsView = lazy(() => import('./views/NotificationsView').then(m => ({ default: m.NotificationsView })));
 export const OnboardingView = lazy(() => import('./views/OnboardingView').then(m => ({ default: m.OnboardingView })));
+export const OffboardingView = lazy(() => import('./views/OffboardingView').then(m => ({ default: m.OffboardingView })));
 export const ExpensesView = lazy(() => import('./views/ExpensesView').then(m => ({ default: m.ExpensesView })));
 export const OrgChartView = lazy(() => import('./views/OrgChartView').then(m => ({ default: m.OrgChartView })));
 export const HolidaysView = lazy(() => import('./views/HolidaysView').then(m => ({ default: m.HolidaysView })));
