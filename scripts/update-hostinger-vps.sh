@@ -5,6 +5,11 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_DIR"
 
+if [ -x scripts/backup-data.sh ]; then
+  echo "==> Backing up data..."
+  ./scripts/backup-data.sh
+fi
+
 echo "==> Pulling latest..."
 git pull origin main
 

@@ -3,6 +3,7 @@ import { ensureProjectSchema } from './project-management';
 import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
 import { seedOperationalContent } from './operational-seed';
+import { hasOperationalData, isDataPreserveMode, markDataVersionCurrent } from './data-preserve';
 import { mergeEmailSettings } from './notifications/registry';
 import {
   flushPersistence,
@@ -77,11 +78,23 @@ function applyMigrations() {
 }
 
 function hydrateStore(raw: Partial<Database> | null) {
-  db = { ...defaultDb(), ...(raw || {}) };
-  // Do not treat default dataVersion as "already migrated" when loading legacy stores.
-  if (!raw?.dataVersion) {
-    delete (db as Database & { dataVersion?: number }).dataVersion;
+  if (!raw) {
+    db = defaultDb();
+    applyMigrations();
+    persistStore(db);
+    return;
   }
+
+  db = { ...defaultDb(), ...raw };
+
+  if (!raw.dataVersion) {
+    if (hasOperationalData(raw) || isDataPreserveMode()) {
+      markDataVersionCurrent(db as Database & { dataVersion?: number });
+    } else {
+      delete (db as Database & { dataVersion?: number }).dataVersion;
+    }
+  }
+
   applyMigrations();
   persistStore(db);
 }
@@ -103,8 +116,16 @@ export async function initDb() {
       hydrateStore(readFileStore());
     }
   } catch (err) {
-    console.error('[HRMS] Database load failed, using defaults:', err);
-    hydrateStore(null);
+    console.error('[HRMS] Database load failed:', err);
+    const fallback = readFileStore();
+    if (fallback) {
+      console.warn('[HRMS] Recovering from last local snapshot.');
+      hydrateStore(fallback);
+    } else if (isDataPreserveMode()) {
+      throw new Error('[HRMS] Refusing to start with empty database while DATA_PRESERVE is enabled.');
+    } else {
+      hydrateStore(null);
+    }
   }
 
   initialized = true;

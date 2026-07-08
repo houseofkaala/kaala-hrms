@@ -1,10 +1,21 @@
 import type { Database } from './db';
+import { DATA_VERSION, markDataVersionCurrent } from './data-preserve';
 
-export const DATA_VERSION = 3;
+export { DATA_VERSION };
 
 /** Remove seeded demo records; keep real users and company settings. */
 export function purgeDemoOperationalData(db: Database & { dataVersion?: number }) {
   if (db.dataVersion && db.dataVersion >= DATA_VERSION) return;
+
+  const allowDestructive =
+    process.env.ALLOW_DATA_MIGRATION === 'true' || process.env.ALLOW_DATA_MIGRATION === '1';
+  const preserve = process.env.DATA_PRESERVE?.trim().toLowerCase();
+  const preserveEnabled = preserve !== 'false' && preserve !== '0' && preserve !== 'no';
+
+  if (preserveEnabled && !allowDestructive) {
+    markDataVersionCurrent(db);
+    return;
+  }
 
   const LEGACY_DEMO_IDS = new Set(['u1', 'u2', 'u3', 'u4', 'm1', 'm2']);
   for (const u of db.users) {

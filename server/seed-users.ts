@@ -85,6 +85,20 @@ const SEED_ENV_KEY: Record<UserRecord['role'], string> = {
 
 /** Upsert portal accounts and retire legacy demo users. */
 export function syncSeedUsers(users: UserRecord[]): UserRecord[] {
+  const preserve = process.env.DATA_PRESERVE?.trim().toLowerCase();
+  const preserveEnabled = preserve !== 'false' && preserve !== '0' && preserve !== 'no';
+
+  if (preserveEnabled) {
+    const next = [...users];
+    for (const seed of getSeedUsers()) {
+      const hasRole = next.some(u => u.role === seed.role && u.status === 'Active');
+      if (!hasRole) {
+        next.push({ ...seed, password: seed.password || crypto.randomUUID() });
+      }
+    }
+    return next;
+  }
+
   const seeds = getSeedUsers();
   const next = [...users];
 
