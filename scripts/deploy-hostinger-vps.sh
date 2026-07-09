@@ -12,6 +12,7 @@ EMAIL="${EMAIL:-admin@${DOMAIN}}"
 EMPLOYEE_HOST="employee.${DOMAIN}"
 ADMIN_HOST="admin.${DOMAIN}"
 SALES_HOST="sales.${DOMAIN}"
+MARKETING_DIR="/var/www/bymarketingonly"
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATA_DIR="/var/lib/kaala-hrms/data"
 SERVICE_USER="${SUDO_USER:-$(whoami)}"
@@ -128,9 +129,35 @@ ${SALES_HOST} {
 }
 
 ${DOMAIN}, www.${DOMAIN} {
-    redir https://${EMPLOYEE_HOST}{uri} permanent
+    root * ${MARKETING_DIR}
+    file_server
+    encode gzip
 }
 EOF
+
+  sudo mkdir -p "${MARKETING_DIR}"
+  if [ ! -f "${MARKETING_DIR}/index.html" ]; then
+    sudo tee "${MARKETING_DIR}/index.html" >/dev/null <<'HTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>By Marketing Only</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 4rem auto; padding: 0 1.5rem; line-height: 1.6; }
+    a { color: #1a1a1a; }
+  </style>
+</head>
+<body>
+  <h1>By Marketing Only</h1>
+  <p>Upload your main website with <code>./scripts/deploy-marketing-site.sh</code>.</p>
+  <p><a href="https://employee.bymarketingonly.com">Employee portal</a> · <a href="https://admin.bymarketingonly.com">Admin portal</a></p>
+</body>
+</html>
+HTML
+    sudo chown -R "${SERVICE_USER}:${SERVICE_USER}" "${MARKETING_DIR}" 2>/dev/null || true
+  fi
 
   sudo systemctl enable caddy
   sudo systemctl restart caddy
