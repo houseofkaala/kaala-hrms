@@ -1,4 +1,5 @@
 import type { User } from './types';
+import { getPortal } from './portal';
 
 const ROUTE_MODULE: Record<string, string> = {
   dashboard: 'dashboard',
@@ -7,7 +8,7 @@ const ROUTE_MODULE: Record<string, string> = {
   recruit: 'recruit',
   employees: 'employees',
   onboarding: 'onboarding',
-  offboarding: 'onboarding',
+  offboarding: 'offboarding',
   orgchart: 'orgchart',
   people: 'people',
   leave: 'leave',
@@ -41,12 +42,11 @@ const ROUTE_MODULE: Record<string, string> = {
   tax: 'tax',
 };
 
-const EMPLOYEE_MODULES = new Set([
+const EMPLOYEE_PORTAL_MODULES = new Set([
   'dashboard', 'people', 'attendance', 'leave', 'documents', 'assets',
   'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace',
   'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications',
-  'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart',
-  'projects', 'tasks', 'settings', 'benefits', 'tax',
+  'timesheets', 'holidays', 'policies', 'projects', 'settings', 'benefits', 'tax',
 ]);
 
 export function moduleForRoute(route: string): string {
@@ -62,12 +62,22 @@ const SALES_MODULES = new Set([
 
 export function canAccessModule(user: User | null, route: string): boolean {
   if (!user) return false;
-  if (user.role === 'admin' || user.role === 'manager') return true;
   const mod = moduleForRoute(route);
-  if (user.allowedModules?.includes('*')) return true;
-  if (user.allowedModules?.length) return user.allowedModules.includes(mod);
-  if (user.role === 'sales' || user.role === 'executive_assistant') return SALES_MODULES.has(mod) || mod === 'crm';
-  return EMPLOYEE_MODULES.has(mod);
+  const portal = getPortal();
+
+  if (portal === 'admin') {
+    return user.role === 'admin' || user.role === 'manager';
+  }
+
+  if (user.role === 'sales' || user.role === 'executive_assistant') {
+    return SALES_MODULES.has(mod) || mod === 'crm';
+  }
+
+  if (user.allowedModules?.includes('*')) return EMPLOYEE_PORTAL_MODULES.has(mod);
+  if (user.allowedModules?.length) {
+    return user.allowedModules.includes(mod) && EMPLOYEE_PORTAL_MODULES.has(mod);
+  }
+  return EMPLOYEE_PORTAL_MODULES.has(mod);
 }
 
 export function filterNavByRole(user: User | null, route: string): boolean {

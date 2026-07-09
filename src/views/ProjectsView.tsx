@@ -81,7 +81,7 @@ function ProjectListView({ onOpen }: { onOpen: (id: string) => void }) {
 
   const filtered = projects.filter(p => {
     if (statusFilter !== 'all' && p.status !== statusFilter) return false;
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.client.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !(p.client ?? '').toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
@@ -512,14 +512,15 @@ function ProjectDetailView({ projectId, onBack }: { projectId: string; onBack: (
                     <span className="text-xs text-maroon-400 tabular-nums">{tasks.filter(t => t.stage === stage.key).length}</span>
                   </div>
                   {tasks.filter(t => t.stage === stage.key).map(task => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      members={members}
-                      onMove={s => moveTask(task.id, s)}
-                      onDelete={() => deleteTask(task.id)}
-                      canDelete={isManager || task.createdBy === currentUser?.id}
-                    />
+                    <div key={task.id}>
+                      <TaskCard
+                        task={task}
+                        members={members}
+                        onMove={s => moveTask(task.id, s)}
+                        onDelete={() => deleteTask(task.id)}
+                        canDelete={isManager || task.createdBy === currentUser?.id}
+                      />
+                    </div>
                   ))}
                 </div>
               ))}
@@ -709,8 +710,8 @@ function TaskCard({
 }: {
   task: ProjectTask;
   members: { id: string; name: string }[];
-  onMove: (stage: ProjectTask['stage']) => void;
-  onDelete: () => void;
+  onMove: (stage: ProjectTask['stage']) => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
   canDelete: boolean;
 }) {
   const [menu, setMenu] = useState(false);

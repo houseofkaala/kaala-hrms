@@ -65,10 +65,15 @@ export function SettingsView() {
   const [empTz, setEmpTz] = useState('Asia/Kolkata');
   const [empSaved, setEmpSaved] = useState(false);
 
+  const isPersonalSettings =
+    currentUser?.role === 'employee' ||
+    currentUser?.role === 'sales' ||
+    currentUser?.role === 'executive_assistant';
+
   const { data: me } = useQuery<{ preferences?: { emailNotifications?: boolean; timezone?: string } }>({
     queryKey: ['me'],
     queryFn: () => fetcher('/api/me'),
-    enabled: currentUser?.role === 'employee',
+    enabled: isPersonalSettings,
   });
 
   useEffect(() => {
@@ -87,7 +92,7 @@ export function SettingsView() {
     setTimeout(() => setEmpSaved(false), 2000);
   };
 
-  if (currentUser?.role === 'employee') {
+  if (isPersonalSettings) {
     return (
       <div className="space-y-6 max-w-2xl">
         <div className="bg-white px-8 py-6 border border-gray-200 rounded-2xl shadow-sm">

@@ -1,4 +1,4 @@
-export type NotifyRole = 'employee' | 'manager' | 'admin';
+export type NotifyRole = 'employee' | 'manager' | 'admin' | 'sales' | 'executive_assistant';
 export type NotifyPriority = 'critical' | 'important' | 'reminder' | 'digest';
 export type DigestType = 'daily' | 'weekly' | 'monthly';
 

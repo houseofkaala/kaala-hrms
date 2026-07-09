@@ -55,3 +55,15 @@ export function deleteSession(token: string) {
   db.sessions = db.sessions.filter(s => s.token !== token);
   if (db.sessions.length !== before) saveDb();
 }
+
+export function revokeOtherSessions(userId: string, keepToken?: string) {
+  const db = getDb();
+  if (!db.sessions) return;
+  const before = db.sessions.length;
+  db.sessions = db.sessions.filter(s => s.userId !== userId || (keepToken != null && s.token === keepToken));
+  if (db.sessions.length !== before) saveDb();
+}
+
+export function deleteSessionsForUser(userId: string) {
+  revokeOtherSessions(userId);
+}

@@ -23,6 +23,9 @@ const leaveSchema = z.object({
   endDate: z.string().min(1, 'End date is required'),
   type: z.enum(['Sick Leave', 'Vacation', 'Personal']),
   reason: z.string().min(5, 'Please provide a valid reason'),
+}).refine(d => d.endDate >= d.startDate, {
+  message: 'End date must be on or after start date',
+  path: ['endDate'],
 });
 type LeaveFormValues = z.infer<typeof leaveSchema>;
 
@@ -30,6 +33,7 @@ export function LeaveManagementView() {
   const { currentUser, viewMode } = useRBACStore();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const isManager = currentUser?.role === 'manager' || currentUser?.role === 'admin';
 
   const { data: requests = [], isLoading } = useQuery<LeaveRequest[]>({
@@ -50,14 +54,19 @@ export function LeaveManagementView() {
   });
 
   const onSubmit = async (data: LeaveFormValues) => {
-    await fetcher('/api/leave-requests', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-    queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    reset();
-    setShowForm(false);
+    setSubmitError('');
+    try {
+      await fetcher('/api/leave-requests', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      reset();
+      setShowForm(false);
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : 'Failed to submit leave request');
+    }
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -102,6 +111,7 @@ export function LeaveManagementView() {
       {showForm && (
         <form onSubmit={handleSubmit(onSubmit)} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
           <h3 className="font-semibold text-gray-900">New Leave Request</h3>
+          {submitError && <p className="text-sm text-red-600">{submitError}</p>}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium text-gray-700">Start Date</label>

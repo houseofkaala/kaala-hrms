@@ -2,9 +2,9 @@ import { Express } from 'express';
 import {
   initDb, saveDb, getDb, sanitizeUser, getUserById, pushNotification, addTransaction, getStorageBackend, UserRecord,
 } from './db';
-import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession, moduleAccessMiddleware } from './middleware';
+import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession, revokeOtherSessions, moduleAccessMiddleware } from './middleware';
 import { checkLoginRateLimit, clearLoginRateLimit } from './rate-limit';
-import { getAllowedModules, assertValidRoleChange } from './security';
+import { getAllowedModules, assertValidRoleChange, assertCanAssignRole } from './security';
 import { saveDocumentFile, getDocumentFilePath, deleteDocumentFile, mimeFromFilename } from './document-storage';
 import { saveAvatar, getAvatarPath, deleteAvatar, avatarMime } from './avatar-storage';
 import { buildDashboard, type DashboardPeriod } from './dashboard';
@@ -197,7 +197,10 @@ export async function registerRoutes(app: Express) {
     res.json(users.map(u => ({ ...sanitizeUser(u), employeeCode: `EMP-${u.id.toUpperCase()}`, designation: u.title })));
   });
 
-  app.post('/api/employees', requireRole('manager', 'admin'), (req, res) => {
+  app.post('/api/employees', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
+    const caller = getUserById(req.userId!);
+    if (!caller) return res.status(401).json({ error: 'Unauthorized' });
+
     const {
       name, email, department, role, title, password, phone,
       joinDate, employmentType, emergencyContact, address, managerId,
@@ -214,7 +217,9 @@ export async function registerRoutes(app: Express) {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-    const userRole = (['employee', 'sales', 'executive_assistant', 'manager', 'admin'].includes(role) ? role : 'employee') as UserRecord['role'];
+    const requestedRole = (['employee', 'sales', 'executive_assistant', 'manager', 'admin'].includes(role) ? role : 'employee') as UserRecord['role'];
+    if (!assertCanAssignRole(caller, requestedRole, res)) return;
+    const userRole = requestedRole;
     const resolvedManager =
       managerId ||
       (userRole === 'employee'
@@ -329,6 +334,10 @@ export async function registerRoutes(app: Express) {
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
     user.password = hashPassword(String(newPassword));
+    const token = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : undefined;
+    revokeOtherSessions(user.id, token);
     saveDb();
     res.json({ success: true });
   });
@@ -338,7 +347,10 @@ export async function registerRoutes(app: Express) {
     const user = getUserById(req.userId!);
     const isMgr = user?.role === 'manager' || user?.role === 'admin';
     const list = isMgr ? db().leaveRequests : db().leaveRequests.filter(l => l.userId === req.userId);
-    res.json(list.map(l => ({ ...l, employee: sanitizeUser(getUserById(l.userId)!) })));
+    res.json(list.map(l => {
+      const emp = getUserById(l.userId);
+      return { ...l, employee: emp ? sanitizeUser(emp) : null };
+    }));
   });
 
   app.get('/api/leave-balance', (req: AuthedRequest, res) => {
@@ -358,7 +370,18 @@ export async function registerRoutes(app: Express) {
 
   app.post('/api/leave-requests', (req: AuthedRequest, res) => {
     const { type, startDate, endDate, reason } = req.body;
-    const days = Math.ceil(Math.abs(new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1;
+    if (!type || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Leave type, start date, and end date are required' });
+    }
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+    if (end < start) {
+      return res.status(400).json({ error: 'End date must be on or after start date' });
+    }
+    const days = Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1;
     const r = { id: `lr${Date.now()}`, userId: req.userId!, type, startDate, endDate, days, reason, status: 'Pending', createdAt: new Date().toISOString() };
     db().leaveRequests.unshift(r);
     pushNotification(req.userId!, 'Leave request submitted', `Your ${type} request (${days} days) is pending approval.`);
@@ -375,8 +398,12 @@ export async function registerRoutes(app: Express) {
   app.patch('/api/leave-requests/:id', requireRole('manager', 'admin'), (req, res) => {
     const r = db().leaveRequests.find(l => l.id === req.params.id);
     if (!r) return res.status(404).json({ error: 'Not found' });
-    r.status = req.body.status;
-    const status = String(req.body.status);
+    const allowed = new Set(['Approved', 'Rejected', 'Cancelled', 'Pending']);
+    const status = String(req.body.status || '');
+    if (!allowed.has(status)) {
+      return res.status(400).json({ error: 'Invalid status. Use Approved, Rejected, Cancelled, or Pending.' });
+    }
+    r.status = status;
     const triggerId = status === 'Approved' ? 'leave.approved' : status === 'Rejected' ? 'leave.rejected' : 'leave.cancelled';
     pushNotification(r.userId, `Leave ${status.toLowerCase()}`, `Your ${r.type} request has been ${status.toLowerCase()}.`, { triggerId });
     saveDb();
@@ -582,7 +609,7 @@ export async function registerRoutes(app: Express) {
   app.post('/api/tasks/complete', (req: AuthedRequest, res) => {
     const t = db().tasks.find(x => x.id === req.body.taskId);
     if (!t) return res.status(404).json({ error: 'Not found' });
-    if ((t.claimedById && t.claimedById !== req.userId) || (!t.claimedById && t.ownerId !== req.userId)) return res.status(400).json({ error: 'Forbidden' });
+    if ((t.claimedById && t.claimedById !== req.userId) || (!t.claimedById && t.ownerId !== req.userId)) return res.status(403).json({ error: 'Forbidden' });
     if (t.status === 'in_progress' && t.timeStarted) { t.timeSpent = (t.timeSpent || 0) + Date.now() - new Date(t.timeStarted).getTime(); t.timeStarted = undefined; }
     t.status = 'under_review'; saveDb();
     const managers = db().users.filter(u => (u.role === 'manager' || u.role === 'admin') && u.status !== 'Inactive');
@@ -596,7 +623,8 @@ export async function registerRoutes(app: Express) {
     if (!t || t.status !== 'under_review') return res.status(400).json({ error: 'Invalid' });
     t.status = 'completed';
     const c = getUserById(t.claimedById);
-    if (c) { c.points += 10; addTransaction(c.id, 10, `Completed: "${t.title}"`); pushNotification(c.id, 'Task approved', `+10 KP for "${t.title}"`, { triggerId: 'tasks.approved' }); }
+    const pts = t.value || 10;
+    if (c) { c.points += pts; addTransaction(c.id, pts, `Completed: "${t.title}"`); pushNotification(c.id, 'Task approved', `+${pts} KP for "${t.title}"`, { triggerId: 'tasks.approved' }); }
     saveDb();
     res.json({ success: true, task: t });
   });
@@ -611,7 +639,7 @@ export async function registerRoutes(app: Express) {
   app.get('/api/kanban', (req: AuthedRequest, res) => {
     const me = getUserById(req.userId!);
     if (isManagerOrAdmin(me)) return res.json(db().kanbanTasks);
-    res.json(db().kanbanTasks.filter(t => !t.assigneeId || t.assigneeId === req.userId));
+    res.json(db().kanbanTasks.filter(t => t.assigneeId === req.userId));
   });
   app.post('/api/kanban', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
     const assigneeId = req.body.assigneeId || req.userId!;
@@ -690,7 +718,7 @@ export async function registerRoutes(app: Express) {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'Not found' });
     const active = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
-    const checkedIn = Boolean(active) || user.status === 'Active';
+    const checkedIn = Boolean(active);
     res.json(attendanceStatusPayload(active, checkedIn));
   });
 
@@ -859,7 +887,7 @@ export async function registerRoutes(app: Express) {
         deductions: breakdown.deductions,
         netPay: breakdown.netPay,
         status: 'Paid',
-        breakdown,
+        breakdown: breakdown as unknown as Record<string, number>,
       });
       pushNotification(u.id, 'Payroll processed', `Your ${period} payslip (₹${breakdown.netPay.toLocaleString('en-IN')}) is ready.`, { triggerId: 'payroll.payslip_generated' });
     });

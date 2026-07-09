@@ -103,7 +103,7 @@ export function AttendanceHeaderButton({ onStatusChange }: { onStatusChange?: ()
 
   if (!currentUser || (currentUser.role === 'admin' && getPortal() === 'admin')) return null;
 
-  const checkedIn = status?.checkedIn ?? currentUser.status === 'Active';
+  const checkedIn = status?.checkedIn ?? false;
   const progress = status
     ? Math.min(100, (status.hoursWorked / status.fullDayHours) * 100)
     : 0;

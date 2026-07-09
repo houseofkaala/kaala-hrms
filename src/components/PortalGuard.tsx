@@ -39,7 +39,11 @@ export function PortalGuard({ children }: { children: ReactNode }) {
         setCurrentUser(user);
         setChecking(false);
       } catch {
-        if (!cancelled) setChecking(false);
+        if (!cancelled) {
+          clearToken();
+          setCurrentUser(null);
+          navigate(getPortalLoginUrl(portal), { replace: true });
+        }
       }
     })();
 

@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { clearToken, getToken } from "./auth";
+import { getPortal, getPortalLoginUrl } from "./portal";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -33,7 +34,7 @@ export const fetcher = async <T,>(url: string, options?: RequestInit): Promise<T
   if (res.status === 401) {
     clearToken();
     if (!window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login';
+      window.location.href = getPortalLoginUrl(getPortal());
     }
     throw new ApiError('Unauthorized', 401);
   }

@@ -213,6 +213,9 @@ export function registerPhase2Routes(app: Express) {
     if (req.body.submit) data.submittedAt = new Date().toISOString();
 
     if (decl) {
+      if (decl.status === 'submitted' || decl.status === 'verified') {
+        return res.status(400).json({ error: 'Cannot edit a submitted or verified declaration' });
+      }
       Object.assign(decl, data);
     } else {
       decl = { id: `id${Date.now()}`, ...data } as InvestmentDeclaration;

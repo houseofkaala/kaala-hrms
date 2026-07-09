@@ -117,15 +117,18 @@ export function registerEnterpriseRoutes(app: Express) {
     if (!cycle) return res.status(404).json({ error: 'Not found' });
     cycle.status = 'active';
     const employees = db().users.filter(u => u.status === 'Active' && u.role !== 'admin');
+    const defaultReviewer = db().users.find(u => u.role === 'admin' && u.status === 'Active')?.id;
+    let reviewsCreated = 0;
     for (const emp of employees) {
       const existing = db().performanceReviews.find(
         r => r.userId === emp.id && r.period === cycle.period && (r as { cycleId?: string }).cycleId === cycle.id,
       );
       if (existing) continue;
+      reviewsCreated++;
       db().performanceReviews.unshift({
         id: `rev${Date.now()}_${emp.id}`,
         userId: emp.id,
-        reviewerId: emp.managerId || req.body.reviewerId || 'admin',
+        reviewerId: emp.managerId || req.body.reviewerId || defaultReviewer || emp.id,
         rating: 0,
         feedback: '',
         period: cycle.period,
@@ -136,7 +139,7 @@ export function registerEnterpriseRoutes(app: Express) {
       pushNotification(emp.id, 'Review cycle started', `${cycle.name} — please complete your self-review.`, { triggerId: 'performance.review_started' });
     }
     saveDb();
-    res.json({ success: true, cycle, reviewsCreated: employees.length });
+    res.json({ success: true, cycle, reviewsCreated });
   });
 
   // ── Skills CRUD ──────────────────────────────────────────────────
@@ -345,6 +348,9 @@ export function registerEnterpriseRoutes(app: Express) {
     ensureEnterpriseSchema();
     const u = getUserById(req.userId!);
     if (!u) return res.status(401).json({ error: 'Unauthorized' });
+    if (!['sales', 'executive_assistant', 'manager', 'admin'].includes(u.role)) {
+      return res.status(403).json({ error: 'Field check-in is for sales and field teams only' });
+    }
     const visit = {
       id: `fv${Date.now()}`,
       userId: req.userId!,

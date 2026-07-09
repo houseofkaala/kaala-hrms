@@ -38,6 +38,9 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string; index: stri
   roles: { title: 'Roles & Permissions', subtitle: 'Access control', index: '32' },
   notifications: { title: 'Notifications', subtitle: 'Alerts and updates', index: '33' },
   policies: { title: 'Policies', subtitle: 'Company guidelines', index: '34' },
+  offboarding: { title: 'Offboarding', subtitle: 'Exit process', index: '06b' },
+  benefits: { title: 'Benefits', subtitle: 'Plans & enrollment', index: '14b' },
+  tax: { title: 'Tax & Form 16', subtitle: 'Declarations & compliance', index: '14c' },
 };
 
 export function AtelierPageHeader({ activeTab }: { activeTab: string }) {

@@ -1,5 +1,5 @@
 import { Express } from 'express';
-import { getDb, saveDb, getUserById } from './db';
+import { getDb, saveDb, getUserById, UserRecord } from './db';
 import { AuthedRequest } from './middleware';
 import { isManagerOrAdmin } from './security';
 import { CRM_STAGES, type CrmLeadRecord, type CrmLeadStage } from './crm';
@@ -7,7 +7,7 @@ import { CRM_STAGES, type CrmLeadRecord, type CrmLeadStage } from './crm';
 const STAGE_KEYS = new Set(CRM_STAGES.map(s => s.key));
 
 function canAccessCrmLead(lead: CrmLeadRecord, userId: string, role: string) {
-  if (isManagerOrAdmin({ role } as { role: string })) return true;
+  if (isManagerOrAdmin({ role } as UserRecord)) return true;
   return lead.ownerId === userId;
 }
 
@@ -130,7 +130,7 @@ export function registerCrmRoutes(app: Express) {
       'source', 'industry', 'description', 'nextFollowUp', 'rating',
     ] as const;
     for (const f of fields) {
-      if (req.body[f] !== undefined) (lead as Record<string, unknown>)[f] = req.body[f];
+      if (req.body[f] !== undefined) (lead as unknown as Record<string, unknown>)[f] = req.body[f];
     }
     if (req.body.amount !== undefined) lead.amount = Number(req.body.amount) || 0;
     if (req.body.stage && STAGE_KEYS.has(req.body.stage)) lead.stage = req.body.stage;

@@ -81,6 +81,8 @@ const SEED_ENV_KEY: Record<UserRecord['role'], string> = {
   admin: 'SEED_ADMIN_PASSWORD',
   manager: 'SEED_MANAGER_PASSWORD',
   employee: 'SEED_EMPLOYEE_PASSWORD',
+  sales: 'SEED_SALES_PASSWORD',
+  executive_assistant: 'SEED_EA_PASSWORD',
 };
 
 /** Upsert portal accounts and retire legacy demo users. */

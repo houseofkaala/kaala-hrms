@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, type MouseEvent, type TouchEvent } from 'react';
 
 export function SignaturePad({ onChange }: { onChange: (dataUrl: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -15,7 +15,7 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string) => void
     return ctx;
   }, []);
 
-  const pos = (e: React.MouseEvent | React.TouchEvent) => {
+  const pos = (e: MouseEvent | TouchEvent) => {
     const canvas = canvasRef.current!;
     const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -23,7 +23,7 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string) => void
     return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
-  const start = (e: React.MouseEvent | React.TouchEvent) => {
+  const start = (e: MouseEvent | TouchEvent) => {
     drawing.current = true;
     const ctx = getCtx();
     if (!ctx) return;
@@ -32,7 +32,7 @@ export function SignaturePad({ onChange }: { onChange: (dataUrl: string) => void
     ctx.moveTo(p.x, p.y);
   };
 
-  const move = (e: React.MouseEvent | React.TouchEvent) => {
+  const move = (e: MouseEvent | TouchEvent) => {
     if (!drawing.current) return;
     const ctx = getCtx();
     if (!ctx) return;

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense, type ReactNode } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
 import { Plus, Link as LinkIcon, Edit2 } from 'lucide-react';
 import { 
@@ -64,7 +64,7 @@ function VisibleNavItem({
   return <RailNavItem icon={icon} label={label} to={to} active={active} badge={badge} onNavigate={onNavigate} />;
 }
 
-function GuardedView({ module, children }: { module: string; children: React.ReactNode }) {
+function GuardedView({ module, children }: { module: string; children: ReactNode }) {
   return <ModuleGuard module={module}>{children}</ModuleGuard>;
 }
 
@@ -128,10 +128,13 @@ function HRMSApp() {
       }
     } catch (err) {
       console.error('Failed to load data', err);
+      clearToken();
+      setCurrentUser(null);
+      navigate('/login', { replace: true });
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [loadUser, loadTasks, loadUsers, loadTransactions]);
+  }, [loadUser, loadTasks, loadUsers, loadTransactions, navigate, setCurrentUser]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -220,13 +223,21 @@ function HRMSApp() {
   };
 
   const triggerFridayCron = async () => {
-    await fetcher('/api/admin/trigger-friday', { method: 'POST' });
-    loadData();
+    try {
+      await fetcher('/api/admin/trigger-friday', { method: 'POST' });
+      loadData();
+    } catch {
+      alert('Friday cron failed. Check server logs.');
+    }
   };
 
   const triggerSundayCron = async () => {
-    await fetcher('/api/admin/trigger-sunday', { method: 'POST' });
-    loadData();
+    try {
+      await fetcher('/api/admin/trigger-sunday', { method: 'POST' });
+      loadData();
+    } catch {
+      alert('Sunday cron failed. Check server logs.');
+    }
   };
 
   const claimTask = async (taskId: string) => {
@@ -518,7 +529,7 @@ function HRMSApp() {
               {activeTab === 'roles' && <GuardedView module="roles"><RolesView /></GuardedView>}
               {activeTab === 'notifications' && <GuardedView module="notifications"><NotificationsView /></GuardedView>}
               {activeTab === 'onboarding' && <GuardedView module="onboarding"><OnboardingView /></GuardedView>}
-              {activeTab === 'offboarding' && <GuardedView module="onboarding"><OffboardingView /></GuardedView>}
+              {activeTab === 'offboarding' && <GuardedView module="offboarding"><OffboardingView /></GuardedView>}
               {activeTab === 'expenses' && <GuardedView module="expenses"><ExpensesView /></GuardedView>}
               {activeTab === 'orgchart' && <GuardedView module="orgchart"><OrgChartView /></GuardedView>}
               {activeTab === 'holidays' && <GuardedView module="holidays"><HolidaysView /></GuardedView>}
@@ -550,7 +561,9 @@ function HRMSApp() {
         </div>
       </div>
 
-      <DeferredChatWidget users={allUsers.length ? allUsers : [currentUser]} currentUser={currentUser} />
+      {canAccessModule(currentUser, 'chat') && (
+        <DeferredChatWidget users={allUsers.length ? allUsers : [currentUser]} currentUser={currentUser} />
+      )}
     </div>
   );
 }

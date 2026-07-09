@@ -8,11 +8,6 @@ async function startServer() {
   app.use(express.json({ limit: '15mb' }));
   const PORT = Number(process.env.PORT) || 3000;
 
-  // Fast health check before heavy route registration
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', database: 'connected', uptime: process.uptime() });
-  });
-
   await registerRoutes(app);
 
   const { startNotificationScheduler } = await import('./server/notifications/scheduler');

@@ -37,7 +37,12 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json', 'X-Portal': portal },
         body: JSON.stringify({ email, password, portal }),
       });
-      const body = await res.json();
+      let body: { error?: string; correctPortal?: string; token?: string; user?: User } = {};
+      try {
+        body = await res.json();
+      } catch {
+        throw new Error(res.ok ? 'Login failed' : `Login failed (${res.status})`);
+      }
       if (!res.ok) {
         if (body.correctPortal) {
           throw new Error(body.error || 'Login failed');

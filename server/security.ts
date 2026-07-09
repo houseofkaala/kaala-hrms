@@ -56,7 +56,7 @@ export function canAccessKanbanTask(
   role: string,
 ): boolean {
   if (isManagerOrAdmin({ role } as UserRecord)) return true;
-  return !task.assigneeId || task.assigneeId === userId;
+  return task.assigneeId === userId;
 }
 
 export function directoryUser(user: UserRecord) {
@@ -97,6 +97,27 @@ const VALID_ROLES = new Set(['employee', 'manager', 'admin', 'sales', 'executive
 
 export function countActiveAdmins() {
   return getDb().users.filter(u => u.role === 'admin' && u.status === 'Active').length;
+}
+
+export function assertCanAssignRole(
+  caller: UserRecord,
+  newRole: string,
+  res: Response,
+): boolean {
+  if (!VALID_ROLES.has(newRole)) {
+    res.status(400).json({ error: 'Invalid role. Must be employee, sales, executive_assistant, manager, or admin.' });
+    return false;
+  }
+  if (caller.role === 'admin') return true;
+  if (caller.role === 'manager') {
+    if (newRole === 'admin' || newRole === 'manager') {
+      res.status(403).json({ error: 'Managers cannot assign admin or manager roles' });
+      return false;
+    }
+    return true;
+  }
+  res.status(403).json({ error: 'Forbidden' });
+  return false;
 }
 
 export function assertValidRoleChange(

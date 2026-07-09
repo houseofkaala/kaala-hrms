@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Mail, Phone, Building, Calendar, Award, MapPin, User, Camera, Trash2 } from 'lucide-react';
+import { Mail, Phone, Building, Calendar, Award, MapPin, User as UserIcon, Camera, Trash2 } from 'lucide-react';
 import { fetcher } from '../utils';
 import { UserPortrait } from '../components/UserPortrait';
 import { useRBACStore } from '../store';
@@ -38,11 +38,18 @@ export function ProfileView() {
     }
   }, [user]);
 
+  const [saveError, setSaveError] = useState('');
+
   const handleSave = async () => {
-    const updated = await fetcher<ProfileUser>('/api/me', { method: 'PATCH', body: JSON.stringify(form) });
-    setCurrentUser(updated);
-    queryClient.invalidateQueries({ queryKey: ['me'] });
-    setEditing(false);
+    setSaveError('');
+    try {
+      const updated = await fetcher<ProfileUser>('/api/me', { method: 'PATCH', body: JSON.stringify(form) });
+      setCurrentUser(updated);
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+      setEditing(false);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Failed to save profile');
+    }
   };
 
   const handlePhoto = async (file: File | null) => {
@@ -159,12 +166,13 @@ export function ProfileView() {
               <Field icon={Phone} label="Phone" value={editing ? undefined : (user.phone || 'Not set')} editing={editing} editValue={form.phone} onChange={v => setForm({ ...form, phone: v })} />
               <Field icon={Building} label="Department" value={user.department} />
               <Field icon={Award} label="Kaala Points" value={`${user.points} KP`} />
-              <Field icon={User} label="Emergency Contact" value={editing ? undefined : (user.emergencyContact || 'Not set')} editing={editing} editValue={form.emergencyContact} onChange={v => setForm({ ...form, emergencyContact: v })} />
+              <Field icon={UserIcon} label="Emergency Contact" value={editing ? undefined : (user.emergencyContact || 'Not set')} editing={editing} editValue={form.emergencyContact} onChange={v => setForm({ ...form, emergencyContact: v })} />
               <Field icon={MapPin} label="Address" value={editing ? undefined : (user.address || 'Not set')} editing={editing} editValue={form.address} onChange={v => setForm({ ...form, address: v })} />
               <Field icon={Building} label="Bank Account" value={editing ? undefined : (user.bankAccount || 'Not set')} editing={editing} editValue={form.bankAccount} onChange={v => setForm({ ...form, bankAccount: v })} />
               {user.joinDate && <Field icon={Calendar} label="Join Date" value={user.joinDate} />}
             </div>
 
+            {saveError && <p className="mt-4 text-sm text-red-600">{saveError}</p>}
             <div className="mt-6 flex gap-3">
               {editing ? (
                 <>

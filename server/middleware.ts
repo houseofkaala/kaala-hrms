@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { getUserById } from './db';
-import { createSession, deleteSession, resolveSession } from './sessions';
+import { createSession, deleteSession, resolveSession, revokeOtherSessions } from './sessions';
 import { hasModuleAccess, isManagerOrAdmin } from './security';
 
-export { createSession, deleteSession };
+export { createSession, deleteSession, revokeOtherSessions };
 
 export interface AuthedRequest extends Request {
   userId?: string;
@@ -31,9 +31,16 @@ export function requireRole(...roles: string[]) {
 }
 
 const PATH_MODULE_RULES: [RegExp, string][] = [
+  [/^\/api\/crm/, 'crm'],
   [/^\/api\/finance/, 'finance'],
   [/^\/api\/field/, 'field'],
   [/^\/api\/recruit/, 'recruit'],
+  [/^\/api\/benefits/, 'benefits'],
+  [/^\/api\/tax/, 'tax'],
+  [/^\/api\/signatures/, 'documents'],
+  [/^\/api\/offboarding/, 'offboarding'],
+  [/^\/api\/integrations/, 'settings'],
+  [/^\/api\/leaderboard/, 'leaderboard'],
   [/^\/api\/reports/, 'reports'],
   [/^\/api\/employees/, 'employees'],
   [/^\/api\/roles/, 'roles'],
