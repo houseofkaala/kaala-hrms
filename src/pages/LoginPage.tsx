@@ -6,6 +6,7 @@ import type { User } from '../types';
 import { useRBACStore } from '../store';
 import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, type Portal } from '../portal';
 import { PasswordInput } from '../components/PasswordInput';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -133,6 +134,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-obsidian kaala-grain kaala-jaali kaala-marble">
+      <div className="absolute top-4 right-4 z-20 safe-top">
+        <ThemeToggle />
+      </div>
       <div className="kaala-ambient" aria-hidden />
       <div className="login-blob w-[45vw] h-[45vw] -top-[15%] -left-[10%] bg-gold/20" />
       <div className="login-blob w-[35vw] h-[35vw] bottom-[-10%] right-[-5%] bg-gold-muted/15" />

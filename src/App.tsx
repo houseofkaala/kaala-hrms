@@ -40,6 +40,7 @@ import { getPortal, PORTAL_META } from './portal';
 import { hasSalesToolkit } from './sales-access';
 import { canAccessModule } from './rbac';
 import { ModuleGuard } from './components/ModuleGuard';
+import { ThemeToggle } from './components/ThemeToggle';
 import type { LucideIcon } from 'lucide-react';
 
 function VisibleNavItem({
@@ -452,6 +453,7 @@ function HRMSApp() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <ThemeToggle />
               <AttendanceHeaderButton onStatusChange={() => loadData(true, 'user')} />
               <div className="hidden md:flex studio-chip">
                 <span className="w-1.5 h-1.5 rounded-full bg-gold" style={{ animation: 'pulse-gold 2s ease-in-out infinite' }} />

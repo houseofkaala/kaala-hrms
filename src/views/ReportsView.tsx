@@ -9,7 +9,7 @@ import {
   LineChart, Line, PieChart, Pie, Cell,
 } from 'recharts';
 import { cn, fetcher } from '../utils';
-import { CHART, chartTooltipStyle } from '../theme/charts';
+import { useChartTheme } from '../theme/charts';
 
 const REPORTS = [
   { id: 'attendance', title: 'Attendance Report', icon: Calendar, description: 'Attendance patterns, present days, and late trends.', color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -22,12 +22,13 @@ const REPORTS = [
   { id: 'finance', title: 'Finance Report', icon: IndianRupee, description: 'Payroll and expense breakdown by department.', color: 'text-teal-600', bg: 'bg-teal-50' },
 ];
 
-const PIE_COLORS = CHART.series;
-
 type Employee = { id: string; name: string; department: string };
 type Project = { id: string; name: string };
 
 export function ReportsView() {
+  const { CHART, chartTooltipStyle } = useChartTheme();
+  const PIE_COLORS = CHART.series;
+
   const [activeReport, setActiveReport] = useState('attendance');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedProject, setSelectedProject] = useState('');

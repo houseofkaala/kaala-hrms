@@ -4,6 +4,9 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App.tsx';
 import './index.css';
+import { syncThemeStore } from './theme';
+
+syncThemeStore();
 
 const nav = navigator as Navigator & { deviceMemory?: number };
 if ((nav.deviceMemory && nav.deviceMemory <= 4) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

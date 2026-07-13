@@ -74,7 +74,8 @@
     color: var(--color-ivory);
   }
 
-  :root {
+  :root,
+  html.dark {
     --text: var(--color-ivory);
     --text-muted: var(--color-ivory-muted);
     --accent: var(--color-gold);
@@ -84,6 +85,33 @@
     --card-bg: color-mix(in srgb, var(--color-marble) 88%, transparent);
     --card-border: color-mix(in srgb, var(--color-gold) 14%, var(--color-slate));
     --glass: color-mix(in srgb, var(--color-marble-light) 72%, transparent);
+  }
+
+  html.light {
+    --color-obsidian: #f7f4ef;
+    --color-charcoal: #ffffff;
+    --color-marble: #ffffff;
+    --color-marble-light: #f3efe8;
+    --color-slate: #e8e2d8;
+    --color-ivory: #1a1814;
+    --color-ivory-muted: #6b6560;
+    --color-ink: #1a1814;
+    --color-cream: #f7f4ef;
+
+    --text: var(--color-ivory);
+    --text-muted: var(--color-ivory-muted);
+    --accent: var(--color-gold);
+    --accent-soft: color-mix(in srgb, var(--color-gold) 14%, transparent);
+    --border: color-mix(in srgb, var(--color-gold) 28%, var(--color-slate));
+    --bg-muted: var(--color-marble-light);
+    --card-bg: #ffffff;
+    --card-border: color-mix(in srgb, var(--color-gold) 22%, var(--color-slate));
+    --glass: color-mix(in srgb, #ffffff 94%, var(--color-marble-light));
+  }
+
+  html.light body {
+    background-color: var(--color-obsidian);
+    color: var(--color-ivory);
   }
 }
 
@@ -812,175 +840,175 @@
 }
 
 /* ─── Content theming (module views) ─── */
-.kaala-content {
+html:not(.light) .kaala-content {
   --card-bg: color-mix(in srgb, var(--color-marble-light) 75%, transparent);
   --card-border: color-mix(in srgb, var(--color-gold) 12%, var(--color-slate));
   --muted: var(--color-ivory-muted);
 }
 
-.kaala-content .bg-white {
+html:not(.light) .kaala-content .bg-white {
   background-color: var(--glass) !important;
   border-color: var(--card-border) !important;
   backdrop-filter: blur(12px);
 }
 
-.kaala-content .bg-gray-50,
-.kaala-content .bg-gray-50\/50,
-.kaala-content .bg-gray-50\/30 {
+html:not(.light) .kaala-content .bg-gray-50,
+html:not(.light) .kaala-content .bg-gray-50\/50,
+html:not(.light) .kaala-content .bg-gray-50\/30 {
   background-color: color-mix(in srgb, var(--color-gold) 4%, var(--color-marble)) !important;
 }
 
-.kaala-content .border-gray-200,
-.kaala-content .border-gray-100 {
+html:not(.light) .kaala-content .border-gray-200,
+html:not(.light) .kaala-content .border-gray-100 {
   border-color: color-mix(in srgb, var(--color-gold) 10%, transparent) !important;
 }
 
-.kaala-content .text-gray-900,
-.kaala-content .text-gray-800,
-.kaala-content .text-gray-700 { color: var(--color-ivory) !important; }
+html:not(.light) .kaala-content .text-gray-900,
+html:not(.light) .kaala-content .text-gray-800,
+html:not(.light) .kaala-content .text-gray-700 { color: var(--color-ivory) !important; }
 
-.kaala-content .text-gray-600,
-.kaala-content .text-gray-500 { color: var(--muted) !important; }
+html:not(.light) .kaala-content .text-gray-600,
+html:not(.light) .kaala-content .text-gray-500 { color: var(--muted) !important; }
 
-.kaala-content .text-gray-400 {
+html:not(.light) .kaala-content .text-gray-400 {
   color: color-mix(in srgb, var(--muted) 70%, transparent) !important;
 }
 
-.kaala-content .bg-gray-900,
-.kaala-content button.bg-gray-900 {
+html:not(.light) .kaala-content .bg-gray-900,
+html:not(.light) .kaala-content button.bg-gray-900 {
   background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold)) !important;
   color: var(--color-obsidian) !important;
   border-radius: 9999px !important;
   font-weight: 500 !important;
 }
 
-.kaala-content .hover\:bg-gray-800:hover {
+html:not(.light) .kaala-content .hover\:bg-gray-800:hover {
   filter: brightness(1.08) !important;
 }
 
-.kaala-content .bg-gray-100 {
+html:not(.light) .kaala-content .bg-gray-100 {
   background-color: color-mix(in srgb, var(--color-gold) 8%, var(--color-marble)) !important;
 }
 
-.kaala-content .bg-emerald-600,
-.kaala-content button.bg-emerald-600 {
+html:not(.light) .kaala-content .bg-emerald-600,
+html:not(.light) .kaala-content button.bg-emerald-600 {
   background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold)) !important;
   color: var(--color-obsidian) !important;
   border-radius: 9999px !important;
 }
 
-.kaala-content .text-emerald-600,
-.kaala-content .text-emerald-500,
-.kaala-content .text-emerald-700,
-.kaala-content .text-emerald-800,
-.kaala-content .text-emerald-900,
-.kaala-content .hover\:text-emerald-600:hover { color: var(--color-gold) !important; }
+html:not(.light) .kaala-content .text-emerald-600,
+html:not(.light) .kaala-content .text-emerald-500,
+html:not(.light) .kaala-content .text-emerald-700,
+html:not(.light) .kaala-content .text-emerald-800,
+html:not(.light) .kaala-content .text-emerald-900,
+html:not(.light) .kaala-content .hover\:text-emerald-600:hover { color: var(--color-gold) !important; }
 
-.kaala-content .bg-emerald-50 {
+html:not(.light) .kaala-content .bg-emerald-50 {
   background-color: color-mix(in srgb, var(--color-gold) 8%, var(--color-marble)) !important;
 }
 
-.kaala-content .border-emerald-100,
-.kaala-content .border-emerald-200 {
+html:not(.light) .kaala-content .border-emerald-100,
+html:not(.light) .kaala-content .border-emerald-200 {
   border-color: color-mix(in srgb, var(--color-gold) 15%, transparent) !important;
 }
 
-.kaala-content .bg-amber-50,
-.kaala-content .bg-amber-100 {
+html:not(.light) .kaala-content .bg-amber-50,
+html:not(.light) .kaala-content .bg-amber-100 {
   background-color: color-mix(in srgb, var(--color-gold) 6%, var(--color-marble)) !important;
 }
 
-.kaala-content .text-amber-600,
-.kaala-content .text-amber-700,
-.kaala-content .text-amber-800 {
+html:not(.light) .kaala-content .text-amber-600,
+html:not(.light) .kaala-content .text-amber-700,
+html:not(.light) .kaala-content .text-amber-800 {
   color: var(--color-gold-muted) !important;
 }
 
-.kaala-content .border-amber-100 {
+html:not(.light) .kaala-content .border-amber-100 {
   border-color: color-mix(in srgb, var(--color-gold) 12%, transparent) !important;
 }
 
-.kaala-content .bg-red-50 { background-color: color-mix(in srgb, #8b3a3a 12%, var(--color-marble)) !important; }
-.kaala-content .text-red-600,
-.kaala-content .text-red-700 { color: #c97a7a !important; }
+html:not(.light) .kaala-content .bg-red-50 { background-color: color-mix(in srgb, #8b3a3a 12%, var(--color-marble)) !important; }
+html:not(.light) .kaala-content .text-red-600,
+html:not(.light) .kaala-content .text-red-700 { color: #c97a7a !important; }
 
-.kaala-content .bg-blue-50,
-.kaala-content .bg-indigo-50,
-.kaala-content .bg-violet-50,
-.kaala-content .bg-purple-50,
-.kaala-content .bg-teal-50 {
+html:not(.light) .kaala-content .bg-blue-50,
+html:not(.light) .kaala-content .bg-indigo-50,
+html:not(.light) .kaala-content .bg-violet-50,
+html:not(.light) .kaala-content .bg-purple-50,
+html:not(.light) .kaala-content .bg-teal-50 {
   background-color: color-mix(in srgb, var(--color-gold) 6%, var(--color-marble)) !important;
 }
 
-.kaala-content .text-blue-600,
-.kaala-content .text-blue-700,
-.kaala-content .text-indigo-600,
-.kaala-content .text-indigo-700,
-.kaala-content .text-violet-600,
-.kaala-content .text-purple-600,
-.kaala-content .text-teal-600 {
+html:not(.light) .kaala-content .text-blue-600,
+html:not(.light) .kaala-content .text-blue-700,
+html:not(.light) .kaala-content .text-indigo-600,
+html:not(.light) .kaala-content .text-indigo-700,
+html:not(.light) .kaala-content .text-violet-600,
+html:not(.light) .kaala-content .text-purple-600,
+html:not(.light) .kaala-content .text-teal-600 {
   color: var(--color-gold-muted) !important;
 }
 
-.kaala-content .border-blue-100,
-.kaala-content .border-indigo-100,
-.kaala-content .border-violet-100 {
+html:not(.light) .kaala-content .border-blue-100,
+html:not(.light) .kaala-content .border-indigo-100,
+html:not(.light) .kaala-content .border-violet-100 {
   border-color: color-mix(in srgb, var(--color-gold) 12%, transparent) !important;
 }
 
-.kaala-content .rounded-2xl,
-.kaala-content .rounded-xl {
+html:not(.light) .kaala-content .rounded-2xl,
+html:not(.light) .kaala-content .rounded-xl {
   border-radius: var(--radius-luxury) !important;
   box-shadow: 0 16px 40px -20px rgba(0, 0, 0, 0.5);
 }
 
-.kaala-content input,
-.kaala-content select,
-.kaala-content textarea {
+html:not(.light) .kaala-content input,
+html:not(.light) .kaala-content select,
+html:not(.light) .kaala-content textarea {
   border-radius: var(--radius-luxury-sm) !important;
   background: color-mix(in srgb, var(--color-obsidian) 50%, var(--color-marble)) !important;
   color: var(--color-ivory) !important;
   border-color: color-mix(in srgb, var(--color-gold) 15%, transparent) !important;
 }
 
-.kaala-content input:focus,
-.kaala-content select:focus,
-.kaala-content textarea:focus {
+html:not(.light) .kaala-content input:focus,
+html:not(.light) .kaala-content select:focus,
+html:not(.light) .kaala-content textarea:focus {
   outline: none;
   border-color: color-mix(in srgb, var(--color-gold) 40%, transparent) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-gold) 10%, transparent);
 }
 
-.kaala-content table thead {
+html:not(.light) .kaala-content table thead {
   background-color: color-mix(in srgb, var(--color-gold) 5%, var(--color-marble)) !important;
 }
 
-.kaala-content h2.text-xl,
-.kaala-content h3.font-semibold,
-.kaala-content h2.font-bold,
-.kaala-content h3.font-bold {
+html:not(.light) .kaala-content h2.text-xl,
+html:not(.light) .kaala-content h3.font-semibold,
+html:not(.light) .kaala-content h2.font-bold,
+html:not(.light) .kaala-content h3.font-bold {
   font-family: var(--font-display);
   font-weight: 500;
   letter-spacing: -0.02em;
   color: var(--color-ivory) !important;
 }
 
-.kaala-content .text-maroon-950,
-.kaala-content .text-maroon-900,
-.kaala-content .text-maroon-800,
-.kaala-content .text-maroon-700 { color: var(--color-ivory) !important; }
+html:not(.light) .kaala-content .text-maroon-950,
+html:not(.light) .kaala-content .text-maroon-900,
+html:not(.light) .kaala-content .text-maroon-800,
+html:not(.light) .kaala-content .text-maroon-700 { color: var(--color-ivory) !important; }
 
-.kaala-content .text-maroon-600,
-.kaala-content .text-maroon-500,
-.kaala-content .text-maroon-400 { color: var(--color-ivory-muted) !important; }
+html:not(.light) .kaala-content .text-maroon-600,
+html:not(.light) .kaala-content .text-maroon-500,
+html:not(.light) .kaala-content .text-maroon-400 { color: var(--color-ivory-muted) !important; }
 
-.kaala-content .bg-maroon-50,
-.kaala-content .bg-maroon-100 {
+html:not(.light) .kaala-content .bg-maroon-50,
+html:not(.light) .kaala-content .bg-maroon-100 {
   background-color: color-mix(in srgb, var(--color-gold) 6%, var(--color-marble)) !important;
 }
 
-.kaala-content .border-maroon-100,
-.kaala-content .border-maroon-200 {
+html:not(.light) .kaala-content .border-maroon-100,
+html:not(.light) .kaala-content .border-maroon-200 {
   border-color: color-mix(in srgb, var(--color-gold) 12%, transparent) !important;
 }
 
@@ -1038,6 +1066,74 @@
   border: 1px solid color-mix(in srgb, var(--color-gold) 15%, transparent);
   box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.65);
   background: var(--color-marble);
+}
+
+/* ─── Light mode refinements ─── */
+html.light .studio-sidebar,
+html.light .atelier-rail {
+  box-shadow:
+    4px 0 24px -8px rgba(26, 24, 20, 0.08),
+    inset -1px 0 0 color-mix(in srgb, var(--color-gold) 14%, transparent);
+}
+
+html.light .studio-canvas,
+html.light .atelier-workspace {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-gold) 12%, transparent),
+    0 24px 48px -24px rgba(26, 24, 20, 0.12),
+    inset 0 1px 0 color-mix(in srgb, var(--color-gold) 10%, transparent);
+}
+
+html.light .studio-brand,
+html.light .card,
+html.light .studio-card,
+html.light .bento-card,
+html.light .studio-login-card {
+  box-shadow:
+    0 8px 24px -12px rgba(26, 24, 20, 0.1),
+    inset 0 1px 0 color-mix(in srgb, var(--color-gold) 10%, transparent);
+}
+
+html.light .studio-watermark,
+html.light .atelier-watermark {
+  color: color-mix(in srgb, var(--color-gold) 6%, transparent);
+}
+
+html.light .kaala-mesh {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 0%, color-mix(in srgb, var(--color-gold) 10%, transparent), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, color-mix(in srgb, var(--color-gold-muted) 8%, transparent), transparent 50%),
+    linear-gradient(180deg, var(--color-obsidian) 0%, var(--color-charcoal) 50%, var(--color-obsidian) 100%);
+}
+
+html.light .kaala-ambient::before {
+  background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+}
+
+html.light .kaala-ambient::after {
+  background: color-mix(in srgb, var(--color-gold-muted) 8%, transparent);
+}
+
+html.light .kaala-content {
+  --card-bg: #ffffff;
+  --card-border: color-mix(in srgb, var(--color-gold) 18%, var(--color-slate));
+  --muted: var(--color-ivory-muted);
+}
+
+html.light .kaala-content .rounded-2xl,
+html.light .kaala-content .rounded-xl {
+  box-shadow: 0 8px 24px -12px rgba(26, 24, 20, 0.08);
+}
+
+html.light .login-blob {
+  opacity: 0.12;
+}
+
+html.light .studio-page-header h1 {
+  background: linear-gradient(135deg, var(--color-ivory) 10%, var(--color-gold-muted));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ─── Performance mode (≤4GB RAM / reduced motion) ─── */

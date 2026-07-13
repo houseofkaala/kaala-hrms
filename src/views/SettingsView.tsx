@@ -5,6 +5,7 @@ import { fetcher } from '../utils';
 import { useRBACStore } from '../store';
 import { EmailNotificationsSettings } from './EmailNotificationsSettings';
 import { IntegrationsSettings } from './IntegrationsSettings';
+import { AppearanceSettingsCard } from '../components/ThemeToggle';
 
 interface OrgSettings {
   companyName: string;
@@ -99,6 +100,7 @@ export function SettingsView() {
           <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
           <p className="text-sm text-gray-500 mt-1">Personal preferences</p>
         </div>
+        <AppearanceSettingsCard />
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -137,6 +139,8 @@ export function SettingsView() {
         <h2 className="text-xl font-semibold text-gray-900">Settings</h2>
         <p className="text-sm text-gray-500 mt-1">Organization and system configuration</p>
       </div>
+
+      <AppearanceSettingsCard />
 
       <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">

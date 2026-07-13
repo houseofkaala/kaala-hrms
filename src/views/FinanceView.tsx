@@ -6,7 +6,7 @@ import {
   LineChart, Line, PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { fetcher } from '../utils';
-import { CHART, chartTooltipStyle } from '../theme/charts';
+import { useChartTheme } from '../theme/charts';
 
 type FinanceSummary = {
   monthlyPayroll: number;
@@ -27,13 +27,14 @@ type FinanceSummary = {
   };
 };
 
-const PIE_COLORS = CHART.series;
-
 function formatINR(n: number) {
   return `₹${n.toLocaleString('en-IN')}`;
 }
 
 export function FinanceView() {
+  const { CHART, chartTooltipStyle } = useChartTheme();
+  const PIE_COLORS = CHART.series;
+
   const { data, isLoading } = useQuery<FinanceSummary>({
     queryKey: ['finance'],
     queryFn: () => fetcher('/api/finance/summary'),
