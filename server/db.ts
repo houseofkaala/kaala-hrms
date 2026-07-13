@@ -66,6 +66,9 @@ let initialized = false;
 
 function applyMigrations() {
   db.users = syncSeedUsers(db.users);
+  for (const user of db.users) {
+    if (user.status === 'Offline') user.status = 'Active';
+  }
   migrateLegacyUserRefs(db);
   purgeDemoOperationalData(db as Database & { dataVersion?: number });
   db.orgSettings.emailNotifications = mergeEmailSettings(db.orgSettings.emailNotifications);

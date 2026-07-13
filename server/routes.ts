@@ -770,7 +770,7 @@ export async function registerRoutes(app: Express) {
         });
       }
       active.clockOut = new Date().toISOString();
-      user.status = 'Offline';
+      checkedIn = false;
     } else {
       const openNow = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
       if (openNow) return res.status(409).json({ error: 'Already clocked in' });
@@ -796,11 +796,18 @@ export async function registerRoutes(app: Express) {
       if (req.body.lng != null) log.clockInLng = Number(req.body.lng);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       db().attendanceLogs.push(log as any);
-      user.status = 'Active';
       checkedIn = true;
     }
     saveDb();
-    res.json({ success: true, user: sanitizeUser(user), checkedIn });
+    res.json({
+      success: true,
+      user: sanitizeUser(user),
+      checkedIn,
+      status: attendanceStatusPayload(
+        db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut),
+        checkedIn,
+      ),
+    });
   });
 
   app.post('/api/attendance/request-early-clockout', (req: AuthedRequest, res) => {
@@ -1249,6 +1256,79 @@ export async function registerRoutes(app: Express) {
     pushNotification(partnerId, 'New message', `${senderName}: ${content.slice(0, 50)}${content.length > 50 ? '…' : ''}`);
     saveDb();
     res.json({ success: true, message: m });
+  });
+
+  function buildAdminChatOverview() {
+    const msgs = db().chatMessages || [];
+    const threads = new Map<string, {
+      userA: string;
+      userB: string;
+      messageCount: number;
+      lastMessage?: string;
+      lastAt?: string;
+    }>();
+
+    for (const message of msgs) {
+      const [userA, userB] = [message.fromId, message.toId].sort();
+      const key = `${userA}::${userB}`;
+      const row = threads.get(key) || { userA, userB, messageCount: 0 };
+      row.messageCount += 1;
+      if (!row.lastAt || message.createdAt > row.lastAt) {
+        row.lastAt = message.createdAt;
+        row.lastMessage = message.content;
+      }
+      threads.set(key, row);
+    }
+
+    return {
+      totalMessages: msgs.length,
+      threadCount: threads.size,
+      threads: [...threads.values()]
+        .map(thread => ({
+          ...thread,
+          userAName: getUserById(thread.userA)?.name || thread.userA,
+          userBName: getUserById(thread.userB)?.name || thread.userB,
+        }))
+        .sort((a, b) => new Date(b.lastAt || 0).getTime() - new Date(a.lastAt || 0).getTime()),
+    };
+  }
+
+  app.get('/api/admin/chat/overview', requireRole('admin'), (_req, res) => {
+    res.json(buildAdminChatOverview());
+  });
+
+  app.delete('/api/admin/chat', requireRole('admin'), (req, res) => {
+    if (req.body?.confirm !== true) {
+      return res.status(400).json({ error: 'Confirmation required. Send { "confirm": true }.' });
+    }
+    const removed = (db().chatMessages || []).length;
+    db().chatMessages = [];
+    saveDb();
+    res.json({ success: true, removed });
+  });
+
+  app.delete('/api/admin/chat/users/:userId', requireRole('admin'), (req, res) => {
+    const userId = String(req.params.userId || '').trim();
+    if (!userId) return res.status(400).json({ error: 'User id required' });
+    const before = (db().chatMessages || []).length;
+    db().chatMessages = (db().chatMessages || []).filter(m => m.fromId !== userId && m.toId !== userId);
+    const removed = before - db().chatMessages.length;
+    saveDb();
+    res.json({ success: true, removed });
+  });
+
+  app.delete('/api/admin/chat/threads', requireRole('admin'), (req, res) => {
+    const userA = String(req.body?.userA || '').trim();
+    const userB = String(req.body?.userB || '').trim();
+    if (!userA || !userB) return res.status(400).json({ error: 'userA and userB are required' });
+    const before = (db().chatMessages || []).length;
+    db().chatMessages = (db().chatMessages || []).filter(m => {
+      const participants = [m.fromId, m.toId].sort().join('::');
+      return participants !== [userA, userB].sort().join('::');
+    });
+    const removed = before - db().chatMessages.length;
+    saveDb();
+    res.json({ success: true, removed });
   });
 
   // AI

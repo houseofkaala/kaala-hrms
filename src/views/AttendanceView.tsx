@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle2, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Clock, CheckCircle2, ChevronLeft, ChevronRight, ArrowRight, LogIn, LogOut, AlertCircle } from 'lucide-react';
 import { cn, fetcher } from '../utils';
 import { useQuery } from '@tanstack/react-query';
 import { useRBACStore } from '../store';
@@ -216,101 +216,171 @@ function LeaveQuickView() {
   );
 }
 
-function AttendanceClock({ checkedIn, onToggle, isLoading }: { checkedIn: boolean, onToggle: () => void, isLoading?: boolean }) {
+type AttendanceStatus = {
+  checkedIn: boolean;
+  clockIn: string | null;
+  hoursWorked: number;
+  canClockOut: boolean;
+  needsAdminApproval: boolean;
+  minHours: number;
+  fullDayHours: number;
+  hoursUntilMin: number;
+  hoursUntilFullDay: number;
+  earlyClockOutApproved: boolean;
+  message?: string;
+};
+
+function AttendanceClock({
+  status,
+  onClockIn,
+  onClockOut,
+  isLoading,
+}: {
+  status: AttendanceStatus | null;
+  onClockIn: () => void;
+  onClockOut: () => void;
+  isLoading?: boolean;
+}) {
   const [time, setTime] = useState(new Date());
+  const checkedIn = status?.checkedIn ?? false;
+  const progress = status ? Math.min(100, (status.hoursWorked / status.fullDayHours) * 100) : 0;
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-  };
-
   return (
-    <div className="bg-white p-5 border border-gray-200 rounded-2xl flex flex-col items-center justify-center shadow-sm text-center relative overflow-hidden">
-      {/* Animated background when checked in */}
-      {checkedIn && (
-        <div className="absolute inset-0 bg-emerald-50 opacity-50 z-0"></div>
-      )}
-      
+    <div className="studio-card p-5 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      {checkedIn && <div className="absolute inset-0 bg-gold/5 z-0" />}
+
       <div className="relative z-10 w-full flex flex-col items-center">
         <div className={cn(
-          "w-24 h-24 rounded-full border-4 shadow-sm flex items-center justify-center mb-4 transition-colors duration-500",
-          checkedIn ? "border-emerald-100 bg-emerald-50" : "border-gray-50 bg-white"
+          'w-24 h-24 rounded-full border-4 shadow-sm flex items-center justify-center mb-4 transition-colors duration-500',
+          checkedIn ? 'border-gold/30 bg-gold/10' : 'border-gray-200/40 bg-marble-light',
         )}>
-          <Clock className={cn(
-            "w-8 h-8 transition-colors duration-500",
-            checkedIn ? "text-emerald-500" : "text-gray-300"
-          )} />
+          <Clock className={cn('w-8 h-8 transition-colors duration-500', checkedIn ? 'text-gold' : 'text-ivory-muted')} />
         </div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-1 tracking-tight tabular-nums">{formatTime(time)}</h2>
-        <p className="text-xs text-gray-500 font-medium mb-2">{formatDate(time)}</p>
-        
-        <div className="mb-6 flex items-center gap-2">
-          <span className={cn(
-            "w-2 h-2 rounded-full",
-            checkedIn ? "bg-emerald-500" : "bg-gray-300"
-          )}></span>
-          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-            {checkedIn ? "Working" : "Off Duty"}
+        <h2 className="text-2xl font-semibold text-ivory mb-1 tracking-tight tabular-nums">
+          {time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </h2>
+        <p className="text-xs text-ivory-muted font-medium mb-2">
+          {time.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+        </p>
+
+        <div className="mb-4 flex items-center gap-2">
+          <span className={cn('w-2 h-2 rounded-full', checkedIn ? 'bg-gold' : 'bg-ivory-muted/40')} />
+          <span className="text-xs font-semibold text-ivory-muted uppercase tracking-wider">
+            {checkedIn ? 'Clocked In' : 'Not Clocked In'}
           </span>
         </div>
 
-        <button 
-          onClick={onToggle}
-          disabled={isLoading}
-          className={cn(
-            "w-full py-2.5 rounded-xl font-semibold text-sm transition-all shadow-sm",
-            checkedIn ? "bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50" : "bg-gray-900 text-white hover:bg-gray-800",
-            isLoading && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          {isLoading ? 'Processing...' : (checkedIn ? 'Check Out' : 'Check In')}
-        </button>
+        {checkedIn && status && (
+          <div className="w-full mb-4 text-left">
+            <div className="flex items-center justify-between text-[11px] text-ivory-muted mb-1.5">
+              <span>{status.hoursWorked.toFixed(1)}h worked</span>
+              <span>{status.fullDayHours}h full day</span>
+            </div>
+            <div className="h-2 bg-marble-light rounded-full overflow-hidden border border-gold/10">
+              <div className="h-full bg-gold transition-all rounded-full" style={{ width: `${progress}%` }} />
+            </div>
+            {status.clockIn && (
+              <p className="text-[10px] text-ivory-muted mt-2">
+                Since {new Date(status.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="w-full grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onClockIn}
+            disabled={isLoading || checkedIn}
+            className={cn(
+              'py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-1.5',
+              checkedIn ? 'bg-marble-light text-ivory-muted cursor-not-allowed' : 'btn-primary',
+              isLoading && 'opacity-50 cursor-wait',
+            )}
+          >
+            <LogIn className="w-4 h-4" />
+            Clock In
+          </button>
+          <button
+            type="button"
+            onClick={onClockOut}
+            disabled={isLoading || !checkedIn || (status != null && !status.canClockOut && !status.needsAdminApproval)}
+            className={cn(
+              'py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-1.5 border',
+              !checkedIn
+                ? 'bg-marble-light text-ivory-muted border-transparent cursor-not-allowed'
+                : status?.canClockOut
+                  ? 'bg-marble text-ivory border-gold/25 hover:bg-gold/10'
+                  : 'bg-amber-500/10 text-amber-200 border-amber-400/20',
+              isLoading && 'opacity-50 cursor-wait',
+            )}
+          >
+            <LogOut className="w-4 h-4" />
+            Clock Out
+          </button>
+        </div>
+
+        {status?.message && checkedIn && (
+          <p className="text-[11px] text-ivory-muted mt-3 leading-relaxed">{status.message}</p>
+        )}
       </div>
     </div>
   );
 }
 
 export function AttendanceView() {
-  const { viewMode, currentUser, setCurrentUser } = useRBACStore();
-  const [checkedIn, setCheckedIn] = useState(currentUser?.status === 'Active');
+  const { viewMode } = useRBACStore();
+  const [status, setStatus] = useState<AttendanceStatus | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showEarlyRequest, setShowEarlyRequest] = useState(false);
   const [earlyReason, setEarlyReason] = useState('');
+  const showEmployeeClock = viewMode === 'employee';
+
+  const loadStatus = async () => {
+    try {
+      const res = await fetcher<AttendanceStatus>('/api/attendance/status');
+      setStatus(res);
+    } catch {
+      setStatus(null);
+    }
+  };
 
   useEffect(() => {
-    if (currentUser) {
-      setCheckedIn(currentUser.status === 'Active');
-    }
-  }, [currentUser]);
+    if (!showEmployeeClock) return;
+    loadStatus();
+    const id = setInterval(loadStatus, 60_000);
+    return () => clearInterval(id);
+  }, [showEmployeeClock]);
 
-  const handleToggleAttendance = async () => {
+  const getGeo = (): Promise<{ lat?: number; lng?: number }> =>
+    new Promise(resolve => {
+      if (!navigator.geolocation) return resolve({});
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve({}),
+        { timeout: 8000, enableHighAccuracy: true },
+      );
+    });
+
+  const runAttendanceToggle = async (geo: { lat?: number; lng?: number } = {}) => {
+    setIsLoading(true);
     try {
-      if (currentUser) {
-        setIsLoading(true);
-        const res = await fetcher<{ success: boolean; checkedIn: boolean; user: any }>('/api/attendance/toggle', {
-          method: 'POST',
-        });
-        
-        if (res.success) {
-          setCheckedIn(res.checkedIn);
-          setCurrentUser(res.user);
-          setToastMessage(res.checkedIn ? 'Successfully clocked in!' : 'Successfully clocked out!');
-        } else {
-          setToastMessage('Failed to update attendance status.');
-        }
-        setTimeout(() => setToastMessage(null), 5000);
-      }
+      const res = await fetcher<{ success: boolean; checkedIn: boolean; status?: AttendanceStatus }>(
+        '/api/attendance/toggle',
+        { method: 'POST', body: JSON.stringify(geo) },
+      );
+      if (res.status) setStatus(res.status);
+      else await loadStatus();
+      setToastMessage(res.checkedIn ? 'Clocked in successfully.' : 'Clocked out successfully.');
+      setTimeout(() => setToastMessage(null), 5000);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to update attendance status.';
+      const msg = e instanceof Error ? e.message : 'Failed to update attendance.';
       setToastMessage(msg);
       if (msg.includes('admin approval') || msg.includes('early clock-out')) {
         setShowEarlyRequest(true);
@@ -319,6 +389,21 @@ export function AttendanceView() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClockIn = async () => {
+    if (status?.checkedIn) return;
+    const geo = await getGeo();
+    await runAttendanceToggle(geo);
+  };
+
+  const handleClockOut = async () => {
+    if (!status?.checkedIn) return;
+    if (status.needsAdminApproval && !status.canClockOut) {
+      setShowEarlyRequest(true);
+      return;
+    }
+    await runAttendanceToggle();
   };
 
   const requestEarlyClockOut = async () => {
@@ -335,6 +420,7 @@ export function AttendanceView() {
       setShowEarlyRequest(false);
       setEarlyReason('');
       setToastMessage('Early clock-out request sent to admin.');
+      await loadStatus();
       setTimeout(() => setToastMessage(null), 5000);
     } catch (e) {
       setToastMessage(e instanceof Error ? e.message : 'Request failed');
@@ -372,13 +458,35 @@ export function AttendanceView() {
       )}
       <div className="grid grid-cols-1 xl:grid-cols-3 lg:grid-cols-2 gap-4 items-start">
         <div className="xl:col-span-1 lg:col-span-1 space-y-4 min-w-0">
-          <AttendanceClock checkedIn={checkedIn} onToggle={handleToggleAttendance} isLoading={isLoading} />
+          {showEmployeeClock && (
+            <AttendanceClock
+              status={status}
+              onClockIn={handleClockIn}
+              onClockOut={handleClockOut}
+              isLoading={isLoading}
+            />
+          )}
+          {showEmployeeClock && status?.needsAdminApproval && !status.canClockOut && (
+            <div className="studio-card p-4 text-left">
+              <p className="text-xs text-ivory-muted flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-gold" />
+                Early clock-out needs admin approval, or wait {status.hoursUntilFullDay.toFixed(1)} more hour(s) for a full day.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowEarlyRequest(true)}
+                className="btn-secondary mt-3 w-full text-xs py-2"
+              >
+                Request early clock-out
+              </button>
+            </div>
+          )}
           <AttendanceSummary />
           <LeaveQuickView />
         </div>
         
         <div className="xl:col-span-2 lg:col-span-1 space-y-4 min-w-0 flex-1">
-          <AttendanceLogs viewMode={viewMode} checkedIn={checkedIn} />
+          <AttendanceLogs viewMode={viewMode} checkedIn={status?.checkedIn} />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <OTDashboard />
             <EarlyClockOutApprovals />

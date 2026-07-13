@@ -6,6 +6,7 @@ import { useRBACStore } from '../store';
 import { EmailNotificationsSettings } from './EmailNotificationsSettings';
 import { IntegrationsSettings } from './IntegrationsSettings';
 import { AppearanceSettingsCard } from '../components/ThemeToggle';
+import { ChatModerationSettings } from '../components/ChatModerationSettings';
 
 interface OrgSettings {
   companyName: string;
@@ -256,6 +257,7 @@ export function SettingsView() {
         </div>
       )}
 
+      {currentUser?.role === 'admin' && <ChatModerationSettings />}
       {currentUser?.role === 'admin' && <IntegrationsSettings />}
       {currentUser?.role === 'admin' && <EmailNotificationsSettings />}
     </div>
