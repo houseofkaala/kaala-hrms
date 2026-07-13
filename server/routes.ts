@@ -30,6 +30,8 @@ import {
   activeUsers, assertManager, assertSelfOrManager, canAccessTask, canAccessKanbanTask,
   directoryUser, isManagerOrAdmin,
 } from './security';
+import { registerGoogleSsoRoutes } from './google-sso';
+import { dbWriteMutex } from './db-mutex';
 
 export type { AuthedRequest } from './middleware';
 
@@ -90,6 +92,8 @@ export async function registerRoutes(app: Express) {
   await initDb();
   const db = () => getDb();
 
+  app.use('/api', dbWriteMutex);
+
   app.post('/api/auth/login', (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
@@ -139,6 +143,8 @@ export async function registerRoutes(app: Express) {
       uptime: process.uptime(),
     });
   });
+
+  registerGoogleSsoRoutes(app);
 
   app.use('/api', authMiddleware);
   app.use('/api', moduleAccessMiddleware);

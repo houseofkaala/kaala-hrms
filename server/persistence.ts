@@ -110,5 +110,10 @@ export function persistStore(data: Database) {
 
 export async function flushPersistence() {
   flushFileStoreNow();
-  await saveChain;
+  try {
+    await saveChain;
+  } catch (err) {
+    console.error('[HRMS] Persistence flush failed:', err);
+    throw err;
+  }
 }

@@ -12,6 +12,7 @@ import {
 } from './tax-compliance';
 import { defaultSalaryStructure, computePayroll } from './payroll-engine';
 import { dispatchWebhook } from './webhooks';
+import { sanitizeGoogleSsoForClient } from './google-sso';
 
 export function registerPhase2Routes(app: Express) {
   const db = () => getDb();
@@ -41,7 +42,7 @@ export function registerPhase2Routes(app: Express) {
     if (!d.webhooks) d.webhooks = [];
     if (!d.integrations) {
       d.integrations = {
-        googleSso: { enabled: false, clientId: '', allowedDomain: 'bymarketingonly.com' },
+        googleSso: { enabled: false, clientId: '', clientSecret: '', allowedDomain: 'bymarketingonly.com' },
         slack: { enabled: false, webhookUrl: '' },
       };
     }
@@ -314,19 +315,36 @@ export function registerPhase2Routes(app: Express) {
   // ── Integrations & Webhooks ───────────────────────────────────────
   app.get('/api/integrations', requireRole('admin'), (_req, res) => {
     ensurePhase2Schema();
-    res.json({
-      integrations: (db() as ReturnType<typeof getDb> & { integrations?: Record<string, unknown> }).integrations,
-      webhooks: db().webhooks,
-    });
+    const raw = (db() as ReturnType<typeof getDb> & {
+      integrations?: { googleSso?: Record<string, unknown>; slack?: Record<string, unknown> };
+    }).integrations;
+    const integrations = {
+      ...raw,
+      googleSso: sanitizeGoogleSsoForClient((raw?.googleSso || {}) as Parameters<typeof sanitizeGoogleSsoForClient>[0]),
+    };
+    res.json({ integrations, webhooks: db().webhooks });
   });
 
   app.patch('/api/integrations', requireRole('admin'), (req, res) => {
     ensurePhase2Schema();
-    const integrations = (db() as ReturnType<typeof getDb> & { integrations: Record<string, unknown> }).integrations;
-    if (req.body.googleSso) integrations.googleSso = { ...integrations.googleSso as object, ...req.body.googleSso };
-    if (req.body.slack) integrations.slack = { ...integrations.slack as object, ...req.body.slack };
+    const integrations = (db() as ReturnType<typeof getDb> & {
+      integrations: { googleSso: Record<string, unknown>; slack: Record<string, unknown> };
+    }).integrations;
+    if (req.body.googleSso) {
+      const patch = { ...req.body.googleSso } as Record<string, unknown>;
+      const secret = String(patch.clientSecret || '').trim();
+      if (!secret || secret === '••••••••') delete patch.clientSecret;
+      integrations.googleSso = { ...integrations.googleSso, ...patch };
+    }
+    if (req.body.slack) integrations.slack = { ...integrations.slack, ...req.body.slack };
     saveDb();
-    res.json({ success: true, integrations });
+    res.json({
+      success: true,
+      integrations: {
+        ...integrations,
+        googleSso: sanitizeGoogleSsoForClient(integrations.googleSso as Parameters<typeof sanitizeGoogleSsoForClient>[0]),
+      },
+    });
   });
 
   app.post('/api/integrations/webhooks', requireRole('admin'), (req, res) => {
@@ -360,16 +378,4 @@ export function registerPhase2Routes(app: Express) {
     res.json({ success: true, message: 'Test event dispatched to active webhooks' });
   });
 
-  app.get('/api/auth/google', (_req, res) => {
-    ensurePhase2Schema();
-    const google = (db() as ReturnType<typeof getDb> & { integrations: { googleSso: { enabled: boolean; clientId: string } } }).integrations?.googleSso;
-    if (!google?.enabled || !google.clientId) {
-      return res.status(503).json({
-        error: 'Google SSO not configured',
-        hint: 'Enable Google SSO in Admin → Settings → Integrations and set Client ID',
-      });
-    }
-    const redirect = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${google.clientId}&redirect_uri=${encodeURIComponent('https://employee.bymarketingonly.com/api/auth/google/callback')}&response_type=code&scope=openid%20email%20profile`;
-    res.json({ url: redirect, configured: true });
-  });
 }

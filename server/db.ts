@@ -126,7 +126,7 @@ function applyMigrations() {
   if (!p2.webhooks) p2.webhooks = [];
   if (!p2.integrations) {
     p2.integrations = {
-      googleSso: { enabled: false, clientId: '', allowedDomain: 'bymarketingonly.com' },
+      googleSso: { enabled: false, clientId: '', clientSecret: '', allowedDomain: 'bymarketingonly.com' },
       slack: { enabled: false, webhookUrl: '' },
     };
   }
@@ -215,8 +215,9 @@ export function loadDb() {
   hydrateStore(readFileStore());
 }
 
-export function saveDb() {
+export function saveDb(options?: { flush?: boolean }) {
   persistStore(db);
+  if (options?.flush) void flushPersistence();
 }
 
 export async function flushDb() {

@@ -107,7 +107,7 @@ export function createEmptyOperationalDb() {
     form16Records: [] as { id: string; userId: string; financialYear: string; generatedAt: string; data: unknown }[],
     webhooks: [] as { id: string; url: string; events: string[]; secret: string; active: boolean; createdAt: string }[],
     integrations: {
-      googleSso: { enabled: false, clientId: '', allowedDomain: 'bymarketingonly.com' },
+      googleSso: { enabled: false, clientId: '', clientSecret: '', allowedDomain: 'bymarketingonly.com' },
       slack: { enabled: false, webhookUrl: '' },
     },
     dataVersion: 5,

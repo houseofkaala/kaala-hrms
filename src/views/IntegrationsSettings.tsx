@@ -13,10 +13,14 @@ export function IntegrationsSettings() {
   const qc = useQueryClient();
   const [webhookUrl, setWebhookUrl] = useState('');
   const [googleClientId, setGoogleClientId] = useState('');
+  const [googleClientSecret, setGoogleClientSecret] = useState('');
   const [googleEnabled, setGoogleEnabled] = useState(false);
 
   const { data } = useQuery<{
-    integrations: { googleSso: { enabled: boolean; clientId: string }; slack: { enabled: boolean; webhookUrl: string } };
+    integrations: {
+      googleSso: { enabled: boolean; clientId: string; clientSecret?: string; hasClientSecret?: boolean; allowedDomain?: string };
+      slack: { enabled: boolean; webhookUrl: string };
+    };
     webhooks: Webhook[];
   }>({
     queryKey: ['integrations'],
@@ -30,13 +34,20 @@ export function IntegrationsSettings() {
     if (google) {
       setGoogleClientId(google.clientId || '');
       setGoogleEnabled(google.enabled || false);
+      setGoogleClientSecret(google.hasClientSecret ? '••••••••' : '');
     }
   }, [data]);
 
   const saveGoogle = async () => {
+    const payload: { enabled: boolean; clientId: string; clientSecret?: string } = {
+      enabled: googleEnabled,
+      clientId: googleClientId,
+    };
+    const secret = googleClientSecret.trim();
+    if (secret && secret !== '••••••••') payload.clientSecret = secret;
     await fetcher('/api/integrations', {
       method: 'PATCH',
-      body: JSON.stringify({ googleSso: { enabled: googleEnabled, clientId: googleClientId } }),
+      body: JSON.stringify({ googleSso: payload }),
     });
     qc.invalidateQueries({ queryKey: ['integrations'] });
   };
@@ -74,6 +85,16 @@ export function IntegrationsSettings() {
           placeholder="Google OAuth Client ID"
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
         />
+        <input
+          type="password"
+          value={googleClientSecret}
+          onChange={e => setGoogleClientSecret(e.target.value)}
+          placeholder="Google OAuth Client Secret"
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"
+        />
+        <p className="text-[11px] text-gray-500">
+          Add redirect URI in Google Cloud Console: <code className="text-[10px]">https://employee.bymarketingonly.com/api/auth/google/callback</code> and <code className="text-[10px]">https://admin.bymarketingonly.com/api/auth/google/callback</code>
+        </p>
         <button onClick={saveGoogle} className="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">Save Google SSO</button>
       </div>
 

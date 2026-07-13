@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { setToken, isAuthenticated } from '../auth';
+import { setToken, clearToken, isAuthenticated } from '../auth';
+import { fetcher } from '../utils';
 import type { User } from '../types';
 import { useRBACStore } from '../store';
 import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, type Portal } from '../portal';
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
 
   const mismatch = location.state as { portalMismatch?: boolean; correctPortal?: Portal; message?: string } | null;
 
@@ -24,8 +26,73 @@ export default function LoginPage() {
   }, [mismatch?.message]);
 
   useEffect(() => {
-    if (isAuthenticated()) navigate('/dashboard', { replace: true });
-  }, [navigate]);
+    fetch('/api/auth/google/status')
+      .then(r => r.json())
+      .then((body: { configured?: boolean }) => setGoogleAvailable(Boolean(body.configured)))
+      .catch(() => setGoogleAvailable(false));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const oauthError = params.get('error');
+    if (oauthError) {
+      setError(oauthError);
+      navigate('/login', { replace: true });
+      return;
+    }
+
+    const token = params.get('token');
+    if (!token) {
+      if (isAuthenticated()) navigate('/dashboard', { replace: true });
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+
+    (async () => {
+      try {
+        setToken(token);
+        const user = await fetcher<User>('/api/me');
+        if (cancelled) return;
+        if (!roleMatchesPortal(user.role, portal)) {
+          clearToken();
+          const correct = portalForRole(user.role);
+          throw new Error(`This account belongs on the ${PORTAL_META[correct].title}.`);
+        }
+        setCurrentUser(user);
+        navigate('/dashboard', { replace: true });
+      } catch (err) {
+        if (cancelled) return;
+        clearToken();
+        setError(err instanceof Error ? err.message : 'Google sign-in failed');
+        navigate('/login', { replace: true });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [location.search, navigate, portal, setCurrentUser]);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/auth/google?portal=${portal}`, {
+        headers: { 'X-Portal': portal },
+      });
+      const body = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !body.url) {
+        throw new Error(body.error || 'Google sign-in is not available');
+      }
+      window.location.href = body.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -138,6 +205,24 @@ export default function LoginPage() {
                   {loading ? 'Signing in…' : 'Sign In'}
                 </button>
               </form>
+
+              {googleAvailable && (
+                <>
+                  <div className="flex items-center gap-3 my-6">
+                    <div className="flex-1 h-px bg-gold/15" />
+                    <span className="text-[10px] uppercase tracking-widest text-ivory-muted">or</span>
+                    <div className="flex-1 h-px bg-gold/15" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    className="w-full py-3 rounded-lg border border-gold/25 text-sm text-ivory hover:bg-gold/5 transition-colors disabled:opacity-50"
+                  >
+                    Continue with Google
+                  </button>
+                </>
+              )}
 
               <p className="text-xs text-ivory-muted text-center mt-8">
                 Contact HR if you need access to your account.
