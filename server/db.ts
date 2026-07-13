@@ -1,4 +1,5 @@
 import { syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
+import { hasLegacyUserIds, LEGACY_ID_MAP, resolveUserIds } from './user-ids';
 import { ensureProjectSchema } from './project-management';
 import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
@@ -64,12 +65,31 @@ export type Database = ReturnType<typeof defaultDb>;
 let db: Database = defaultDb();
 let initialized = false;
 
+function dedupeUsers(users: UserRecord[]): UserRecord[] {
+  const byId = new Map<string, UserRecord>();
+  for (const user of users) {
+    const existing = byId.get(user.id);
+    if (!existing) {
+      byId.set(user.id, user);
+      continue;
+    }
+    const score = (u: UserRecord) =>
+      (u.status === 'Active' ? 2 : 0) + (u.email ? 1 : 0) + (u.name ? 1 : 0);
+    if (score(user) >= score(existing)) byId.set(user.id, user);
+  }
+  return [...byId.values()];
+}
+
 function applyMigrations() {
-  db.users = syncSeedUsers(db.users);
+  db.users = dedupeUsers(syncSeedUsers(db.users));
   for (const user of db.users) {
     if (user.status === 'Offline') user.status = 'Active';
   }
-  migrateLegacyUserRefs(db);
+  const shouldMigrateLegacyRefs =
+    !isDataPreserveMode() && hasLegacyUserIds(db.users.map(u => u.id));
+  if (shouldMigrateLegacyRefs) {
+    migrateLegacyUserRefs(db);
+  }
   purgeDemoOperationalData(db as Database & { dataVersion?: number });
   db.orgSettings.emailNotifications = mergeEmailSettings(db.orgSettings.emailNotifications);
   if (!db.emailDigestQueue) db.emailDigestQueue = [];
@@ -81,6 +101,8 @@ function applyMigrations() {
   }
   const lockStates = db as Database & { loginAttemptStates?: Record<string, unknown> };
   if (!lockStates.loginAttemptStates) lockStates.loginAttemptStates = {};
+  const exchanges = db as Database & { authExchangeCodes?: unknown[] };
+  if (!exchanges.authExchangeCodes) exchanges.authExchangeCodes = [];
   if (!db.chatMessages) db.chatMessages = [];
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
@@ -255,8 +277,19 @@ export function sanitizeUser(user: UserRecord) {
 }
 
 export function getUserById(id: string) {
-  return db.users.find(u => u.id === id);
+  const direct = db.users.find(u => u.id === id);
+  if (direct) return direct;
+  const canonical = LEGACY_ID_MAP[id];
+  if (canonical) {
+    const byCanonical = db.users.find(u => u.id === canonical);
+    if (byCanonical) return byCanonical;
+  }
+  const legacyId = Object.entries(LEGACY_ID_MAP).find(([, canon]) => canon === id)?.[0];
+  if (legacyId) return db.users.find(u => u.id === legacyId);
+  return undefined;
 }
+
+export { resolveUserIds, userIdMatches } from './user-ids';
 
 export interface NotifyCallOptions {
   triggerId?: string;

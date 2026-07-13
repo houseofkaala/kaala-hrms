@@ -4,7 +4,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 
 const ALLOWED_ORIGINS = new Set(
   (process.env.ALLOWED_ORIGINS ||
-    'https://employee.bymarketingonly.com,https://admin.bymarketingonly.com,https://bymarketingonly.com,https://www.bymarketingonly.com')
+    'https://employee.bymarketingonly.com,https://admin.bymarketingonly.com,https://sales.bymarketingonly.com,https://manager.bymarketingonly.com,https://bymarketingonly.com,https://www.bymarketingonly.com')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean),

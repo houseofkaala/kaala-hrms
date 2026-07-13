@@ -1,10 +1,10 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { setToken, clearToken, isAuthenticated } from '../auth';
 import { fetcher } from '../utils';
 import type { User } from '../types';
 import { useRBACStore } from '../store';
-import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, type Portal } from '../portal';
+import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, getPortalLoginUrl, type Portal } from '../portal';
 import { PasswordInput } from '../components/PasswordInput';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -19,6 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(false);
+  const oauthHandled = useRef(false);
 
   const mismatch = location.state as { portalMismatch?: boolean; correctPortal?: Portal; message?: string } | null;
 
@@ -48,6 +49,8 @@ export default function LoginPage() {
       if (isAuthenticated()) navigate('/dashboard', { replace: true });
       return;
     }
+    if (oauthHandled.current) return;
+    oauthHandled.current = true;
 
     let cancelled = false;
     setLoading(true);
@@ -70,7 +73,8 @@ export default function LoginPage() {
         if (!roleMatchesPortal(user.role, portal)) {
           clearToken();
           const correct = portalForRole(user.role);
-          throw new Error(`This account belongs on the ${PORTAL_META[correct].title}.`);
+          window.location.href = getPortalLoginUrl(correct);
+          return;
         }
         setCurrentUser(user);
         navigate('/dashboard', { replace: true });
@@ -122,15 +126,17 @@ export default function LoginPage() {
         throw new Error(res.ok ? 'Login failed' : `Login failed (${res.status})`);
       }
       if (!res.ok) {
-        if (body.correctPortal) {
-          throw new Error(body.error || 'Login failed');
+        if (body.correctPortal === 'admin' || body.correctPortal === 'employee') {
+          window.location.href = getPortalLoginUrl(body.correctPortal);
+          return;
         }
         throw new Error(body.error || 'Login failed');
       }
       const user = body.user as User;
       if (!roleMatchesPortal(user.role, portal)) {
         const correct = portalForRole(user.role);
-        throw new Error(`This account belongs on the ${PORTAL_META[correct].title}.`);
+        window.location.href = getPortalLoginUrl(correct);
+        return;
       }
       setToken(body.token);
       setCurrentUser(user);

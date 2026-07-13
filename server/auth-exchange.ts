@@ -1,33 +1,53 @@
 import crypto from 'crypto';
+import { getDb, saveDb } from './db';
 
-interface ExchangeEntry {
-  token: string;
-  expiresAt: number;
-}
-
-const codes = new Map<string, ExchangeEntry>();
 const TTL_MS = 60_000;
 
-function prune() {
+interface ExchangeRecord {
+  code: string;
+  token: string;
+  expiresAt: string;
+}
+
+function exchangeStore(): ExchangeRecord[] {
+  const db = getDb() as ReturnType<typeof getDb> & { authExchangeCodes?: ExchangeRecord[] };
+  if (!db.authExchangeCodes) db.authExchangeCodes = [];
+  return db.authExchangeCodes;
+}
+
+function pruneExchanges(list: ExchangeRecord[]) {
   const now = Date.now();
-  for (const [code, entry] of codes) {
-    if (entry.expiresAt <= now) codes.delete(code);
+  const before = list.length;
+  const kept = list.filter(e => new Date(e.expiresAt).getTime() > now);
+  if (kept.length !== before) {
+    list.length = 0;
+    list.push(...kept);
+    saveDb();
   }
 }
 
 /** Issue a one-time code so tokens never appear in URLs or server logs. */
 export function issueAuthExchangeCode(sessionToken: string): string {
-  prune();
+  const list = exchangeStore();
+  pruneExchanges(list);
   const code = crypto.randomBytes(24).toString('base64url');
-  codes.set(code, { token: sessionToken, expiresAt: Date.now() + TTL_MS });
+  list.push({
+    code,
+    token: sessionToken,
+    expiresAt: new Date(Date.now() + TTL_MS).toISOString(),
+  });
+  saveDb();
   return code;
 }
 
 export function redeemAuthExchangeCode(code: string): string | null {
-  prune();
-  const entry = codes.get(code);
-  if (!entry) return null;
-  codes.delete(code);
-  if (entry.expiresAt <= Date.now()) return null;
+  const list = exchangeStore();
+  pruneExchanges(list);
+  const idx = list.findIndex(e => e.code === code);
+  if (idx < 0) return null;
+  const entry = list[idx];
+  list.splice(idx, 1);
+  saveDb();
+  if (new Date(entry.expiresAt).getTime() <= Date.now()) return null;
   return entry.token;
 }

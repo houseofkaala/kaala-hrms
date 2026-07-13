@@ -1,6 +1,6 @@
 import { Express } from 'express';
 import {
-  initDb, saveDb, getDb, sanitizeUser, getUserById, pushNotification, addTransaction, getStorageBackend, UserRecord,
+  initDb, saveDb, getDb, sanitizeUser, getUserById, pushNotification, addTransaction, getStorageBackend, UserRecord, userIdMatches,
 } from './db';
 import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession, revokeOtherSessions, moduleAccessMiddleware } from './middleware';
 import {
@@ -128,7 +128,7 @@ export async function registerRoutes(app: Express) {
     const code = String(req.body.code || '').trim();
     if (!code) return res.status(400).json({ error: 'Exchange code required' });
     const token = redeemAuthExchangeCode(code);
-    if (!token) return res.status(401).json({ error: 'Invalid or expired sign-in code' });
+    if (!token) return res.status(400).json({ error: 'Invalid or expired sign-in code' });
     res.json({ token });
   });
 
@@ -431,7 +431,9 @@ export async function registerRoutes(app: Express) {
   app.get('/api/leave-requests', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
     const isMgr = user?.role === 'manager' || user?.role === 'admin';
-    const list = isMgr ? db().leaveRequests : db().leaveRequests.filter(l => l.userId === req.userId);
+    const list = isMgr
+      ? db().leaveRequests
+      : db().leaveRequests.filter(l => userIdMatches(l.userId, req.userId!));
     res.json(list.map(l => {
       const emp = getUserById(l.userId);
       return { ...l, employee: emp ? sanitizeUser(emp) : null };
@@ -439,7 +441,7 @@ export async function registerRoutes(app: Express) {
   });
 
   app.get('/api/leave-balance', (req: AuthedRequest, res) => {
-    const approved = db().leaveRequests.filter(l => l.userId === req.userId && l.status === 'Approved');
+    const approved = db().leaveRequests.filter(l => userIdMatches(l.userId, req.userId!) && l.status === 'Approved');
     const annualUsed = approved.filter(l => l.type !== 'Sick Leave').reduce((s, l) => s + l.days, 0);
     const sickUsed = approved.filter(l => l.type === 'Sick Leave').reduce((s, l) => s + l.days, 0);
     res.json({
@@ -449,7 +451,7 @@ export async function registerRoutes(app: Express) {
       sickUsed,
       annualRemaining: Math.max(0, db().orgSettings.defaultLeaveDays - annualUsed),
       sickRemaining: Math.max(0, db().orgSettings.sickLeaveDays - sickUsed),
-      pending: db().leaveRequests.filter(l => l.userId === req.userId && l.status === 'Pending').length,
+      pending: db().leaveRequests.filter(l => userIdMatches(l.userId, req.userId!) && l.status === 'Pending').length,
     });
   });
 
@@ -562,19 +564,19 @@ export async function registerRoutes(app: Express) {
 
   // Notifications
   app.get('/api/notifications', (req: AuthedRequest, res) => {
-    const data = db().notifications.filter(n => n.userId === req.userId);
+    const data = db().notifications.filter(n => userIdMatches(n.userId, req.userId!));
     res.json({ data, unread: data.filter(n => !n.read).length });
   });
 
   app.patch('/api/notifications/:id/read', (req: AuthedRequest, res) => {
-    const n = db().notifications.find(x => x.id === req.params.id && x.userId === req.userId);
+    const n = db().notifications.find(x => x.id === req.params.id && userIdMatches(x.userId, req.userId!));
     if (!n) return res.status(404).json({ error: 'Not found' });
     n.read = true; saveDb();
     res.json({ success: true });
   });
 
   app.patch('/api/notifications/read-all', (req: AuthedRequest, res) => {
-    db().notifications.forEach(n => { if (n.userId === req.userId) n.read = true; });
+    db().notifications.forEach(n => { if (userIdMatches(n.userId, req.userId!)) n.read = true; });
     saveDb();
     res.json({ success: true });
   });
@@ -634,7 +636,7 @@ export async function registerRoutes(app: Express) {
   app.get('/api/assets', (req: AuthedRequest, res) => {
     const me = getUserById(req.userId!);
     if (isManagerOrAdmin(me)) return res.json(db().assets);
-    res.json(db().assets.filter(a => a.userId === req.userId));
+    res.json(db().assets.filter(a => userIdMatches(a.userId || '', req.userId!)));
   });
   app.post('/api/assets', requireRole('manager', 'admin'), (req, res) => {
     const a = { id: 'AST-' + Math.floor(Math.random() * 1000), name: req.body.name, userId: null, user: null, status: 'Available' };
@@ -769,12 +771,12 @@ export async function registerRoutes(app: Express) {
 
   app.get('/api/rewards/summary', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
-    const tx = db().transactions.filter(t => t.userId === req.userId);
+    const tx = db().transactions.filter(t => userIdMatches(t.userId, req.userId!));
     const earned = tx.filter(t => t.amount > 0).reduce((s, t) => s + t.amount, 0);
     const spent = Math.abs(tx.filter(t => t.amount < 0).reduce((s, t) => s + t.amount, 0));
     const sorted = [...db().users].sort((a, b) => b.points - a.points);
     const rank = sorted.findIndex(u => u.id === req.userId) + 1;
-    const badges = db().userBadges.filter(b => b.userId === req.userId).map(b => db().badges.find(x => x.id === b.badgeId)).filter(Boolean);
+    const badges = db().userBadges.filter(b => userIdMatches(b.userId, req.userId!)).map(b => db().badges.find(x => x.id === b.badgeId)).filter(Boolean);
     res.json({ balance: user?.points || 0, lifetimeEarned: earned + (user?.points || 0), lifetimeSpent: spent, rank, badges, giftCards: db().giftCards });
   });
 
@@ -824,7 +826,7 @@ export async function registerRoutes(app: Express) {
   app.get('/api/attendance/status', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'Not found' });
-    const active = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
+    const active = db().attendanceLogs.find(l => userIdMatches(l.userId, req.userId!) && !l.clockOut);
     const checkedIn = Boolean(active);
     res.json(attendanceStatusPayload(active, checkedIn));
   });
@@ -832,7 +834,7 @@ export async function registerRoutes(app: Express) {
   app.post('/api/attendance/toggle', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'Not found' });
-    const active = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
+    const active = db().attendanceLogs.find(l => userIdMatches(l.userId, req.userId!) && !l.clockOut);
     let checkedIn = false;
 
     if (active) {
@@ -850,7 +852,7 @@ export async function registerRoutes(app: Express) {
       active.clockOut = new Date().toISOString();
       checkedIn = false;
     } else {
-      const openNow = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
+      const openNow = db().attendanceLogs.find(l => userIdMatches(l.userId, req.userId!) && !l.clockOut);
       if (openNow) return res.status(409).json({ error: 'Already clocked in' });
       const settings = db().orgSettings as { geoAttendanceRequired?: boolean; officeGeofence?: typeof DEFAULT_GEOFENCE };
       const fence = settings.officeGeofence || DEFAULT_GEOFENCE;
@@ -882,7 +884,7 @@ export async function registerRoutes(app: Express) {
       user: sanitizeUser(user),
       checkedIn,
       status: attendanceStatusPayload(
-        db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut),
+        db().attendanceLogs.find(l => userIdMatches(l.userId, req.userId!) && !l.clockOut),
         checkedIn,
       ),
     });
@@ -891,7 +893,7 @@ export async function registerRoutes(app: Express) {
   app.post('/api/attendance/request-early-clockout', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'Not found' });
-    const active = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
+    const active = db().attendanceLogs.find(l => userIdMatches(l.userId, req.userId!) && !l.clockOut);
     if (!active) return res.status(400).json({ error: 'You are not clocked in.' });
 
     const ev = evaluateClockOut(active);
@@ -906,7 +908,7 @@ export async function registerRoutes(app: Express) {
     }
 
     const pending = db().attendanceRequests.find(
-      r => r.userId === req.userId && r.type === 'early_clock_out' && r.status === 'Pending',
+      r => userIdMatches(r.userId, req.userId!) && r.type === 'early_clock_out' && r.status === 'Pending',
     );
     if (pending) return res.status(409).json({ error: 'You already have a pending early clock-out request.' });
 
@@ -946,7 +948,7 @@ export async function registerRoutes(app: Express) {
     if (type === 'overtime' && !req.body.hours) return res.status(400).json({ error: 'Hours required for overtime' });
     if (type === 'regularization' && !req.body.time) return res.status(400).json({ error: 'Time required for regularization' });
     const dup = db().attendanceRequests.some(
-      r => r.userId === req.userId && r.type === type && r.date === date && r.status === 'Pending',
+      r => userIdMatches(r.userId, req.userId!) && r.type === type && r.date === date && r.status === 'Pending',
     );
     if (dup) return res.status(409).json({ error: 'A pending request already exists for this date and type' });
 
@@ -959,7 +961,9 @@ export async function registerRoutes(app: Express) {
 
   app.get('/api/attendance/requests', (req: AuthedRequest, res) => {
     const u = getUserById(req.userId!);
-    const list = (u?.role === 'manager' || u?.role === 'admin') ? db().attendanceRequests : db().attendanceRequests.filter(r => r.userId === req.userId);
+    const list = (u?.role === 'manager' || u?.role === 'admin')
+      ? db().attendanceRequests
+      : db().attendanceRequests.filter(r => userIdMatches(r.userId, req.userId!));
     res.json(list.map(r => ({ ...r, employee: sanitizeUser(getUserById(r.userId)!) })));
   });
 
@@ -1171,7 +1175,9 @@ export async function registerRoutes(app: Express) {
   // Help desk
   app.get('/api/helpdesk/tickets', (req: AuthedRequest, res) => {
     const u = getUserById(req.userId!);
-    const list = (u?.role === 'manager' || u?.role === 'admin') ? db().tickets : db().tickets.filter(t => t.userId === req.userId);
+    const list = (u?.role === 'manager' || u?.role === 'admin')
+      ? db().tickets
+      : db().tickets.filter(t => userIdMatches(t.userId, req.userId!));
     const stats = { total: db().tickets.length, open: db().tickets.filter(t => t.status === 'Open').length, inProgress: db().tickets.filter(t => t.status === 'In Progress').length, resolved: db().tickets.filter(t => t.status === 'Resolved').length };
     res.json({ tickets: list, stats });
   });
@@ -1286,15 +1292,21 @@ export async function registerRoutes(app: Express) {
     res.json({ success: true, goal: g });
   });
 
+  const chatInvolves = (fromId: string, toId: string, userId: string) =>
+    userIdMatches(fromId, userId) || userIdMatches(toId, userId);
+  const chatBetween = (fromId: string, toId: string, a: string, b: string) =>
+    (userIdMatches(fromId, a) && userIdMatches(toId, b)) || (userIdMatches(fromId, b) && userIdMatches(toId, a));
+
   // Chat
   app.get('/api/chat/conversations', (req: AuthedRequest, res) => {
-    const msgs = (db().chatMessages || []).filter(m => m.fromId === req.userId || m.toId === req.userId);
-    const partnerIds = [...new Set(msgs.map(m => (m.fromId === req.userId ? m.toId : m.fromId)))];
+    const uid = req.userId!;
+    const msgs = (db().chatMessages || []).filter(m => chatInvolves(m.fromId, m.toId, uid));
+    const partnerIds = [...new Set(msgs.map(m => (userIdMatches(m.fromId, uid) ? m.toId : m.fromId)))];
     const conversations = partnerIds.flatMap(id => {
       const u = getUserById(id);
       if (!u || u.status === 'Inactive') return [];
       const thread = msgs
-        .filter(m => (m.fromId === id && m.toId === req.userId) || (m.fromId === req.userId && m.toId === id))
+        .filter(m => chatBetween(m.fromId, m.toId, id, uid))
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       const last = thread[0];
       return [{ userId: id, name: u.name, lastMessage: last?.content, lastAt: last?.createdAt }];
@@ -1308,14 +1320,14 @@ export async function registerRoutes(app: Express) {
     const partner = getUserById(partnerId);
     if (!partner || partner.status === 'Inactive') return res.status(404).json({ error: 'Chat partner not found' });
     const msgs = (db().chatMessages || [])
-      .filter(m => (m.fromId === req.userId && m.toId === partnerId) || (m.fromId === partnerId && m.toId === req.userId))
+      .filter(m => chatBetween(m.fromId, m.toId, req.userId!, partnerId))
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     res.json(msgs);
   });
 
   app.post('/api/chat/:userId/messages', (req: AuthedRequest, res) => {
     const partnerId = String(req.params.userId || '').trim();
-    if (!partnerId || partnerId === req.userId) return res.status(400).json({ error: 'Cannot message yourself' });
+    if (!partnerId || userIdMatches(partnerId, req.userId!)) return res.status(400).json({ error: 'Cannot message yourself' });
     const recipient = getUserById(partnerId);
     if (!recipient || recipient.status === 'Inactive') return res.status(404).json({ error: 'Recipient not found' });
     const content = String(req.body.content || '').trim();

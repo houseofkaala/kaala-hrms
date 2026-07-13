@@ -69,9 +69,10 @@ export function recordLoginFailure(email: string, userId?: string): { locked: bo
       'Multiple failed sign-in attempts were detected on your account.',
       { triggerId: 'security.failed_attempts' },
     );
+    saveDb();
+    return { locked: false, attempts: st.count };
   }
 
-  saveDb();
   return { locked: false, attempts: st.count };
 }
 

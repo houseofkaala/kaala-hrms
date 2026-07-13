@@ -33,10 +33,17 @@ export const fetcher = async <T,>(url: string, options?: RequestInit): Promise<T
 
   if (res.status === 401) {
     clearToken();
+    let message = 'Unauthorized';
+    try {
+      const body = await res.json();
+      message = body.error || body.message || message;
+    } catch {
+      // ignore parse errors
+    }
     if (!window.location.pathname.startsWith('/login')) {
       window.location.href = getPortalLoginUrl(getPortal());
     }
-    throw new ApiError('Unauthorized', 401);
+    throw new ApiError(message, 401);
   }
 
   if (!res.ok) {

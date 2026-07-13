@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import type { UserRecord } from './db';
+import { LEGACY_ID_MAP } from './user-ids';
 
 const DOMAIN = process.env.SEED_EMAIL_DOMAIN || 'bymarketingonly.com';
 
@@ -94,7 +95,8 @@ export function syncSeedUsers(users: UserRecord[]): UserRecord[] {
     const next = [...users];
     for (const seed of getSeedUsers()) {
       const hasRole = next.some(u => u.role === seed.role && u.status === 'Active');
-      if (!hasRole) {
+      const hasId = next.some(u => u.id === seed.id);
+      if (!hasRole && !hasId) {
         next.push({ ...seed, password: seed.password || crypto.randomUUID() });
       }
     }
@@ -132,11 +134,6 @@ export function syncSeedUsers(users: UserRecord[]): UserRecord[] {
 
   return next;
 }
-
-const LEGACY_ID_MAP: Record<string, string> = {
-  u1: 'emp-1', u2: 'emp-1', u3: 'emp-1', u4: 'emp-1',
-  m1: 'mgr-1', m2: 'admin-1',
-};
 
 function remapId(id: string | null | undefined): string | null | undefined {
   if (!id) return id;
