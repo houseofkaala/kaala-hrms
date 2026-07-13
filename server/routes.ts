@@ -1203,26 +1203,50 @@ export async function registerRoutes(app: Express) {
 
   // Chat
   app.get('/api/chat/conversations', (req: AuthedRequest, res) => {
-    const msgs = db().chatMessages.filter(m => m.fromId === req.userId || m.toId === req.userId);
-    const partnerIds = [...new Set(msgs.map(m => m.fromId === req.userId ? m.toId : m.fromId))];
-    res.json(partnerIds.map(id => {
+    const msgs = (db().chatMessages || []).filter(m => m.fromId === req.userId || m.toId === req.userId);
+    const partnerIds = [...new Set(msgs.map(m => (m.fromId === req.userId ? m.toId : m.fromId)))];
+    const conversations = partnerIds.flatMap(id => {
       const u = getUserById(id);
-      const last = msgs.filter(m => (m.fromId === id && m.toId === req.userId) || (m.fromId === req.userId && m.toId === id)).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-      return { userId: id, name: u?.name, lastMessage: last?.content, lastAt: last?.createdAt };
-    }));
+      if (!u || u.status === 'Inactive') return [];
+      const thread = msgs
+        .filter(m => (m.fromId === id && m.toId === req.userId) || (m.fromId === req.userId && m.toId === id))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const last = thread[0];
+      return [{ userId: id, name: u.name, lastMessage: last?.content, lastAt: last?.createdAt }];
+    }).sort((a, b) => new Date(b.lastAt || 0).getTime() - new Date(a.lastAt || 0).getTime());
+    res.json(conversations);
   });
+
   app.get('/api/chat/:userId/messages', (req: AuthedRequest, res) => {
-    const msgs = db().chatMessages.filter(m => (m.fromId === req.userId && m.toId === req.params.userId) || (m.fromId === req.params.userId && m.toId === req.userId)).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const partnerId = String(req.params.userId || '').trim();
+    if (!partnerId || partnerId === req.userId) return res.status(400).json({ error: 'Invalid chat partner' });
+    const partner = getUserById(partnerId);
+    if (!partner || partner.status === 'Inactive') return res.status(404).json({ error: 'Chat partner not found' });
+    const msgs = (db().chatMessages || [])
+      .filter(m => (m.fromId === req.userId && m.toId === partnerId) || (m.fromId === partnerId && m.toId === req.userId))
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     res.json(msgs);
   });
+
   app.post('/api/chat/:userId/messages', (req: AuthedRequest, res) => {
-    const recipient = getUserById(req.params.userId);
+    const partnerId = String(req.params.userId || '').trim();
+    if (!partnerId || partnerId === req.userId) return res.status(400).json({ error: 'Cannot message yourself' });
+    const recipient = getUserById(partnerId);
     if (!recipient || recipient.status === 'Inactive') return res.status(404).json({ error: 'Recipient not found' });
     const content = String(req.body.content || '').trim();
     if (!content) return res.status(400).json({ error: 'Message is required' });
-    const m = { id: `cm${Date.now()}`, fromId: req.userId!, toId: req.params.userId, content, createdAt: new Date().toISOString() };
+    if (content.length > 4000) return res.status(400).json({ error: 'Message is too long (max 4000 characters)' });
+    const m = {
+      id: `cm${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      fromId: req.userId!,
+      toId: partnerId,
+      content,
+      createdAt: new Date().toISOString(),
+    };
+    if (!db().chatMessages) db().chatMessages = [];
     db().chatMessages.push(m);
-    pushNotification(req.params.userId, 'New message', `${getUserById(req.userId!)?.name}: ${req.body.content.slice(0, 50)}`);
+    const senderName = getUserById(req.userId!)?.name || 'Someone';
+    pushNotification(partnerId, 'New message', `${senderName}: ${content.slice(0, 50)}${content.length > 50 ? '…' : ''}`);
     saveDb();
     res.json({ success: true, message: m });
   });

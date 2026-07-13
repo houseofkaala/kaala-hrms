@@ -73,6 +73,7 @@ function applyMigrations() {
   if (!db.emailDigestMeta) db.emailDigestMeta = {};
   if (!db.surveyResponses) db.surveyResponses = [];
   if (!db.sessions) db.sessions = [];
+  if (!db.chatMessages) db.chatMessages = [];
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
   ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);

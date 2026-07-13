@@ -5,9 +5,9 @@ import { ArrowLeft, MessageSquare, Search, Send } from 'lucide-react';
 import { cn, fetcher } from '../utils';
 import type { User } from '../types';
 import { UserPortrait } from '../components/UserPortrait';
+import { buildChatList, buildChatRoster, resolveChatPartner, type ChatConversation } from '../chat-utils';
 
 interface Message { id: string; fromId: string; toId: string; content: string; createdAt: string }
-interface Conversation { userId: string; name: string; lastMessage?: string }
 
 function formatMessageTime(value: string) {
   const date = new Date(value);
@@ -18,7 +18,7 @@ function formatMessageTime(value: string) {
 export function ChatViewWired({ users, currentUser, compact = false }: { users: User[]; currentUser: User | null; compact?: boolean }) {
   const location = useLocation();
   const initialUserId = (location.state as { userId?: string } | null)?.userId;
-  const [selectedId, setSelectedId] = useState(initialUserId || users.find(u => u.id !== currentUser?.id)?.id || '');
+  const [selectedId, setSelectedId] = useState('');
   const [message, setMessage] = useState('');
   const [search, setSearch] = useState('');
   const [mobileShowList, setMobileShowList] = useState(true);
@@ -27,20 +27,48 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
   const qc = useQueryClient();
   const threadRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (initialUserId) setSelectedId(initialUserId);
-  }, [initialUserId]);
+  const { data: directoryUsers = [] } = useQuery<User[]>({
+    queryKey: ['chat-directory'],
+    queryFn: () => fetcher('/api/users'),
+    staleTime: 120_000,
+  });
 
-  const { data: conversations = [] } = useQuery<Conversation[]>({
+  const roster = buildChatRoster(directoryUsers, users, currentUser?.id);
+
+  useEffect(() => {
+    if (initialUserId) {
+      setSelectedId(initialUserId);
+      setMobileShowList(false);
+      return;
+    }
+    if (!selectedId && roster.length > 0) {
+      setSelectedId(roster[0].id);
+    }
+  }, [initialUserId, roster, selectedId]);
+
+  const { data: conversations = [] } = useQuery<ChatConversation[]>({
     queryKey: ['chat-conversations'],
     queryFn: () => fetcher('/api/chat/conversations'),
+    refetchInterval: 15_000,
   });
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['chat-messages', selectedId],
     queryFn: () => fetcher(`/api/chat/${selectedId}/messages`),
     enabled: !!selectedId,
+    refetchInterval: () => (document.visibilityState === 'visible' ? 5_000 : false),
   });
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && selectedId) {
+        qc.invalidateQueries({ queryKey: ['chat-messages', selectedId] });
+        qc.invalidateQueries({ queryKey: ['chat-conversations'] });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [qc, selectedId]);
 
   useEffect(() => {
     const el = threadRef.current;
@@ -49,28 +77,45 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
   }, [messages, selectedId]);
 
   const send = async () => {
-    if (!message.trim() || !selectedId || sending) return;
+    if (!message.trim() || !selectedId || sending || !currentUser) return;
     setSending(true);
     setSendError('');
     const text = message.trim();
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMessage: Message = {
+      id: optimisticId,
+      fromId: currentUser.id,
+      toId: selectedId,
+      content: text,
+      createdAt: new Date().toISOString(),
+    };
+
+    qc.setQueryData<Message[]>(['chat-messages', selectedId], old => [...(old || []), optimisticMessage]);
+    setMessage('');
+
     try {
-      await fetcher(`/api/chat/${selectedId}/messages`, { method: 'POST', body: JSON.stringify({ content: text }) });
-      setMessage('');
-      qc.invalidateQueries({ queryKey: ['chat-messages', selectedId] });
+      const result = await fetcher<{ message: Message }>(`/api/chat/${selectedId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ content: text }),
+      });
+      qc.setQueryData<Message[]>(['chat-messages', selectedId], old =>
+        (old || []).map(item => (item.id === optimisticId ? result.message : item)),
+      );
       qc.invalidateQueries({ queryKey: ['chat-conversations'] });
     } catch (e) {
+      qc.setQueryData<Message[]>(['chat-messages', selectedId], old =>
+        (old || []).filter(item => item.id !== optimisticId),
+      );
+      setMessage(text);
       setSendError(e instanceof Error ? e.message : 'Failed to send message');
     } finally {
       setSending(false);
     }
   };
 
-  const list: Conversation[] = conversations.length
-    ? conversations
-    : users.filter(u => u.id !== currentUser?.id).map(u => ({ userId: u.id, name: u.name, lastMessage: undefined }));
-
+  const list = buildChatList(roster, conversations);
   const filtered = list.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
-  const partner = users.find(u => u.id === selectedId);
+  const partner = resolveChatPartner(selectedId, roster, conversations);
 
   return (
     <div className={cn('kaala-chat flex overflow-hidden', compact ? 'h-full rounded-none border-0' : 'view-panel-height')}>
@@ -96,10 +141,12 @@ export function ChatViewWired({ users, currentUser, compact = false }: { users: 
         </div>
         <div className="flex-1 overflow-y-auto premium-scrollbar">
           {filtered.length === 0 ? (
-            <p className="kaala-chat-empty text-xs text-center px-3 py-8">No teammates found</p>
+            <p className="kaala-chat-empty text-xs text-center px-3 py-8">
+              {roster.length === 0 ? 'No teammates available yet' : 'No teammates found'}
+            </p>
           ) : (
             filtered.map(c => {
-              const user = users.find(u => u.id === c.userId);
+              const user = roster.find(u => u.id === c.userId);
               return (
                 <button
                   key={c.userId}
