@@ -14,6 +14,16 @@ const PORTAL_HOSTS: Record<Portal, string[]> = {
   admin: ['admin', 'manager'],
 };
 
+const PORTAL_SESSION_KEY = 'kaala_portal';
+
+export function setStoredPortal(portal: Portal) {
+  try {
+    sessionStorage.setItem(PORTAL_SESSION_KEY, portal);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 export function getPortal(hostname = window.location.hostname): Portal {
   const params = new URLSearchParams(window.location.search);
   const override = params.get('portal');
@@ -25,7 +35,15 @@ export function getPortal(hostname = window.location.hostname): Portal {
     if (hosts.includes(sub)) return portal;
   }
 
-  if (hostname === 'localhost' || hostname === '127.0.0.1') return 'employee';
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    try {
+      const stored = sessionStorage.getItem(PORTAL_SESSION_KEY);
+      if (stored === 'admin' || stored === 'employee') return stored;
+    } catch {
+      // ignore
+    }
+    return 'employee';
+  }
   return 'employee';
 }
 

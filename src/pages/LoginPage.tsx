@@ -4,7 +4,7 @@ import { setToken, clearToken, isAuthenticated } from '../auth';
 import { fetcher } from '../utils';
 import type { User } from '../types';
 import { useRBACStore } from '../store';
-import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, getPortalLoginUrl, type Portal } from '../portal';
+import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, getPortalLoginUrl, setStoredPortal, type Portal } from '../portal';
 import { PasswordInput } from '../components/PasswordInput';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -76,6 +76,7 @@ export default function LoginPage() {
           window.location.href = getPortalLoginUrl(correct);
           return;
         }
+        setStoredPortal(portalForRole(user.role));
         setCurrentUser(user);
         navigate('/dashboard', { replace: true });
       } catch (err) {
@@ -138,7 +139,8 @@ export default function LoginPage() {
         window.location.href = getPortalLoginUrl(correct);
         return;
       }
-      setToken(body.token);
+      setToken(body.token!);
+      setStoredPortal(portalForRole(user.role));
       setCurrentUser(user);
       navigate('/dashboard');
     } catch (err) {

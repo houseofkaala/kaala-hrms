@@ -38,3 +38,16 @@ export function ensureRolePermissions(
     }
   }
 }
+
+/** Backfill missing modules on live roles without removing custom grants. */
+export function mergeDefaultModuleAccess(
+  rolePermissions: Record<string, { modules: string[]; description: string }>,
+) {
+  for (const [role, defaults] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
+    const cfg = rolePermissions[role];
+    if (!cfg || cfg.modules.includes('*')) continue;
+    for (const mod of defaults.modules) {
+      if (!cfg.modules.includes(mod)) cfg.modules.push(mod);
+    }
+  }
+}

@@ -47,7 +47,8 @@ const EMPLOYEE_PORTAL_MODULES = new Set([
   'dashboard', 'people', 'attendance', 'leave', 'documents', 'assets',
   'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace',
   'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications',
-  'timesheets', 'holidays', 'policies', 'projects', 'settings', 'security', 'benefits', 'tax',
+  'timesheets', 'holidays', 'policies', 'projects', 'tasks', 'onboarding', 'orgchart',
+  'settings', 'security', 'benefits', 'tax',
 ]);
 
 export function moduleForRoute(route: string): string {

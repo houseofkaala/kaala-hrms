@@ -26,6 +26,12 @@ export function OnboardingView() {
     queryFn: () => fetcher('/api/onboarding'),
   });
 
+  const { data: employees = [] } = useQuery<{ id: string; name: string; email: string }[]>({
+    queryKey: ['employees-onboarding'],
+    queryFn: () => fetcher('/api/employees'),
+    enabled: isManager,
+  });
+
   const complete = async (id: string) => {
     await fetcher(`/api/onboarding/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'Completed' }) });
     qc.invalidateQueries({ queryKey: ['onboarding'] });
@@ -58,7 +64,12 @@ export function OnboardingView() {
 
       {showForm && isManager && (
         <form onSubmit={assign} className="bg-white border border-gray-200 rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-4 shadow-sm">
-          <input required placeholder="Employee user ID" value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+          <select required value={form.userId} onChange={e => setForm({ ...form, userId: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
+            <option value="">Select employee</option>
+            {employees.map(e => (
+              <option key={e.id} value={e.id}>{e.name} ({e.email})</option>
+            ))}
+          </select>
           <input required placeholder="Task title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
           <input type="date" required value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm" />
           <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">

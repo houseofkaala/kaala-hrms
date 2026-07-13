@@ -13,6 +13,15 @@ interface FieldAgent {
   lng?: number;
 }
 
+interface FieldVisit {
+  id: string;
+  userId: string;
+  userName: string;
+  location: string;
+  notes: string;
+  createdAt: string;
+}
+
 const MAP_CENTER = { lat: 12.9716, lng: 77.5946 };
 
 function agentPosition(agent: FieldAgent, index: number) {
@@ -42,6 +51,11 @@ export function FieldView() {
     queryFn: () => fetcher('/api/field/agents'),
   });
 
+  const { data: visits = [] } = useQuery<FieldVisit[]>({
+    queryKey: ['field-visits'],
+    queryFn: () => fetcher('/api/field/visits'),
+  });
+
   const agents = data?.agents || [];
 
   const handleCheckIn = async () => {
@@ -64,6 +78,7 @@ export function FieldView() {
     setCheckInLoc('');
     setCheckInNotes('');
     qc.invalidateQueries({ queryKey: ['field'] });
+    qc.invalidateQueries({ queryKey: ['field-visits'] });
   };
 
   const handleAdd = async (e: FormEvent) => {
@@ -148,6 +163,30 @@ export function FieldView() {
           );
         })}
       </div>
+
+      {(isSales || isManager) && (
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900">Recent field visits</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{isManager ? 'Team check-ins' : 'Your check-in history'}</p>
+          </div>
+          {visits.length === 0 ? (
+            <p className="p-6 text-sm text-gray-500">No visits logged yet. Use Check in above after a client visit.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {visits.slice(0, 20).map(v => (
+                <div key={v.id} className="px-6 py-3 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{v.location}</p>
+                    <p className="text-xs text-gray-500">{v.userName} · {new Date(v.createdAt).toLocaleString()}</p>
+                    {v.notes && <p className="text-xs text-gray-600 mt-1">{v.notes}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {agents.map(a => (

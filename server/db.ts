@@ -5,7 +5,7 @@ import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
 import { seedOperationalContent } from './operational-seed';
 import { hasOperationalData, isDataPreserveMode, markDataVersionCurrent } from './data-preserve';
-import { ensureRolePermissions } from './role-defaults';
+import { ensureRolePermissions, mergeDefaultModuleAccess } from './role-defaults';
 import { mergeEmailSettings } from './notifications/registry';
 import {
   flushPersistence,
@@ -107,6 +107,7 @@ function applyMigrations() {
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
   ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
+  mergeDefaultModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergeCrmModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergePhase2ModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergeSecurityModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, Plus, Check, X } from 'lucide-react';
 import { fetcher, cn } from '../utils';
 import { useRBACStore } from '../store';
+import { ViewApiError } from '../components/ViewApiError';
 
 interface Timesheet {
   id: string;
@@ -23,12 +24,17 @@ export function TimesheetsView() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ projectId: '', date: '', hours: '', description: '' });
 
-  const { data: timesheets = [] } = useQuery<Timesheet[]>({
+  const {
+    data: timesheets = [],
+    error: timesheetsError,
+    refetch: refetchTimesheets,
+    isLoading: timesheetsLoading,
+  } = useQuery<Timesheet[]>({
     queryKey: ['timesheets', isManager],
     queryFn: () => fetcher(`/api/timesheets${isManager ? '?all=1' : ''}`),
   });
 
-  const { data: projects = [] } = useQuery<Project[]>({
+  const { data: projects = [], error: projectsError } = useQuery<Project[]>({
     queryKey: ['projects'],
     queryFn: () => fetcher('/api/projects'),
   });
@@ -48,8 +54,16 @@ export function TimesheetsView() {
 
   const totalHours = timesheets.reduce((s, t) => s + t.hours, 0);
 
+  const loadError = timesheetsError || projectsError;
+
   return (
     <div className="space-y-6">
+      {loadError && (
+        <ViewApiError
+          message={loadError instanceof Error ? loadError.message : 'Access denied or server error'}
+          onRetry={() => refetchTimesheets()}
+        />
+      )}
       <div className="bg-white px-8 py-6 border border-gray-200 rounded-2xl flex items-center justify-between shadow-sm">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Timesheets</h2>
@@ -74,6 +88,11 @@ export function TimesheetsView() {
       )}
 
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        {timesheetsLoading ? (
+          <p className="p-6 text-sm text-gray-500">Loading timesheets…</p>
+        ) : timesheets.length === 0 ? (
+          <p className="p-6 text-sm text-gray-500">No timesheet entries yet. Log your first hours above.</p>
+        ) : (
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500">
             <tr>
@@ -109,7 +128,7 @@ export function TimesheetsView() {
             ))}
           </tbody>
         </table>
-        {timesheets.length === 0 && <p className="text-center text-gray-400 py-12 text-sm">No timesheets logged yet</p>}
+        )}
       </div>
     </div>
   );
