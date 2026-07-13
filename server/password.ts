@@ -15,9 +15,19 @@ export function hashPassword(plain: string): string {
   return `${PREFIX}${salt.toString('hex')}:${hash.toString('hex')}`;
 }
 
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    crypto.timingSafeEqual(bufA, bufA);
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 export function verifyPassword(plain: string, stored: string): boolean {
   if (!stored) return false;
-  if (!isPasswordHashed(stored)) return plain === stored;
+  if (!isPasswordHashed(stored)) return timingSafeStringEqual(plain, stored);
   const body = stored.slice(PREFIX.length);
   const [saltHex, hashHex] = body.split(':');
   if (!saltHex || !hashHex) return false;

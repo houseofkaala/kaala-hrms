@@ -15,6 +15,7 @@ export function createEmptyOperationalDb() {
     documents: [] as { id: string; userId: string; name: string; category: string; uploadedAt: string; size: string; storageKey?: string; mimeType?: string }[],
     sessions: [] as { token: string; userId: string; createdAt: string; expiresAt: string; ip?: string; userAgent?: string }[],
     securityAuditLog: [] as { id: string; event: string; userId?: string; actorId?: string; ip?: string; userAgent?: string; detail?: string; createdAt: string }[],
+    loginAttemptStates: {} as Record<string, { count: number; windowStart: number; lockedUntil?: number }>,
     notifications: [] as { id: string; userId: string; title: string; message: string; read: boolean; createdAt: string }[],
     attendanceLogs: [] as { id: string; userId: string; clockIn: string; clockOut: string | null; date: string; earlyClockOutApproved?: boolean }[],
     attendanceRequests: [] as { id: string; userId: string; type: string; date: string; hours?: string; reason?: string; location?: string; time?: string; status: string; createdAt: string }[],

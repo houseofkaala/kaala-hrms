@@ -79,6 +79,8 @@ function applyMigrations() {
   if (!(db as Database & { securityAuditLog?: unknown[] }).securityAuditLog) {
     (db as Database & { securityAuditLog: unknown[] }).securityAuditLog = [];
   }
+  const lockStates = db as Database & { loginAttemptStates?: Record<string, unknown> };
+  if (!lockStates.loginAttemptStates) lockStates.loginAttemptStates = {};
   if (!db.chatMessages) db.chatMessages = [];
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);

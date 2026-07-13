@@ -1,10 +1,12 @@
 import express from 'express';
 import path from 'path';
 import { registerRoutes } from './server/routes';
+import { applyHardening } from './server/hardening';
 
 async function startServer() {
   const app = express();
   app.set('trust proxy', 1);
+  applyHardening(app);
   app.use(express.json({ limit: '15mb' }));
   const PORT = Number(process.env.PORT) || 3000;
 

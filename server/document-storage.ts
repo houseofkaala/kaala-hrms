@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { assertSafeStorageKey } from './storage-guard';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'data', 'uploads');
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -48,13 +49,14 @@ export function saveDocumentFile(docId: string, contentBase64: string, mimeType:
 }
 
 export function getDocumentFilePath(storageKey: string): string | null {
+  if (!assertSafeStorageKey(storageKey, UPLOAD_DIR)) return null;
   const filePath = path.join(UPLOAD_DIR, storageKey);
   if (!fs.existsSync(filePath)) return null;
   return filePath;
 }
 
 export function deleteDocumentFile(storageKey: string | undefined) {
-  if (!storageKey) return;
+  if (!storageKey || !assertSafeStorageKey(storageKey, UPLOAD_DIR)) return;
   const filePath = path.join(UPLOAD_DIR, storageKey);
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }

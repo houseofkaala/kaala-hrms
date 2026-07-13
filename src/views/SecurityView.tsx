@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Shield, Key, Monitor, LogOut, AlertTriangle, Clock, Users, RefreshCw,
+  Shield, Key, Monitor, LogOut, AlertTriangle, Clock, Users, RefreshCw, CheckCircle2, ShieldAlert,
 } from 'lucide-react';
 import { fetcher, cn } from '../utils';
 import { useRBACStore } from '../store';
@@ -25,10 +25,18 @@ interface AuditEntry {
   createdAt: string;
 }
 
+interface ProtectionItem {
+  id: string;
+  label: string;
+  active: boolean;
+  detail: string;
+}
+
 interface SecurityOverview {
   twoFactorRequired: boolean;
   sessions: SessionInfo[];
   activity: AuditEntry[];
+  protections?: ProtectionItem[];
 }
 
 interface AdminSessionUser {
@@ -166,6 +174,34 @@ export function SecurityView() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {overview.protections && overview.protections.length > 0 && (
+        <div className="studio-card p-6 space-y-4">
+          <h3 className="text-sm font-semibold text-maroon-950 flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4" /> System protections
+          </h3>
+          <p className="text-xs text-gray-500">
+            Active defences that protect House of Kaala HRMS from hacking, brute-force, and data theft.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {overview.protections.map(p => (
+              <div
+                key={p.id}
+                className={cn(
+                  'flex items-start gap-2.5 rounded-xl border px-3 py-2.5',
+                  p.active ? 'border-green-200 bg-green-50/50' : 'border-gray-200 bg-gray-50',
+                )}
+              >
+                <CheckCircle2 className={cn('w-4 h-4 mt-0.5 shrink-0', p.active ? 'text-green-600' : 'text-gray-400')} />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{p.label}</p>
+                  <p className="text-xs text-gray-500">{p.detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="studio-card px-8 py-6">
         <div className="flex items-start gap-3">
           <Shield className="w-5 h-5 text-maroon-600 mt-0.5" />

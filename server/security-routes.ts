@@ -22,6 +22,22 @@ import {
 } from './security-audit';
 import { pushNotification } from './db';
 
+function getProtectionStatus() {
+  const isProd = process.env.NODE_ENV === 'production';
+  return [
+    { id: 'https', label: 'HTTPS enforced', active: isProd, detail: 'Encrypted connections in production' },
+    { id: 'headers', label: 'Security headers', active: true, detail: 'Anti-clickjacking, MIME sniffing, CSP' },
+    { id: 'rate-limit', label: 'API rate limiting', active: true, detail: 'Blocks brute-force and flood attacks' },
+    { id: 'lockout', label: 'Account lockout', active: true, detail: '10 failed logins → 30 min lock' },
+    { id: 'sessions', label: 'Session management', active: true, detail: 'Revoke devices remotely' },
+    { id: 'audit', label: 'Security audit log', active: true, detail: 'Tracks sign-ins and account changes' },
+    { id: 'uploads', label: 'Upload sandboxing', active: true, detail: 'File type checks + path traversal blocks' },
+    { id: 'passwords', label: 'Password hashing', active: true, detail: 'scrypt with per-user salt' },
+    { id: 'cors', label: 'Origin restrictions', active: isProd, detail: 'Only your domains can call the API' },
+    { id: 'sso-exchange', label: 'Secure SSO handoff', active: true, detail: 'One-time codes instead of tokens in URLs' },
+  ];
+}
+
 function currentToken(req: AuthedRequest): string | undefined {
   const h = req.headers.authorization;
   return h?.startsWith('Bearer ') ? h.slice(7) : undefined;
@@ -57,6 +73,7 @@ export function registerSecurityRoutes(app: Express) {
       twoFactorRequired: Boolean(getDb().orgSettings.twoFactorRequired),
       sessions,
       activity,
+      protections: getProtectionStatus(),
     });
   });
 

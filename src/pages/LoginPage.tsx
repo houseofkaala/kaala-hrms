@@ -42,8 +42,9 @@ export default function LoginPage() {
       return;
     }
 
-    const token = params.get('token');
-    if (!token) {
+    const authCode = params.get('auth_code');
+    const legacyToken = params.get('token');
+    if (!authCode && !legacyToken) {
       if (isAuthenticated()) navigate('/dashboard', { replace: true });
       return;
     }
@@ -54,6 +55,15 @@ export default function LoginPage() {
 
     (async () => {
       try {
+        let token = legacyToken;
+        if (authCode) {
+          const exchanged = await fetcher<{ token: string }>('/api/auth/exchange', {
+            method: 'POST',
+            body: JSON.stringify({ code: authCode }),
+          });
+          token = exchanged.token;
+        }
+        if (!token) throw new Error('Sign-in failed');
         setToken(token);
         const user = await fetcher<User>('/api/me');
         if (cancelled) return;

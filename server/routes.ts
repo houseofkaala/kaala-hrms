@@ -3,7 +3,15 @@ import {
   initDb, saveDb, getDb, sanitizeUser, getUserById, pushNotification, addTransaction, getStorageBackend, UserRecord,
 } from './db';
 import { AuthedRequest, authMiddleware, requireRole, createSession, deleteSession, revokeOtherSessions, moduleAccessMiddleware } from './middleware';
-import { checkLoginRateLimit, clearLoginRateLimit } from './rate-limit';
+import {
+  checkLoginRateLimit,
+  clearLoginRateLimit,
+  checkApiRateLimit,
+  checkAuthEndpointRateLimit,
+  checkSensitiveActionRateLimit,
+} from './rate-limit';
+import { isAccountLocked, recordLoginFailure, clearLoginFailures } from './account-lockout';
+import { redeemAuthExchangeCode } from './auth-exchange';
 import { getAllowedModules, assertValidRoleChange, assertCanAssignRole } from './security';
 import { saveDocumentFile, getDocumentFilePath, deleteDocumentFile, mimeFromFilename } from './document-storage';
 import { saveAvatar, getAvatarPath, deleteAvatar, avatarMime } from './avatar-storage';
@@ -96,10 +104,44 @@ export async function registerRoutes(app: Express) {
 
   app.use('/api', dbWriteMutex);
 
+  app.use('/api', (req, res, next) => {
+    const clientIp = String(req.ip || req.socket.remoteAddress || 'unknown');
+    const path = req.originalUrl.split('?')[0];
+    if (path === '/api/health') return next();
+    const rate = checkApiRateLimit(clientIp);
+    if (!rate.allowed) {
+      return res.status(429).json({
+        error: `Too many requests. Try again in ${rate.retryAfterSec} seconds.`,
+      });
+    }
+    next();
+  });
+
+  app.post('/api/auth/exchange', (req, res) => {
+    const clientIp = String(req.ip || req.socket.remoteAddress || 'unknown');
+    const authRate = checkAuthEndpointRateLimit(clientIp);
+    if (!authRate.allowed) {
+      return res.status(429).json({
+        error: `Too many requests. Try again in ${authRate.retryAfterSec} seconds.`,
+      });
+    }
+    const code = String(req.body.code || '').trim();
+    if (!code) return res.status(400).json({ error: 'Exchange code required' });
+    const token = redeemAuthExchangeCode(code);
+    if (!token) return res.status(401).json({ error: 'Invalid or expired sign-in code' });
+    res.json({ token });
+  });
+
   app.post('/api/auth/login', (req, res) => {
     const email = String(req.body.email || '').trim().toLowerCase();
     const password = String(req.body.password || '');
     const clientIp = String(req.ip || req.socket.remoteAddress || 'unknown');
+    const authRate = checkAuthEndpointRateLimit(clientIp);
+    if (!authRate.allowed) {
+      return res.status(429).json({
+        error: `Too many sign-in attempts. Try again in ${authRate.retryAfterSec} seconds.`,
+      });
+    }
     const rate = checkLoginRateLimit(clientIp, email);
     if (!rate.allowed) {
       return res.status(429).json({
@@ -108,11 +150,19 @@ export async function registerRoutes(app: Express) {
     }
     const ctx = requestContext(req);
     const user = db().users.find(u => u.email?.toLowerCase() === email);
+    const lock = isAccountLocked(email, user?.id);
+    if (lock.locked) {
+      return res.status(423).json({
+        error: `Account temporarily locked. Try again in ${lock.retryAfterSec} seconds.`,
+      });
+    }
     if (!user || !verifyPassword(password, user.password)) {
+      recordLoginFailure(email, user?.id);
       logSecurityEvent('login_failed', { userId: user?.id, ...ctx, detail: email });
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     clearLoginRateLimit(clientIp, email);
+    clearLoginFailures(email, user.id);
     if (user.status === 'Inactive') {
       return res.status(403).json({ error: 'Account is inactive. Contact HR.' });
     }
@@ -141,6 +191,9 @@ export async function registerRoutes(app: Express) {
   });
 
   app.get('/api/health', (_req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.json({ status: 'ok' });
+    }
     const storage = getStorageBackend();
     res.json({
       status: 'ok',
@@ -339,6 +392,13 @@ export async function registerRoutes(app: Express) {
   app.patch('/api/me/password', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    const clientIp = String(req.ip || req.socket.remoteAddress || 'unknown');
+    const sensitive = checkSensitiveActionRateLimit(clientIp, user.id);
+    if (!sensitive.allowed) {
+      return res.status(429).json({
+        error: `Too many password attempts. Try again in ${sensitive.retryAfterSec} seconds.`,
+      });
+    }
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword || String(newPassword).length < 8) {
       return res.status(400).json({ error: 'Current password and new password (8+ chars) required' });
