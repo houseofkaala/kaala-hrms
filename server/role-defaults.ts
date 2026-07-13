@@ -6,7 +6,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, { modules: string[]; descr
       'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace',
       'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications',
       'expenses', 'timesheets', 'onboarding', 'holidays', 'policies', 'orgchart',
-      'projects', 'tasks', 'settings', 'benefits', 'tax',
+      'projects', 'tasks', 'settings', 'security', 'benefits', 'tax',
     ],
     description: 'Standard employee access',
   },
@@ -14,14 +14,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, { modules: string[]; descr
     modules: [
       'dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
       'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
-      'chat', 'ai', 'profile', 'notifications', 'settings', 'benefits', 'tax',
+      'chat', 'ai', 'profile', 'notifications', 'settings', 'security', 'benefits', 'tax',
     ],
     description: 'Sales team — CRM, deals, field ops, pipeline, and core HR',
   },
   executive_assistant: {
     modules: [
       'dashboard', 'crm', 'people', 'documents', 'tasks', 'projects', 'field', 'expenses',
-      'chat', 'ai', 'attendance', 'leave', 'timesheets', 'profile', 'notifications', 'settings',
+      'chat', 'ai', 'attendance', 'leave', 'timesheets', 'profile', 'notifications', 'settings', 'security',
     ],
     description: 'Executive Assistant — CRM, pipeline, and executive support',
   },

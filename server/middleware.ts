@@ -45,6 +45,7 @@ const PATH_MODULE_RULES: [RegExp, string][] = [
   [/^\/api\/employees/, 'employees'],
   [/^\/api\/roles/, 'roles'],
   [/^\/api\/settings/, 'settings'],
+  [/^\/api\/security/, 'security'],
   [/^\/api\/automations/, 'settings'],
   [/^\/api\/payroll\/run/, 'payroll'],
   [/^\/api\/admin\//, 'settings'],

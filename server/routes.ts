@@ -32,6 +32,8 @@ import {
 } from './security';
 import { registerGoogleSsoRoutes } from './google-sso';
 import { dbWriteMutex } from './db-mutex';
+import { registerSecurityRoutes } from './security-routes';
+import { logSecurityEvent, requestContext } from './security-audit';
 
 export type { AuthedRequest } from './middleware';
 
@@ -104,8 +106,10 @@ export async function registerRoutes(app: Express) {
         error: `Too many login attempts. Try again in ${rate.retryAfterSec} seconds.`,
       });
     }
+    const ctx = requestContext(req);
     const user = db().users.find(u => u.email?.toLowerCase() === email);
     if (!user || !verifyPassword(password, user.password)) {
+      logSecurityEvent('login_failed', { userId: user?.id, ...ctx, detail: email });
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     clearLoginRateLimit(clientIp, email);
@@ -124,13 +128,15 @@ export async function registerRoutes(app: Express) {
       });
     }
 
-    const token = createSession(user.id);
+    const token = createSession(user.id, ctx);
+    logSecurityEvent('login_success', { userId: user.id, ...ctx });
     res.json({ token, user: { ...sanitizeUser(user), allowedModules: getAllowedModules(user.role) } });
   });
 
   app.post('/api/auth/logout', authMiddleware, (req: AuthedRequest, res) => {
     const h = req.headers.authorization;
     if (h?.startsWith('Bearer ')) deleteSession(h.slice(7));
+    logSecurityEvent('logout', { userId: req.userId, actorId: req.userId, ...requestContext(req) });
     res.json({ success: true });
   });
 
@@ -345,6 +351,18 @@ export async function registerRoutes(app: Express) {
       ? req.headers.authorization.slice(7)
       : undefined;
     revokeOtherSessions(user.id, token);
+    logSecurityEvent('password_changed', {
+      userId: user.id,
+      actorId: user.id,
+      ...requestContext(req),
+    });
+    void notify({
+      userId: user.id,
+      triggerId: 'security.password_changed',
+      title: 'Password changed',
+      message: 'Your account password was updated. Other devices were signed out.',
+      forceInApp: true,
+    });
     saveDb();
     res.json({ success: true });
   });
@@ -1373,5 +1391,6 @@ export async function registerRoutes(app: Express) {
   registerCrmRoutes(app);
   registerEnterpriseRoutes(app);
   registerPhase2Routes(app);
+  registerSecurityRoutes(app);
   registerExtraRoutes(app);
 }

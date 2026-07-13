@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import type { Express, Request, Response } from 'express';
 import { getDb } from './db';
 import { createSession } from './sessions';
+import { logSecurityEvent, requestContext } from './security-audit';
 import { portalForRole } from './portal-config';
 
 export interface GoogleSsoConfig {
@@ -229,7 +230,9 @@ export function registerGoogleSsoRoutes(app: Express) {
         );
       }
 
-      const token = createSession(user.id);
+      const ctx = requestContext(req);
+      const token = createSession(user.id, ctx);
+      logSecurityEvent('login_success', { userId: user.id, ...ctx, detail: 'Google SSO' });
       res.redirect(portalLoginUrl(req, portal, { token }));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed';

@@ -6,6 +6,7 @@ import { hashPassword } from './password';
 import { assertValidRoleChange } from './security';
 import { portalForRole } from './portal-config';
 import { deleteDocumentFile } from './document-storage';
+import { logSecurityEvent, requestContext } from './security-audit';
 
 export function registerExtraRoutes(app: Express) {
   const db = () => getDb();
@@ -114,7 +115,7 @@ export function registerExtraRoutes(app: Express) {
     res.json({ success: true });
   });
 
-  app.post('/api/employees/:id/reset-password', requireRole('admin'), (req, res) => {
+  app.post('/api/employees/:id/reset-password', requireRole('admin'), (req: AuthedRequest, res) => {
     const u = getUserById(req.params.id);
     if (!u) return res.status(404).json({ error: 'Not found' });
     const { password } = req.body;
@@ -123,6 +124,12 @@ export function registerExtraRoutes(app: Express) {
     }
     u.password = hashPassword(String(password));
     deleteSessionsForUser(u.id);
+    logSecurityEvent('admin_password_reset', {
+      userId: u.id,
+      actorId: req.userId,
+      ...requestContext(req),
+      detail: u.email,
+    });
     saveDb();
     pushNotification(u.id, 'Password updated', 'Your login password was reset by an administrator.', { triggerId: 'security.password_changed' });
     const baseDomain = process.env.VITE_BASE_DOMAIN || 'bymarketingonly.com';

@@ -76,12 +76,16 @@ function applyMigrations() {
   if (!db.emailDigestMeta) db.emailDigestMeta = {};
   if (!db.surveyResponses) db.surveyResponses = [];
   if (!db.sessions) db.sessions = [];
+  if (!(db as Database & { securityAuditLog?: unknown[] }).securityAuditLog) {
+    (db as Database & { securityAuditLog: unknown[] }).securityAuditLog = [];
+  }
   if (!db.chatMessages) db.chatMessages = [];
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
   ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergeCrmModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergePhase2ModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
+  mergeSecurityModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   if (!db.crmLeads) db.crmLeads = [];
   const ext = db as Database & {
     jobPostings?: unknown[];
@@ -152,6 +156,14 @@ function mergePhase2ModuleAccess(rolePermissions: Record<string, { modules: stri
     for (const mod of ['benefits', 'tax']) {
       if (!cfg.modules.includes(mod)) cfg.modules.push(mod);
     }
+  }
+}
+
+function mergeSecurityModuleAccess(rolePermissions: Record<string, { modules: string[]; description: string }>) {
+  for (const role of ['employee', 'sales', 'executive_assistant']) {
+    const cfg = rolePermissions[role];
+    if (!cfg || cfg.modules.includes('*')) continue;
+    if (!cfg.modules.includes('security')) cfg.modules.push('security');
   }
 }
 

@@ -35,6 +35,7 @@ const ROUTE_MODULE: Record<string, string> = {
   rewards: 'rewards',
   profile: 'profile',
   settings: 'settings',
+  security: 'security',
   roles: 'roles',
   notifications: 'notifications',
   policies: 'policies',
@@ -46,7 +47,7 @@ const EMPLOYEE_PORTAL_MODULES = new Set([
   'dashboard', 'people', 'attendance', 'leave', 'documents', 'assets',
   'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace',
   'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications',
-  'timesheets', 'holidays', 'policies', 'projects', 'settings', 'benefits', 'tax',
+  'timesheets', 'holidays', 'policies', 'projects', 'settings', 'security', 'benefits', 'tax',
 ]);
 
 export function moduleForRoute(route: string): string {
@@ -57,7 +58,7 @@ export function moduleForRoute(route: string): string {
 const SALES_MODULES = new Set([
   'dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
   'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
-  'chat', 'ai', 'profile', 'notifications', 'settings',
+  'chat', 'ai', 'profile', 'notifications', 'settings', 'security',
 ]);
 
 export function canAccessModule(user: User | null, route: string): boolean {

@@ -35,6 +35,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string; index: stri
   rewards: { title: 'Rewards', subtitle: 'Redeem points', index: '29' },
   profile: { title: 'My Profile', subtitle: 'Personal details', index: '30' },
   settings: { title: 'Settings', subtitle: 'Preferences', index: '31' },
+  security: { title: 'Security', subtitle: 'Password & sessions', index: '31b' },
   roles: { title: 'Roles & Permissions', subtitle: 'Access control', index: '32' },
   notifications: { title: 'Notifications', subtitle: 'Alerts and updates', index: '33' },
   policies: { title: 'Policies', subtitle: 'Company guidelines', index: '34' },

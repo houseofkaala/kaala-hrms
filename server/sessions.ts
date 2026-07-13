@@ -8,6 +8,8 @@ export interface SessionRecord {
   userId: string;
   createdAt: string;
   expiresAt: string;
+  ip?: string;
+  userAgent?: string;
 }
 
 function pruneExpired() {
@@ -19,7 +21,10 @@ function pruneExpired() {
   if (db.sessions.length !== before) saveDb();
 }
 
-export function createSession(userId: string): string {
+export function createSession(
+  userId: string,
+  meta?: { ip?: string; userAgent?: string },
+): string {
   pruneExpired();
   const token = crypto.randomUUID();
   const now = new Date();
@@ -28,6 +33,8 @@ export function createSession(userId: string): string {
     userId,
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString(),
+    ip: meta?.ip,
+    userAgent: meta?.userAgent,
   };
   const db = getDb();
   if (!db.sessions) db.sessions = [];
@@ -66,4 +73,13 @@ export function revokeOtherSessions(userId: string, keepToken?: string) {
 
 export function deleteSessionsForUser(userId: string) {
   revokeOtherSessions(userId);
+}
+
+export function listSessionsForUser(userId: string): SessionRecord[] {
+  pruneExpired();
+  const db = getDb();
+  const now = Date.now();
+  return (db.sessions || [])
+    .filter(s => s.userId === userId && new Date(s.expiresAt).getTime() > now)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
