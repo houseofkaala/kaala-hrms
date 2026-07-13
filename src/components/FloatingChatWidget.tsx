@@ -19,19 +19,19 @@ export function FloatingChatWidget({ users, currentUser }: { users: User[]; curr
   if (!currentUser) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-3 pointer-events-none">
+    <div className="fixed bottom-5 right-5 z-[100] flex flex-col items-end gap-3 pointer-events-none safe-bottom" style={{ paddingRight: 'max(0px, env(safe-area-inset-right))' }}>
       {open && !minimized && (
-        <div className="pointer-events-auto studio-chat-panel w-[min(420px,calc(100vw-2rem))] h-[min(560px,calc(100vh-6rem))] bg-white/95 backdrop-blur-xl border border-maroon-100 flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-maroon-900 to-ink text-white shrink-0">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" />
-              <span className="font-display text-sm font-semibold">Team Chat</span>
+        <div className="pointer-events-auto studio-chat-panel w-[min(420px,calc(100vw-1.5rem))] h-[min(560px,calc(100dvh-5.5rem))] flex flex-col overflow-hidden shadow-2xl">
+          <div className="kaala-chat-widget-header flex items-center justify-between px-4 py-3 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <MessageSquare className="w-4 h-4 text-gold shrink-0" />
+              <span className="font-display text-sm font-semibold truncate">Team Chat</span>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setMinimized(true)}
-                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-ivory-muted hover:text-gold-light hover:bg-gold/10 transition-colors"
                 aria-label="Minimize chat"
               >
                 <Minus className="w-4 h-4" />
@@ -39,14 +39,14 @@ export function FloatingChatWidget({ users, currentUser }: { users: User[]; curr
               <button
                 type="button"
                 onClick={() => { setOpen(false); setMinimized(false); }}
-                className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="p-1.5 rounded-lg text-ivory-muted hover:text-gold-light hover:bg-gold/10 transition-colors"
                 aria-label="Close chat"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
-          <div className="flex-1 min-h-0 overflow-hidden [&>div]:h-full [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none">
+          <div className="flex-1 min-h-0 overflow-hidden bg-marble">
             <ChatViewWired users={users} currentUser={currentUser} compact />
           </div>
         </div>
@@ -63,8 +63,8 @@ export function FloatingChatWidget({ users, currentUser }: { users: User[]; curr
           }
         }}
         className={cn(
-          'pointer-events-auto studio-chat-fab w-14 h-14 rounded-full flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95',
-          open && !minimized && 'bg-maroon-950',
+          'pointer-events-auto studio-chat-fab w-14 h-14 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg',
+          open && !minimized && 'ring-2 ring-gold/30',
         )}
         aria-label={open ? 'Toggle chat' : 'Open team chat'}
       >

@@ -1068,6 +1068,170 @@ html:not(.light) .kaala-content .border-maroon-200 {
   background: var(--color-marble);
 }
 
+/* ─── Team chat ─── */
+.kaala-chat {
+  --chat-sidebar: color-mix(in srgb, var(--color-charcoal) 88%, transparent);
+  --chat-surface: color-mix(in srgb, var(--color-marble) 92%, transparent);
+  --chat-thread: color-mix(in srgb, var(--color-obsidian) 35%, var(--color-marble));
+  --chat-border: color-mix(in srgb, var(--color-gold) 14%, var(--color-slate));
+  --chat-hover: color-mix(in srgb, var(--color-gold) 6%, transparent);
+  --chat-active: color-mix(in srgb, var(--color-gold) 12%, var(--color-marble-light));
+  color: var(--color-ivory);
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: var(--radius-luxury);
+  overflow: hidden;
+}
+
+html.light .kaala-chat {
+  --chat-sidebar: var(--color-marble-light);
+  --chat-surface: #ffffff;
+  --chat-thread: #f7f4ef;
+}
+
+.kaala-chat-sidebar {
+  background: var(--chat-sidebar);
+  border-right: 1px solid var(--chat-border);
+}
+
+.kaala-chat-search {
+  background: color-mix(in srgb, var(--color-obsidian) 30%, var(--color-marble));
+  border: 1px solid var(--chat-border);
+  color: var(--color-ivory);
+  border-radius: var(--radius-luxury-sm);
+}
+
+html.light .kaala-chat-search {
+  background: #ffffff;
+}
+
+.kaala-chat-search::placeholder {
+  color: color-mix(in srgb, var(--color-ivory-muted) 70%, transparent);
+}
+
+.kaala-chat-search:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-gold) 40%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-gold) 10%, transparent);
+}
+
+.kaala-chat-contact {
+  transition: background-color 0.2s ease;
+}
+
+.kaala-chat-contact:hover {
+  background: var(--chat-hover);
+}
+
+.kaala-chat-contact[data-active="true"] {
+  background: var(--chat-active);
+  border-left: 2px solid var(--color-gold);
+}
+
+.kaala-chat-thread {
+  background: var(--chat-thread);
+}
+
+.kaala-chat-header {
+  background: color-mix(in srgb, var(--color-marble-light) 55%, transparent);
+  border-bottom: 1px solid var(--chat-border);
+}
+
+.kaala-chat-bubble {
+  max-width: min(78%, 28rem);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  border-radius: 1.125rem;
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.45);
+}
+
+.kaala-chat-bubble--sent {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--color-gold-muted), var(--color-gold));
+  color: var(--color-obsidian);
+  border-bottom-right-radius: 0.35rem;
+}
+
+.kaala-chat-bubble--received {
+  align-self: flex-start;
+  background: var(--chat-surface);
+  color: var(--color-ivory);
+  border: 1px solid var(--chat-border);
+  border-bottom-left-radius: 0.35rem;
+}
+
+.kaala-chat-bubble time {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.625rem;
+  opacity: 0.65;
+}
+
+.kaala-chat-compose {
+  background: var(--chat-surface);
+  border-top: 1px solid var(--chat-border);
+}
+
+.kaala-chat-input {
+  flex: 1;
+  background: color-mix(in srgb, var(--color-obsidian) 25%, var(--color-marble));
+  border: 1px solid var(--chat-border);
+  color: var(--color-ivory);
+  border-radius: 9999px;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.875rem;
+}
+
+html.light .kaala-chat-input {
+  background: #ffffff;
+}
+
+.kaala-chat-input::placeholder {
+  color: color-mix(in srgb, var(--color-ivory-muted) 70%, transparent);
+}
+
+.kaala-chat-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-gold) 40%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-gold) 10%, transparent);
+}
+
+.kaala-chat-send {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  color: var(--color-obsidian);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.kaala-chat-send:hover:not(:disabled) {
+  filter: brightness(1.06);
+  transform: scale(1.04);
+}
+
+.kaala-chat-send:disabled {
+  opacity: 0.45;
+}
+
+.kaala-chat-empty {
+  color: color-mix(in srgb, var(--color-ivory-muted) 80%, transparent);
+}
+
+.kaala-chat-widget-header {
+  background: linear-gradient(135deg, var(--color-charcoal), color-mix(in srgb, var(--color-marble) 70%, var(--color-charcoal)));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 18%, transparent);
+  color: var(--color-ivory);
+}
+
+html.light .kaala-chat-widget-header {
+  background: linear-gradient(135deg, #ffffff, var(--color-marble-light));
+}
+
 /* ─── Light mode refinements ─── */
 html.light .studio-sidebar,
 html.light .atelier-rail {
