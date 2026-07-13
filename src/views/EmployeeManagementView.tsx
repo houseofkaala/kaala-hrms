@@ -62,7 +62,7 @@ export function EmployeeManagementView() {
   const [copied, setCopied] = useState(false);
   const [resetTarget, setResetTarget] = useState<Employee | null>(null);
   const [newPassword, setNewPassword] = useState('');
-  const [resetResult, setResetResult] = useState<{ email: string; password: string; loginUrl: string } | null>(null);
+  const [resetResult, setResetResult] = useState<{ email: string; loginUrl: string; message?: string } | null>(null);
   const [removeTarget, setRemoveTarget] = useState<Employee | null>(null);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'manager';
@@ -110,7 +110,7 @@ export function EmployeeManagementView() {
 
   const resetMutation = useMutation({
     mutationFn: ({ id, password }: { id: string; password: string }) =>
-      fetcher<{ email: string; password: string; loginUrl: string }>(`/api/employees/${id}/reset-password`, {
+      fetcher<{ email: string; loginUrl: string; message?: string }>(`/api/employees/${id}/reset-password`, {
         method: 'POST',
         body: JSON.stringify({ password }),
       }),
@@ -433,8 +433,8 @@ Please change your password after first login in Settings.`;
             <h3 className="font-display text-lg mb-2">Reset password — {resetTarget.name}</h3>
             {resetResult ? (
               <div className="space-y-3">
-                <p className="text-sm text-green-700">Password updated. Share with the employee:</p>
-                <div className="bg-[var(--bg-muted)] rounded-lg p-3 font-mono text-sm break-all">{resetResult.password}</div>
+                <p className="text-sm text-green-700">{resetResult.message || 'Password updated. Share the new password securely with the employee.'}</p>
+                <div className="bg-[var(--bg-muted)] rounded-lg p-3 font-mono text-sm break-all">{newPassword}</div>
                 <a href={resetResult.loginUrl} className="text-sm text-[var(--accent)] hover:underline block">{resetResult.loginUrl}</a>
                 <button type="button" className="btn-primary w-full" onClick={() => { setResetTarget(null); setResetResult(null); }}>Done</button>
               </div>

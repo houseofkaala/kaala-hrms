@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Download, IndianRupee } from 'lucide-react';
-import { fetcher } from '../utils';
+import { fetcher, downloadAuthenticated } from '../utils';
 import { useRBACStore } from '../store';
 
 interface Declaration {
@@ -32,7 +32,10 @@ export function TaxComplianceView() {
   const { currentUser } = useRBACStore();
   const qc = useQueryClient();
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
-  const fy = '2026-27';
+  const now = new Date();
+  const fy = now.getMonth() >= 3
+    ? `${now.getFullYear()}-${String(now.getFullYear() + 1).slice(-2)}`
+    : `${now.getFullYear() - 1}-${String(now.getFullYear()).slice(-2)}`;
 
   const { data: decl, isLoading } = useQuery<Declaration>({
     queryKey: ['tax-declaration', fy],
@@ -42,6 +45,7 @@ export function TaxComplianceView() {
   const [form, setForm] = useState<Record<string, number>>({});
 
   const values = { ...decl, ...form } as Declaration;
+  const isLocked = values.status === 'submitted' || values.status === 'verified';
   const total = SECTIONS.reduce((s, sec) => s + (Number(values[sec.key as keyof Declaration]) || 0), 0);
 
   const save = async (submit = false) => {
@@ -59,8 +63,12 @@ export function TaxComplianceView() {
     alert('Form 16 generated and employees notified.');
   };
 
-  const downloadForm16 = () => {
-    window.open(`/api/tax/form16/html?year=${fy}`, '_blank');
+  const downloadForm16 = async () => {
+    try {
+      await downloadAuthenticated(`/api/tax/form16/html?year=${fy}`, `form16-${fy}.html`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not download Form 16');
+    }
   };
 
   if (isLoading) return <p className="text-ivory-muted">Loading…</p>;
@@ -103,18 +111,23 @@ export function TaxComplianceView() {
                 type="number"
                 min={0}
                 max={sec.max}
+                disabled={isLocked}
                 value={values[sec.key as keyof Declaration] || ''}
                 onChange={e => setForm(f => ({ ...f, [sec.key]: Number(e.target.value) }))}
-                className="input-field"
+                className="input-field disabled:opacity-60"
                 placeholder={sec.hint || '₹0'}
               />
             </div>
           ))}
         </div>
-        <div className="flex gap-3 pt-2">
-          <button onClick={() => save(false)} className="btn-secondary text-xs">Save draft</button>
-          <button onClick={() => save(true)} className="btn-primary text-xs">Submit declaration</button>
-        </div>
+        {!isLocked ? (
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => save(false)} className="btn-secondary text-xs">Save draft</button>
+            <button onClick={() => save(true)} className="btn-primary text-xs">Submit declaration</button>
+          </div>
+        ) : (
+          <p className="text-sm text-ivory-muted pt-2">Declaration is {values.status} and cannot be edited.</p>
+        )}
       </div>
     </div>
   );

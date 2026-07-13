@@ -254,6 +254,11 @@ export function registerEnterpriseRoutes(app: Express) {
       { title: 'Experience letter issued', category: 'HR', days: 10 },
     ];
     for (const t of templates) {
+      const exists = db().offboardingTasks.some(
+        (x: { userId: string; title: string; status: string }) =>
+          x.userId === emp.id && x.title === t.title && x.status !== 'Completed',
+      );
+      if (exists) continue;
       db().offboardingTasks.push({
         id: `off${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         userId: emp.id,

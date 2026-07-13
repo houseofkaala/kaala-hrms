@@ -14,7 +14,11 @@ export function registerExtraRoutes(app: Express) {
   app.patch('/api/attendance/requests/:id', requireRole('manager', 'admin'), (req, res) => {
     const r = db().attendanceRequests.find(x => x.id === req.params.id);
     if (!r) return res.status(404).json({ error: 'Not found' });
-    r.status = req.body.status || r.status;
+
+    const status = String(req.body.status || r.status);
+    const allowed = new Set(['Approved', 'Rejected', 'Pending']);
+    if (!allowed.has(status)) return res.status(400).json({ error: 'Invalid status' });
+    r.status = status;
 
     if (r.type === 'early_clock_out' && r.status === 'Approved') {
       const logId = (r as { attendanceLogId?: string }).attendanceLogId;
@@ -22,6 +26,21 @@ export function registerExtraRoutes(app: Express) {
         ? db().attendanceLogs.find(l => l.id === logId)
         : db().attendanceLogs.find(l => l.userId === r.userId && !l.clockOut);
       if (log) log.earlyClockOutApproved = true;
+    }
+
+    if (r.status === 'Approved' && r.type === 'regularization' && r.date && r.time) {
+      const clockIn = new Date(`${r.date}T${r.time}`);
+      const hours = parseFloat(r.hours || '8') || 8;
+      const clockOut = new Date(clockIn.getTime() + hours * 3600000);
+      db().attendanceLogs.push({
+        id: `att_reg_${Date.now()}`,
+        userId: r.userId,
+        clockIn: clockIn.toISOString(),
+        clockOut: clockOut.toISOString(),
+        date: r.date,
+        earlyClockOutApproved: true,
+        source: 'regularization',
+      } as never);
     }
 
     pushNotification(r.userId, `Attendance ${r.status.toLowerCase()}`, `Your ${r.type.replace(/_/g, ' ')} request has been ${r.status.toLowerCase()}.`, { triggerId: 'attendance.regularization_decided' });
@@ -49,7 +68,10 @@ export function registerExtraRoutes(app: Express) {
       u.role = role;
     }
     if (title) u.title = title;
-    if (status) u.status = status;
+    if (status) {
+      u.status = status;
+      if (status === 'Inactive') deleteSessionsForUser(u.id);
+    }
     if (phone) u.phone = phone;
     if (managerId !== undefined) u.managerId = managerId;
     if (emergencyContact) u.emergencyContact = emergencyContact;
@@ -66,6 +88,7 @@ export function registerExtraRoutes(app: Express) {
       return res.status(400).json({ error: 'Cannot deactivate the last active admin' });
     }
     u.status = 'Inactive';
+    deleteSessionsForUser(u.id);
     const templates = [
       { title: 'Exit interview scheduled', category: 'HR', days: 3 },
       { title: 'Return company laptop & assets', category: 'IT', days: 1 },
@@ -107,8 +130,8 @@ export function registerExtraRoutes(app: Express) {
     res.json({
       success: true,
       email: u.email,
-      password: String(password),
       loginUrl: `https://${portal}.${baseDomain}/login`,
+      message: 'Password reset. Employee has been notified — deliver the new password securely.',
     });
   });
 
@@ -293,12 +316,25 @@ export function registerExtraRoutes(app: Express) {
   });
 
   // Role permissions update
+  const KNOWN_MODULES = new Set([
+    'dashboard', 'people', 'attendance', 'leave', 'documents', 'assets', 'performance', 'learning',
+    'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai',
+    'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'offboarding', 'holidays',
+    'policies', 'orgchart', 'projects', 'tasks', 'settings', 'benefits', 'tax', 'recruit',
+    'employees', 'payroll', 'finance', 'reports', 'roles', 'crm', 'field', '*',
+  ]);
+
   app.patch('/api/roles', requireRole('admin'), (req, res) => {
     const { role, modules } = req.body;
     const perms = db().rolePermissions as Record<string, { modules: string[]; description: string }>;
     if (!role || !perms[role]) return res.status(400).json({ error: 'Invalid role' });
     if (!Array.isArray(modules)) return res.status(400).json({ error: 'modules must be an array' });
-    perms[role].modules = modules.map(String);
+    const cleaned = modules.map(String).filter(m => KNOWN_MODULES.has(m));
+    if (cleaned.length === 0) return res.status(400).json({ error: 'At least one valid module is required' });
+    if (role === 'admin' && !cleaned.includes('*') && !cleaned.includes('settings')) {
+      return res.status(400).json({ error: 'Admin role must include settings or *' });
+    }
+    perms[role].modules = cleaned;
     saveDb();
     res.json({ success: true, permissions: db().rolePermissions });
   });

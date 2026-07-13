@@ -5,6 +5,7 @@ import { isManagerOrAdmin } from './security';
 import {
   buildForm16,
   computeDeclarationTotal,
+  clampDeclarationFields,
   currentFinancialYear,
   form16Html,
   type InvestmentDeclaration,
@@ -204,10 +205,11 @@ export function registerPhase2Routes(app: Express) {
     let decl = declarations.find(d => d.userId === req.userId && d.financialYear === fy);
 
     const fields = ['section80C', 'section80D', 'section80G', 'hraExemption', 'homeLoanInterest', 'nps', 'otherDeductions'] as const;
-    const data: Partial<InvestmentDeclaration> = { userId: req.userId!, financialYear: fy };
+    const raw: Partial<InvestmentDeclaration> = { userId: req.userId!, financialYear: fy };
     for (const f of fields) {
-      if (req.body[f] !== undefined) data[f] = Number(req.body[f]) || 0;
+      if (req.body[f] !== undefined) raw[f] = Number(req.body[f]) || 0;
     }
+    const data = clampDeclarationFields(raw);
     data.totalDeclared = computeDeclarationTotal(data);
     data.status = req.body.submit ? 'submitted' : 'draft';
     if (req.body.submit) data.submittedAt = new Date().toISOString();

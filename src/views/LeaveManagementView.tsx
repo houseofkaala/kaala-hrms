@@ -41,7 +41,7 @@ export function LeaveManagementView() {
     queryFn: () => fetcher('/api/leave-requests'),
   });
 
-  const { data: balance } = useQuery<{ annual: number; sick: number; used: number; pending: number }>({
+  const { data: balance } = useQuery<{ annual: number; sick: number; used: number; sickUsed: number; sickRemaining: number; pending: number }>({
     queryKey: ['leave-balance'],
     queryFn: () => fetcher('/api/leave-balance'),
   });
@@ -100,7 +100,7 @@ export function LeaveManagementView() {
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Sick Leave</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{balance?.sick ?? 0} <span className="text-sm font-normal text-gray-400">days</span></p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{(balance?.sickRemaining ?? (balance?.sick ?? 0) - (balance?.sickUsed ?? 0))} <span className="text-sm font-normal text-gray-400">days</span></p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Pending Requests</p>

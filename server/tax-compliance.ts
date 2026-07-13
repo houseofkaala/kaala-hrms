@@ -55,6 +55,22 @@ export function currentFinancialYear(date = new Date()): string {
   return `${y - 1}-${y.toString().slice(-2)}`;
 }
 
+const NPS_LIMIT = 50000;
+const HOME_LOAN_LIMIT = 200000;
+
+export function clampDeclarationFields(d: Partial<InvestmentDeclaration>): Partial<InvestmentDeclaration> {
+  return {
+    ...d,
+    section80C: Math.min(Math.max(0, Number(d.section80C) || 0), SECTION_80C_LIMIT),
+    section80D: Math.min(Math.max(0, Number(d.section80D) || 0), SECTION_80D_LIMIT),
+    section80G: Math.max(0, Number(d.section80G) || 0),
+    hraExemption: Math.max(0, Number(d.hraExemption) || 0),
+    homeLoanInterest: Math.min(Math.max(0, Number(d.homeLoanInterest) || 0), HOME_LOAN_LIMIT),
+    nps: Math.min(Math.max(0, Number(d.nps) || 0), NPS_LIMIT),
+    otherDeductions: Math.max(0, Number(d.otherDeductions) || 0),
+  };
+}
+
 export function computeDeclarationTotal(d: Partial<InvestmentDeclaration>): number {
   return (
     Math.min(Number(d.section80C) || 0, SECTION_80C_LIMIT) +

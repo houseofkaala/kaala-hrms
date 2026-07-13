@@ -52,3 +52,34 @@ export const fetcher = async <T,>(url: string, options?: RequestInit): Promise<T
 
   return res.json();
 };
+
+export async function downloadAuthenticated(url: string, filename?: string) {
+  const token = getToken();
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (res.status === 401) {
+    clearToken();
+    window.location.href = getPortalLoginUrl(getPortal());
+    throw new ApiError('Unauthorized', 401);
+  }
+  if (!res.ok) {
+    let message = 'Download failed';
+    try {
+      const body = await res.json();
+      message = body.error || message;
+    } catch { /* ignore */ }
+    throw new ApiError(message, res.status);
+  }
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.target = '_blank';
+  anchor.rel = 'noopener';
+  if (filename) anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+}

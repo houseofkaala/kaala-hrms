@@ -21,6 +21,7 @@ import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifi
 import { isEmailConfigured, sendEmail } from './email/transport';
 import { notify, notifyManager } from './notifications/dispatcher';
 import { attendanceStatusPayload, evaluateClockOut, MIN_CLOCK_OUT_HOURS, FULL_DAY_HOURS } from './attendance-rules';
+import { validateLeaveSubmission, validateLeaveApproval } from './leave-rules';
 import { verifyPassword, hashPassword, upgradePasswordIfNeeded } from './password';
 import { buildReport } from './reports';
 import { employeePerformanceScore } from './algorithms';
@@ -382,7 +383,13 @@ export async function registerRoutes(app: Express) {
       return res.status(400).json({ error: 'End date must be on or after start date' });
     }
     const days = Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1;
-    const r = { id: `lr${Date.now()}`, userId: req.userId!, type, startDate, endDate, days, reason, status: 'Pending', createdAt: new Date().toISOString() };
+    if (!reason || String(reason).trim().length < 5) {
+      return res.status(400).json({ error: 'Please provide a reason (at least 5 characters).' });
+    }
+    const leaveErr = validateLeaveSubmission(db(), req.userId!, type, startDate, endDate, days);
+    if (leaveErr) return res.status(400).json({ error: leaveErr });
+
+    const r = { id: `lr${Date.now()}`, userId: req.userId!, type, startDate, endDate, days, reason: String(reason).trim(), status: 'Pending', createdAt: new Date().toISOString() };
     db().leaveRequests.unshift(r);
     pushNotification(req.userId!, 'Leave request submitted', `Your ${type} request (${days} days) is pending approval.`);
     const employee = getUserById(req.userId!);
@@ -403,6 +410,8 @@ export async function registerRoutes(app: Express) {
     if (!allowed.has(status)) {
       return res.status(400).json({ error: 'Invalid status. Use Approved, Rejected, Cancelled, or Pending.' });
     }
+    const approvalErr = validateLeaveApproval(db(), r, status);
+    if (approvalErr) return res.status(400).json({ error: approvalErr });
     r.status = status;
     const triggerId = status === 'Approved' ? 'leave.approved' : status === 'Rejected' ? 'leave.rejected' : 'leave.cancelled';
     pushNotification(r.userId, `Leave ${status.toLowerCase()}`, `Your ${r.type} request has been ${status.toLowerCase()}.`, { triggerId });
@@ -592,8 +601,11 @@ export async function registerRoutes(app: Express) {
   });
   app.post('/api/marketplace/claim', (req: AuthedRequest, res) => {
     const t = db().tasks.find(x => x.id === req.body.taskId);
-    if (!t || t.status !== 'marketplace' || t.ownerId === req.userId) return res.status(400).json({ error: 'Cannot claim' });
-    t.status = 'claimed'; t.claimedById = req.userId; saveDb();
+    if (!t || t.ownerId === req.userId) return res.status(400).json({ error: 'Cannot claim' });
+    if (t.status !== 'marketplace' || t.claimedById) return res.status(409).json({ error: 'Task already claimed or unavailable' });
+    t.status = 'claimed';
+    t.claimedById = req.userId;
+    saveDb();
     res.json({ success: true, task: t });
   });
   app.post('/api/tasks/timer', (req: AuthedRequest, res) => {
@@ -602,7 +614,13 @@ export async function registerRoutes(app: Express) {
     if (!t || !me) return res.status(404).json({ error: 'Not found' });
     if (!canAccessTask(t, req.userId!, me.role)) return res.status(403).json({ error: 'Forbidden' });
     if (req.body.action === 'start') { t.status = 'in_progress'; t.timeStarted = new Date().toISOString(); }
-    else if (req.body.action === 'stop') { t.timeSpent = (t.timeSpent || 0) + req.body.durationMs; t.timeStarted = undefined; }
+    else if (req.body.action === 'stop') {
+      const elapsed = t.timeStarted
+        ? Date.now() - new Date(t.timeStarted).getTime()
+        : Math.max(0, Number(req.body.durationMs) || 0);
+      t.timeSpent = (t.timeSpent || 0) + elapsed;
+      t.timeStarted = undefined;
+    }
     saveDb();
     res.json({ success: true, task: t });
   });
@@ -679,8 +697,13 @@ export async function registerRoutes(app: Express) {
   app.post('/api/rewards/redeem/:id', (req: AuthedRequest, res) => {
     const card = db().giftCards.find(c => c.id === req.params.id);
     const user = getUserById(req.userId!);
-    if (!card || !user || user.points < card.pointsCost) return res.status(400).json({ error: 'Insufficient points' });
+    if (!card || !user) return res.status(404).json({ error: 'Not found' });
+    if (user.points < card.pointsCost) return res.status(400).json({ error: 'Insufficient points' });
     user.points -= card.pointsCost;
+    if (user.points < 0) {
+      user.points += card.pointsCost;
+      return res.status(409).json({ error: 'Insufficient points' });
+    }
     addTransaction(user.id, -card.pointsCost, `Redeemed: ${card.name}`);
     saveDb();
     res.json({ success: true });
@@ -743,6 +766,8 @@ export async function registerRoutes(app: Express) {
       active.clockOut = new Date().toISOString();
       user.status = 'Offline';
     } else {
+      const openNow = db().attendanceLogs.find(l => l.userId === req.userId && !l.clockOut);
+      if (openNow) return res.status(409).json({ error: 'Already clocked in' });
       const settings = db().orgSettings as { geoAttendanceRequired?: boolean; officeGeofence?: typeof DEFAULT_GEOFENCE };
       const fence = settings.officeGeofence || DEFAULT_GEOFENCE;
       const geo = validateGeofence(
@@ -820,7 +845,21 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post('/api/attendance/request', (req: AuthedRequest, res) => {
-    const r = { id: `ar${Date.now()}`, userId: req.userId!, type: req.body.type, date: req.body.date, hours: req.body.hours, reason: req.body.reason, location: req.body.location, time: req.body.time, status: 'Pending', createdAt: new Date().toISOString() };
+    const allowedTypes = new Set(['regularization', 'overtime', 'remote']);
+    const type = String(req.body.type || '');
+    const date = String(req.body.date || '');
+    const reason = String(req.body.reason || '').trim();
+    if (!allowedTypes.has(type)) return res.status(400).json({ error: 'Invalid request type' });
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Valid date (YYYY-MM-DD) is required' });
+    if (reason.length < 5) return res.status(400).json({ error: 'Reason is required (min 5 characters)' });
+    if (type === 'overtime' && !req.body.hours) return res.status(400).json({ error: 'Hours required for overtime' });
+    if (type === 'regularization' && !req.body.time) return res.status(400).json({ error: 'Time required for regularization' });
+    const dup = db().attendanceRequests.some(
+      r => r.userId === req.userId && r.type === type && r.date === date && r.status === 'Pending',
+    );
+    if (dup) return res.status(409).json({ error: 'A pending request already exists for this date and type' });
+
+    const r = { id: `ar${Date.now()}`, userId: req.userId!, type, date, hours: req.body.hours, reason, location: req.body.location, time: req.body.time, status: 'Pending', createdAt: new Date().toISOString() };
     db().attendanceRequests.push(r);
     pushNotification(req.userId!, 'Attendance request submitted', `Your ${req.body.type} request is pending review.`, { triggerId: 'attendance.regularization_submitted' });
     saveDb();
@@ -873,12 +912,24 @@ export async function registerRoutes(app: Express) {
     const uid = (u?.role === 'manager' || u?.role === 'admin') && req.query.all ? undefined : req.userId;
     res.json(uid ? db().payrollRecords.filter(p => p.userId === uid) : db().payrollRecords);
   });
-  app.post('/api/payroll/run', requireRole('manager', 'admin'), (_req, res) => {
+  app.post('/api/payroll/run', requireRole('manager', 'admin'), (req, res) => {
     const period = new Date().toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+    const force = req.query.force === '1' || req.body?.force === true;
+    const existing = db().payrollRecords.filter(p => p.period === period);
+    if (existing.length > 0 && !force) {
+      return res.status(409).json({
+        error: `Payroll for ${period} already processed (${existing.length} records). Use force to re-run.`,
+      });
+    }
+    if (force && existing.length > 0) {
+      db().payrollRecords = db().payrollRecords.filter(p => p.period !== period);
+    }
     const structures = (db() as ReturnType<typeof getDb> & { salaryStructures?: Record<string, ReturnType<typeof defaultSalaryStructure>> }).salaryStructures || {};
+    let created = 0;
     db().users.filter(u => u.status !== 'Inactive').forEach(u => {
       const structure = structures[u.id] || defaultSalaryStructure(u.role);
       const breakdown = computePayroll(structure);
+      created++;
       db().payrollRecords.unshift({
         id: `pr${Date.now()}_${u.id}`,
         userId: u.id,
@@ -892,7 +943,7 @@ export async function registerRoutes(app: Express) {
       pushNotification(u.id, 'Payroll processed', `Your ${period} payslip (₹${breakdown.netPay.toLocaleString('en-IN')}) is ready.`, { triggerId: 'payroll.payslip_generated' });
     });
     saveDb();
-    res.json({ success: true, message: `Payroll run for ${period}` });
+    res.json({ success: true, message: `Payroll run for ${period}`, recordsCreated: created });
   });
 
   // Learning

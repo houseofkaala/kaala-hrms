@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, IndianRupee } from 'lucide-react';
-import { fetcher } from '../utils';
+import { fetcher, downloadAuthenticated, ApiError } from '../utils';
 import { useRBACStore } from '../store';
 
 interface PayrollRecord {
@@ -30,12 +30,27 @@ export function PayrollView() {
 
   const runPayroll = async () => {
     if (!confirm('Run payroll for all active employees? This will generate India-compliant payslips.')) return;
-    await fetcher('/api/payroll/run', { method: 'POST' });
-    qc.invalidateQueries({ queryKey: ['payroll'] });
+    try {
+      await fetcher('/api/payroll/run', { method: 'POST' });
+      qc.invalidateQueries({ queryKey: ['payroll'] });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        if (confirm(`${e.message}\n\nRe-run payroll for this period anyway?`)) {
+          await fetcher('/api/payroll/run?force=1', { method: 'POST' });
+          qc.invalidateQueries({ queryKey: ['payroll'] });
+        }
+      } else {
+        alert(e instanceof Error ? e.message : 'Payroll run failed');
+      }
+    }
   };
 
-  const downloadPayslip = (id: string, period: string) => {
-    window.open(`/api/payroll/${id}/payslip/html`, '_blank');
+  const downloadPayslip = async (id: string, period: string) => {
+    try {
+      await downloadAuthenticated(`/api/payroll/${id}/payslip/html`, `payslip-${period}.html`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Could not download payslip');
+    }
   };
 
   return (
