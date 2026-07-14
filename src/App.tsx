@@ -282,19 +282,11 @@ function HRMSApp() {
 
   if (loading || !currentUser) {
     return (
-      <div className="min-h-[100dvh] bg-obsidian flex flex-col items-center justify-center gap-8">
-        <div className="relative studio-reveal">
-          <div
-            className="w-24 h-24 rounded-2xl border border-gold/25 bg-charcoal flex items-center justify-center font-display text-4xl text-gold-light font-medium shadow-2xl"
-            style={{ animation: 'float-slow 4s ease-in-out infinite' }}
-          >
-            K
-          </div>
-          <div className="absolute -inset-5 rounded-3xl border border-gold/15" style={{ animation: 'pulse-gold 3s ease-in-out infinite' }} />
-        </div>
-        <div className="text-center studio-reveal studio-reveal-d1">
-          <p className="studio-kicker">House of Kaala</p>
-          <p className="font-display text-xl text-ivory mt-2">Preparing your workspace</p>
+      <div className="min-h-[100dvh] bg-obsidian flex flex-col items-center justify-center gap-6">
+        <img src="/logo.svg" alt="" className="w-16 h-16 rounded-[18px] shadow-sm" />
+        <div className="text-center">
+          <p className="text-[17px] font-semibold text-ivory">House of Kaala</p>
+          <p className="text-[15px] text-ivory-muted mt-1">Loading…</p>
         </div>
       </div>
     );
@@ -316,15 +308,13 @@ function HRMSApp() {
   const showAdminCrons = isAdminPortal && currentUser.role === 'admin';
 
   return (
-    <div className="flex h-[100dvh] kaala-mesh kaala-grain text-ivory overflow-hidden relative">
-      <div className="kaala-ambient perf-optional" aria-hidden />
-      <div className="studio-watermark" aria-hidden>K</div>
+    <div className="flex h-[100dvh] bg-obsidian text-ivory overflow-hidden relative">
 
       {navOpen && (
         <button
           type="button"
           aria-label="Close navigation"
-          className="fixed inset-0 bg-obsidian/70 backdrop-blur-sm z-30 lg:hidden"
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
           onClick={closeNav}
         />
       )}
@@ -338,11 +328,11 @@ function HRMSApp() {
           navOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
-        <Link to="/dashboard" onClick={closeNav} className="studio-brand mb-4 mx-1 px-3 py-3 flex items-center gap-3 transition-colors">
-          <img src="/logo.svg" alt="" className="w-10 h-10 shrink-0 rounded-xl ring-1 ring-gold/25" />
+        <Link to="/dashboard" onClick={closeNav} className="studio-brand mb-3 mx-1 px-2.5 py-3 flex items-center gap-2.5 transition-colors">
+          <img src="/logo.svg" alt="" className="w-9 h-9 shrink-0 rounded-[10px]" />
           <span className="min-w-0">
-            <span className="font-display text-sm font-medium text-ivory leading-tight block truncate">House of Kaala</span>
-            <span className="text-[10px] uppercase tracking-wider text-gold-muted block truncate">{portalMeta.title}</span>
+            <span className="text-[13px] font-semibold text-ivory leading-tight block truncate">House of Kaala</span>
+            <span className="text-[11px] text-ivory-muted block truncate">{portalMeta.title}</span>
           </span>
         </Link>
 
@@ -416,12 +406,12 @@ function HRMSApp() {
           <VisibleNavItem onNavigate={closeNav} route="settings" icon={Settings} label="Settings" to="/settings" active={activeTab === 'settings'} />
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 min-h-[44px] rounded-xl text-ivory-muted hover:text-gold-light hover:bg-gold/5 transition-colors"
+            className="flex items-center gap-2.5 w-full px-2.5 py-2 min-h-[36px] rounded-lg text-ivory-muted hover:text-ivory hover:bg-marble-light transition-colors"
           >
-            <span className="shrink-0 flex items-center justify-center w-8 h-8">
-              <LogOut className="w-[18px] h-[18px]" />
+            <span className="shrink-0 flex items-center justify-center w-7 h-7">
+              <LogOut className="w-[16px] h-[16px]" />
             </span>
-            <span className="text-[13px] font-medium">Sign Out</span>
+            <span className="text-[13px]">Sign Out</span>
           </button>
         </div>
       </aside>
@@ -433,31 +423,27 @@ function HRMSApp() {
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <button
                 type="button"
-                className="lg:hidden shrink-0 flex items-center justify-center w-10 h-10 min-h-[44px] min-w-[44px] rounded-xl text-ivory-muted hover:text-gold-light hover:bg-gold/5 transition-colors"
+                className="lg:hidden shrink-0 flex items-center justify-center w-9 h-9 min-h-[36px] min-w-[36px] rounded-lg text-ivory-muted hover:text-ivory hover:bg-marble-light transition-colors"
                 onClick={() => setNavOpen(o => !o)}
                 aria-label={navOpen ? 'Close menu' : 'Open menu'}
                 aria-expanded={navOpen}
               >
                 {navOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
-              {pageMeta.index && (
-                <span className="hidden sm:inline studio-kicker text-gold-muted tabular-nums">{pageMeta.index}</span>
-              )}
               <div className="min-w-0 flex-1">
-                <p className="hidden sm:block studio-kicker truncate">{portalMeta.title}</p>
                 {activeTab !== 'dashboard' && (
-                  <>
-                    <p className="lg:hidden font-display text-base sm:text-lg text-ivory truncate leading-tight">{pageMeta.title}</p>
-                    <p className="hidden lg:block font-display text-lg text-ivory truncate leading-tight">{pageMeta.title}</p>
-                  </>
+                  <p className="text-[17px] font-semibold text-ivory truncate leading-tight lg:hidden">{pageMeta.title}</p>
+                )}
+                {activeTab === 'dashboard' && (
+                  <p className="text-[17px] font-semibold text-ivory truncate leading-tight lg:hidden">Dashboard</p>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <ThemeToggle />
               <AttendanceHeaderButton onStatusChange={() => loadData(true, 'user')} />
-              <div className="hidden md:flex studio-chip">
-                <span className="w-1.5 h-1.5 rounded-full bg-gold" style={{ animation: 'pulse-gold 2s ease-in-out infinite' }} />
+              <div className="hidden md:flex studio-chip studio-chip-live">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#34c759]" />
                 Live
               </div>
               <div className="studio-points flex items-center gap-1.5">
@@ -467,7 +453,7 @@ function HRMSApp() {
               </div>
               <NotificationsPanel open={notifOpen} onToggle={() => setNotifOpen(!notifOpen)} onClose={() => setNotifOpen(false)} />
               <Link to="/profile" className="flex items-center gap-2 group">
-                <div className="w-9 h-9 rounded-full bg-charcoal text-gold-light flex items-center justify-center text-xs font-medium uppercase ring-1 ring-gold/30 shadow-md group-hover:scale-105 transition-transform">
+                <div className="w-8 h-8 rounded-full bg-gold text-white flex items-center justify-center text-xs font-semibold uppercase group-hover:opacity-90 transition-opacity">
                   {currentUser.name.charAt(0)}
                 </div>
               </Link>

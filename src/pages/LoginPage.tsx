@@ -151,105 +151,80 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-obsidian kaala-grain kaala-jaali kaala-marble">
+    <div className="min-h-screen bg-obsidian flex flex-col">
       <div className="absolute top-4 right-4 z-20 safe-top">
         <ThemeToggle />
       </div>
-      <div className="kaala-ambient" aria-hidden />
-      <div className="login-blob w-[45vw] h-[45vw] -top-[15%] -left-[10%] bg-gold/20" />
-      <div className="login-blob w-[35vw] h-[35vw] bottom-[-10%] right-[-5%] bg-gold-muted/15" />
 
-      <div className="relative z-10 min-h-screen grid lg:grid-cols-2">
-        <div className="hidden lg:flex flex-col justify-between p-12 xl:p-16 relative">
-          <div className="studio-reveal">
-            <img src="/logo.svg" alt="" className="w-12 h-12 rounded-xl mb-10 opacity-90 ring-1 ring-gold/20" />
-            <p className="login-editorial-sub mb-8">{meta.title}</p>
-            <h1 className="login-editorial-type">
-              House<br />of<br />Kaala
-            </h1>
-            <div className="executive-profile-divider my-10 max-w-xs" />
-            <p className="max-w-sm text-sm leading-relaxed text-ivory-muted">
-              A luxury operating environment for your creative studio — attendance, culture, projects, and everything in between.
-            </p>
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-[400px]">
+          <div className="flex flex-col items-center text-center mb-8">
+            <img src="/logo.svg" alt="House of Kaala" className="w-16 h-16 rounded-[18px] mb-4 shadow-sm" />
+            <h1 className="text-[22px] font-semibold text-ivory tracking-tight">House of Kaala</h1>
+            <p className="text-[15px] text-ivory-muted mt-1">{meta.title}</p>
           </div>
-          <p className="login-editorial-sub studio-reveal studio-reveal-d2">
-            Human Resource Management
-          </p>
-        </div>
 
-        <div className="flex items-center justify-center p-6 sm:p-10 lg:p-12">
-          <div className="w-full max-w-[420px] studio-reveal studio-reveal-d1">
-            <div className="lg:hidden flex flex-col items-center text-center mb-8">
-              <img src="/logo.svg" alt="House of Kaala" className="w-14 h-14 rounded-2xl mb-3 ring-1 ring-gold/25" />
-              <p className="login-editorial-sub">{meta.title}</p>
+          <div className="studio-login-card p-8">
+            <div className="mb-6">
+              <h2 className="text-[22px] font-semibold text-ivory tracking-tight">Sign In</h2>
+              <p className="text-[15px] text-ivory-muted mt-1">Use your company credentials to continue.</p>
             </div>
 
-            <div className="studio-login-card relative p-8 sm:p-10">
-              <div className="gold-corners" aria-hidden><span /></div>
-              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-gold to-transparent opacity-50" />
-
-              <div className="mb-8">
-                <p className="studio-kicker mb-2">Welcome back</p>
-                <h2 className="font-display text-3xl font-medium text-ivory">Sign in</h2>
-                <p className="text-sm text-ivory-muted mt-2">Use your company credentials to continue.</p>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[13px] font-medium text-ivory mb-1.5">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="input-field"
+                  placeholder="you@company.com"
+                  required
+                />
               </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="studio-kicker block mb-2">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="input-field bg-transparent border-0 border-b border-gold/20 rounded-none px-0 focus:border-gold/50"
-                    placeholder="you@bymarketingonly.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="studio-kicker block mb-2">Password</label>
-                  <PasswordInput
-                    value={password}
-                    onChange={setPassword}
-                    className="w-full bg-transparent border-0 border-b border-gold/20 rounded-none px-0 py-3 text-sm text-ivory outline-none focus:border-gold/50 transition-colors"
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-                {error && (
-                  <p className="text-sm text-red-300/90 bg-red-950/30 px-3 py-2 rounded-lg border-l border-red-400/40">{error}</p>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary w-full py-3.5 mt-2 disabled:opacity-50"
-                >
-                  {loading ? 'Signing in…' : 'Sign In'}
-                </button>
-              </form>
-
-              {googleAvailable && (
-                <>
-                  <div className="flex items-center gap-3 my-6">
-                    <div className="flex-1 h-px bg-gold/15" />
-                    <span className="text-[10px] uppercase tracking-widest text-ivory-muted">or</span>
-                    <div className="flex-1 h-px bg-gold/15" />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    className="w-full py-3 rounded-lg border border-gold/25 text-sm text-ivory hover:bg-gold/5 transition-colors disabled:opacity-50"
-                  >
-                    Continue with Google
-                  </button>
-                </>
+              <div>
+                <label className="block text-[13px] font-medium text-ivory mb-1.5">Password</label>
+                <PasswordInput
+                  value={password}
+                  onChange={setPassword}
+                  className="input-field"
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              {error && (
+                <p className="text-[13px] text-red-600 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-lg">{error}</p>
               )}
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary w-full py-2.5 mt-2 disabled:opacity-50"
+              >
+                {loading ? 'Signing in…' : 'Sign In'}
+              </button>
+            </form>
 
-              <p className="text-xs text-ivory-muted text-center mt-8">
-                Contact HR if you need access to your account.
-              </p>
-            </div>
+            {googleAvailable && (
+              <>
+                <div className="flex items-center gap-3 my-5">
+                  <div className="flex-1 h-px bg-slate" />
+                  <span className="text-[13px] text-ivory-muted">or</span>
+                  <div className="flex-1 h-px bg-slate" />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                  className="w-full py-2.5 rounded-lg border border-slate text-[15px] text-ivory hover:bg-marble-light transition-colors disabled:opacity-50"
+                >
+                  Continue with Google
+                </button>
+              </>
+            )}
+
+            <p className="text-[13px] text-ivory-muted text-center mt-6">
+              Contact HR if you need access to your account.
+            </p>
           </div>
         </div>
       </div>

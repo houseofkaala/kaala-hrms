@@ -11,10 +11,10 @@ export function getPreferredTheme(): ThemeMode {
   } catch {
     /* ignore */
   }
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
-    return 'light';
+  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
   }
-  return 'dark';
+  return 'light';
 }
 
 export function applyTheme(theme: ThemeMode) {
@@ -24,7 +24,7 @@ export function applyTheme(theme: ThemeMode) {
   root.style.colorScheme = theme;
 
   const meta = document.querySelector('meta[name="theme-color"]');
-  meta?.setAttribute('content', theme === 'light' ? '#f7f4ef' : '#0a0a0c');
+  meta?.setAttribute('content', theme === 'light' ? '#f5f5f7' : '#000000');
 }
 
 export function initTheme() {
@@ -38,7 +38,7 @@ interface ThemeState {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  theme: 'dark',
+  theme: 'light',
   setTheme: (theme) => {
     try {
       localStorage.setItem(STORAGE_KEY, theme);

@@ -14,8 +14,8 @@ export function ThemeToggle({ className, showLabel = false, variant = 'header' }
 
   const base =
     variant === 'header'
-      ? 'flex items-center justify-center w-10 h-10 min-h-[44px] min-w-[44px] rounded-xl text-ivory-muted hover:text-gold-light hover:bg-gold/5 transition-colors'
-      : 'inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors';
+      ? 'flex items-center justify-center w-9 h-9 min-h-[36px] min-w-[36px] rounded-lg text-ivory-muted hover:text-ivory hover:bg-marble-light transition-colors'
+      : 'inline-flex items-center gap-2 rounded-lg border border-slate px-3 py-2 text-sm font-medium text-ivory hover:bg-marble-light transition-colors';
 
   return (
     <button
@@ -25,7 +25,7 @@ export function ThemeToggle({ className, showLabel = false, variant = 'header' }
       aria-label={isLight ? 'Switch to dark mode' : 'Switch to light mode'}
       title={isLight ? 'Dark mode' : 'Light mode'}
     >
-      {isLight ? <Moon className="w-[18px] h-[18px]" /> : <Sun className="w-[18px] h-[18px]" />}
+      {isLight ? <Moon className="w-[17px] h-[17px]" /> : <Sun className="w-[17px] h-[17px]" />}
       {showLabel && <span>{isLight ? 'Dark mode' : 'Light mode'}</span>}
     </button>
   );
@@ -35,13 +35,13 @@ export function AppearanceSettingsCard() {
   const { theme, setTheme } = useThemeStore();
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-4">
       <div>
         <h3 className="text-sm font-semibold text-gray-900">Appearance</h3>
         <p className="text-xs text-gray-500 mt-1">Choose how Kaala HRMS looks on your device.</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {(['dark', 'light'] as const).map(mode => {
+        {(['light', 'dark'] as const).map(mode => {
           const active = theme === mode;
           return (
             <button
@@ -51,7 +51,7 @@ export function AppearanceSettingsCard() {
               className={cn(
                 'rounded-xl border p-4 text-left transition-all',
                 active
-                  ? 'border-gold/40 bg-gold/10 ring-1 ring-gold/30'
+                  ? 'border-gold bg-gold/10 ring-1 ring-gold/30'
                   : 'border-gray-200 hover:border-gray-300 bg-white',
               )}
             >
@@ -59,13 +59,13 @@ export function AppearanceSettingsCard() {
                 className={cn(
                   'h-14 rounded-lg mb-3 border',
                   mode === 'dark'
-                    ? 'bg-obsidian border-gold/20'
-                    : 'bg-[#f7f4ef] border-gray-200',
+                    ? 'bg-black border-gray-700'
+                    : 'bg-[#f5f5f7] border-gray-200',
                 )}
               />
               <p className="text-sm font-semibold text-gray-900 capitalize">{mode} mode</p>
               <p className="text-[11px] text-gray-500 mt-0.5">
-                {mode === 'dark' ? 'Luxury studio aesthetic' : 'Bright, clean workspace'}
+                {mode === 'dark' ? 'Dark, easy on the eyes' : 'Light, clean interface'}
               </p>
             </button>
           );
