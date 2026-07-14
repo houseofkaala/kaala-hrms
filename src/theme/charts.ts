@@ -1,37 +1,21 @@
-import { useThemeStore } from '../theme';
-
-/** Shared Recharts palette — antique gold on obsidian */
-export const CHART_DARK = {
-  gold: '#c9a962',
-  goldLight: '#e8d5a3',
-  goldMuted: '#8a7340',
-  goldDim: '#5c4d2a',
-  ivory: '#f5f0e8',
-  ivoryMuted: '#8a8680',
-  grid: 'rgba(201, 169, 98, 0.08)',
-  tooltipBg: '#1a1a1e',
-  tooltipBorder: 'rgba(201, 169, 98, 0.2)',
-  series: ['#c9a962', '#e8d5a3', '#8a7340', '#a89050', '#6b5a30'],
-};
-
+/** Recharts palette — Apple light theme */
 export const CHART_LIGHT = {
-  gold: '#a88b3d',
-  goldLight: '#c9a962',
-  goldMuted: '#8a7340',
-  goldDim: '#6b5a30',
-  ivory: '#1a1814',
-  ivoryMuted: '#6b6560',
-  grid: 'rgba(168, 139, 61, 0.12)',
+  gold: '#007aff',
+  goldLight: '#409cff',
+  goldMuted: '#86868b',
+  goldDim: '#0056b3',
+  ivory: '#1d1d1f',
+  ivoryMuted: '#86868b',
+  grid: 'rgba(0, 0, 0, 0.06)',
   tooltipBg: '#ffffff',
-  tooltipBorder: 'rgba(168, 139, 61, 0.25)',
-  series: ['#a88b3d', '#c9a962', '#8a7340', '#b89a50', '#7a6530'],
+  tooltipBorder: 'rgba(0, 0, 0, 0.1)',
+  series: ['#007aff', '#34c759', '#ff9500', '#5856d6', '#ff2d55'],
 };
 
-export const CHART = CHART_DARK;
+export const CHART = CHART_LIGHT;
 
 export function useChartTheme() {
-  const theme = useThemeStore(s => s.theme);
-  const palette = theme === 'light' ? CHART_LIGHT : CHART_DARK;
+  const palette = CHART_LIGHT;
   return {
     CHART: palette,
     chartTooltipStyle: {
@@ -45,9 +29,9 @@ export function useChartTheme() {
 }
 
 export const chartTooltipStyle = {
-  backgroundColor: CHART_DARK.tooltipBg,
-  border: `1px solid ${CHART_DARK.tooltipBorder}`,
+  backgroundColor: CHART_LIGHT.tooltipBg,
+  border: `1px solid ${CHART_LIGHT.tooltipBorder}`,
   borderRadius: '12px',
   fontSize: '12px',
-  color: CHART_DARK.ivory,
+  color: CHART_LIGHT.ivory,
 };
