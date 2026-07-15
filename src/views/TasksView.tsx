@@ -3,9 +3,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Search, Filter, LayoutGrid, List, X, Calendar, User, Flag,
   MessageSquare, CheckCircle2, Circle, Trash2, MoreHorizontal, Send,
-  AlertCircle, Tag,
+  AlertCircle, Tag, Clock,
 } from 'lucide-react';
-import { format, isPast, parseISO } from 'date-fns';
+import { format, isPast, parseISO, formatDistanceToNow } from 'date-fns';
 import { fetcher, cn } from '../utils';
 import { useRBACStore } from '../store';
 import { ViewApiError } from '../components/ViewApiError';
@@ -22,6 +22,43 @@ const STAGES: { key: KanbanStage; label: string }[] = [
 
 const PRIORITIES: KanbanPriority[] = ['low', 'medium', 'high', 'urgent'];
 
+const TIME_LIMIT_PRESETS = [
+  { label: '1 hour', hours: 1 },
+  { label: '4 hours', hours: 4 },
+  { label: '8 hours', hours: 8 },
+  { label: '24 hours', hours: 24 },
+  { label: '3 days', hours: 72 },
+  { label: '1 week', hours: 168 },
+] as const;
+
+function getTaskDeadline(task: KanbanTask): Date | null {
+  if (task.dueDate) {
+    const d = parseISO(task.dueDate);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (task.timeLimitHours && task.createdAt) {
+    return new Date(parseISO(task.createdAt).getTime() + task.timeLimitHours * 3600000);
+  }
+  return null;
+}
+
+function formatTimeLimitLabel(hours: number | null) {
+  if (!hours) return null;
+  if (hours < 24) return `${hours}h limit`;
+  if (hours % 24 === 0) return `${hours / 24}d limit`;
+  return `${hours}h limit`;
+}
+
+function formatDeadlineCountdown(task: KanbanTask) {
+  if (task.stage === 'done') return null;
+  const deadline = getTaskDeadline(task);
+  if (!deadline) return null;
+  if (isPast(deadline)) {
+    return { text: `Overdue ${formatDistanceToNow(deadline, { addSuffix: false })}`, overdue: true };
+  }
+  return { text: `${formatDistanceToNow(deadline)} left`, overdue: false };
+}
+
 function priorityChip(p: KanbanPriority) {
   const map: Record<KanbanPriority, string> = {
     low: 'bg-charcoal text-ivory-muted',
@@ -37,7 +74,9 @@ function priorityLabel(p: KanbanPriority) {
 }
 
 function isOverdue(task: KanbanTask) {
-  return task.dueDate && task.stage !== 'done' && isPast(parseISO(task.dueDate));
+  if (task.stage === 'done') return false;
+  const deadline = getTaskDeadline(task);
+  return deadline !== null && isPast(deadline);
 }
 
 const emptyForm = {
@@ -45,7 +84,10 @@ const emptyForm = {
   description: '',
   priority: 'medium' as KanbanPriority,
   assigneeId: '',
+  limitMode: 'preset' as 'preset' | 'custom',
+  timeLimitHours: 24,
   dueDate: '',
+  dueTime: '18:00',
   labels: '',
   projectId: '',
 };
@@ -137,7 +179,9 @@ export function TasksView() {
           description: form.description,
           priority: form.priority,
           assigneeId: form.assigneeId || (isManager ? null : currentUser?.id),
-          dueDate: form.dueDate || null,
+          timeLimitHours: form.limitMode === 'preset' ? form.timeLimitHours : undefined,
+          dueDate: form.limitMode === 'custom' ? form.dueDate : undefined,
+          dueTime: form.limitMode === 'custom' ? form.dueTime : undefined,
           labels: form.labels,
           projectId: form.projectId || null,
         }),
@@ -289,9 +333,54 @@ export function TasksView() {
                 {PRIORITIES.map(p => <option key={p} value={p}>{priorityLabel(p)}</option>)}
               </select>
             </div>
-            <div>
-              <label className="studio-kicker block mb-1.5">Due date</label>
-              <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className="input-field" />
+            <div className="md:col-span-2">
+              <label className="studio-kicker block mb-1.5">Time limit *</label>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, limitMode: 'preset' }))}
+                  className={cn('text-xs px-3 py-1.5 rounded-lg border', form.limitMode === 'preset' ? 'bg-charcoal text-ivory border-slate' : 'border-slate text-ivory-muted')}
+                >
+                  Quick preset
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, limitMode: 'custom' }))}
+                  className={cn('text-xs px-3 py-1.5 rounded-lg border', form.limitMode === 'custom' ? 'bg-charcoal text-ivory border-slate' : 'border-slate text-ivory-muted')}
+                >
+                  Custom deadline
+                </button>
+              </div>
+              {form.limitMode === 'preset' ? (
+                <select
+                  required
+                  value={form.timeLimitHours}
+                  onChange={e => setForm(f => ({ ...f, timeLimitHours: Number(e.target.value) }))}
+                  className="input-field"
+                >
+                  {TIME_LIMIT_PRESETS.map(p => (
+                    <option key={p.hours} value={p.hours}>{p.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    required
+                    type="date"
+                    min={new Date().toISOString().slice(0, 10)}
+                    value={form.dueDate}
+                    onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+                    className="input-field"
+                  />
+                  <input
+                    required
+                    type="time"
+                    value={form.dueTime}
+                    onChange={e => setForm(f => ({ ...f, dueTime: e.target.value }))}
+                    className="input-field"
+                  />
+                </div>
+              )}
             </div>
             {isManager && (
               <div>
@@ -380,11 +469,11 @@ export function TasksView() {
                       <span className="flex items-center gap-1"><User className="w-3 h-3" /> {userName(task.assigneeId)}</span>
                     </>
                   )}
-                  {task.dueDate && (
+                  {getTaskDeadline(task) && (
                     <>
                       <span>·</span>
                       <span className={cn('flex items-center gap-1', isOverdue(task) && 'text-red-500')}>
-                        <Calendar className="w-3 h-3" /> {format(parseISO(task.dueDate), 'MMM d')}
+                        <Clock className="w-3 h-3" /> {formatDeadlineCountdown(task)?.text ?? format(getTaskDeadline(task)!, 'MMM d, h:mm a')}
                       </span>
                     </>
                   )}
@@ -472,9 +561,14 @@ function TaskCard({
         {task.assigneeId && (
           <span className="flex items-center gap-1"><User className="w-3 h-3" /> {assigneeName.split(' ')[0]}</span>
         )}
-        {task.dueDate && (
-          <span className={cn('flex items-center gap-1', isOverdue(task) && 'text-red-500')}>
-            <Calendar className="w-3 h-3" /> {format(parseISO(task.dueDate), 'MMM d')}
+        {task.timeLimitHours && (
+          <span className="flex items-center gap-1 text-ivory-muted">
+            <Clock className="w-3 h-3" /> {formatTimeLimitLabel(task.timeLimitHours)}
+          </span>
+        )}
+        {getTaskDeadline(task) && (
+          <span className={cn('flex items-center gap-1 font-medium', isOverdue(task) ? 'text-red-500' : 'text-gold')}>
+            <Clock className="w-3 h-3" /> {formatDeadlineCountdown(task)?.text ?? format(getTaskDeadline(task)!, 'MMM d, h:mm a')}
           </span>
         )}
         {checklistTotal > 0 && (
@@ -535,13 +629,17 @@ function TaskDetailDrawer({
   onDelete: () => void | Promise<void>;
   onRefresh: () => void;
 }) {
+  const deadline = getTaskDeadline(task);
   const [edit, setEdit] = useState({
     title: task.title,
     description: task.description,
     priority: task.priority,
     stage: task.stage,
     assigneeId: task.assigneeId || '',
-    dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
+    limitMode: (task.timeLimitHours && !task.dueDate?.includes('T') ? 'preset' : 'custom') as 'preset' | 'custom',
+    timeLimitHours: task.timeLimitHours || 24,
+    dueDate: deadline ? format(deadline, 'yyyy-MM-dd') : '',
+    dueTime: deadline ? format(deadline, 'HH:mm') : '18:00',
     labels: task.labels.join(', '),
     projectId: task.projectId || '',
   });
@@ -558,7 +656,9 @@ function TaskDetailDrawer({
         priority: edit.priority,
         stage: edit.stage,
         assigneeId: edit.assigneeId || null,
-        dueDate: edit.dueDate || null,
+        timeLimitHours: edit.limitMode === 'preset' ? edit.timeLimitHours : undefined,
+        dueDate: edit.limitMode === 'custom' ? edit.dueDate : undefined,
+        dueTime: edit.limitMode === 'custom' ? edit.dueTime : undefined,
         labels: edit.labels,
         projectId: edit.projectId || null,
       });
@@ -655,9 +755,29 @@ function TaskDetailDrawer({
                 {PRIORITIES.map(p => <option key={p} value={p}>{priorityLabel(p)}</option>)}
               </select>
             </div>
-            <div>
-              <label className="studio-kicker block mb-1">Due date</label>
-              <input type="date" value={edit.dueDate} onChange={e => setEdit(ed => ({ ...ed, dueDate: e.target.value }))} className="input-field text-sm" />
+            <div className="col-span-2">
+              <label className="studio-kicker block mb-1">Time limit</label>
+              {deadline && task.stage !== 'done' && (
+                <p className={cn('text-xs mb-2 flex items-center gap-1', isOverdue(task) ? 'text-red-500' : 'text-gold')}>
+                  <Clock className="w-3.5 h-3.5" />
+                  {formatDeadlineCountdown(task)?.text ?? format(deadline, 'MMM d, yyyy h:mm a')}
+                  {task.timeLimitHours ? ` · ${formatTimeLimitLabel(task.timeLimitHours)}` : ''}
+                </p>
+              )}
+              <div className="flex gap-2 mb-2">
+                <button type="button" onClick={() => setEdit(ed => ({ ...ed, limitMode: 'preset' }))} className={cn('text-xs px-2 py-1 rounded border', edit.limitMode === 'preset' ? 'bg-charcoal text-ivory' : 'text-ivory-muted border-slate')}>Preset</button>
+                <button type="button" onClick={() => setEdit(ed => ({ ...ed, limitMode: 'custom' }))} className={cn('text-xs px-2 py-1 rounded border', edit.limitMode === 'custom' ? 'bg-charcoal text-ivory' : 'text-ivory-muted border-slate')}>Custom</button>
+              </div>
+              {edit.limitMode === 'preset' ? (
+                <select value={edit.timeLimitHours} onChange={e => setEdit(ed => ({ ...ed, timeLimitHours: Number(e.target.value) }))} className="input-field text-sm">
+                  {TIME_LIMIT_PRESETS.map(p => <option key={p.hours} value={p.hours}>{p.label}</option>)}
+                </select>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="date" value={edit.dueDate} onChange={e => setEdit(ed => ({ ...ed, dueDate: e.target.value }))} className="input-field text-sm" />
+                  <input type="time" value={edit.dueTime} onChange={e => setEdit(ed => ({ ...ed, dueTime: e.target.value }))} className="input-field text-sm" />
+                </div>
+              )}
             </div>
             <div>
               <label className="studio-kicker block mb-1">Assignee</label>

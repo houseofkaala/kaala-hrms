@@ -1,5 +1,6 @@
 import { getDb, saveDb, pushNotification } from './db';
 import { employeePerformanceScore, recordPerformanceSnapshots } from './performance-tracking';
+import { isKanbanTaskOverdue, kanbanTimeRemainingMs } from './kanban';
 
 export interface AutomationLog {
   id: string;
@@ -72,6 +73,25 @@ export function runDailyAutomations(): number {
     }
     log('performance_alert', `Flagged ${lowPerformers.length} low performers`, lowPerformers.length);
     total += lowPerformers.length;
+  }
+
+  // Kanban task deadline warnings and overdue alerts
+  const openKanban = (db.kanbanTasks || []).filter(t => t.stage !== 'done');
+  for (const t of openKanban) {
+    const uid = t.assigneeId || t.createdBy;
+    if (!uid) continue;
+    const remaining = kanbanTimeRemainingMs(t);
+    if (remaining === null) continue;
+    if (isKanbanTaskOverdue(t)) {
+      pushNotification(uid, 'Task overdue', `"${t.title}" is past its deadline.`, { triggerId: 'tasks.overdue' });
+      total += 1;
+    } else if (remaining > 0 && remaining <= 2 * 3600000) {
+      pushNotification(uid, 'Task deadline soon', `"${t.title}" is due within 2 hours.`, { triggerId: 'tasks.deadline_approaching' });
+      total += 1;
+    }
+  }
+  if (openKanban.length > 0) {
+    log('kanban_deadlines', `Checked ${openKanban.length} open kanban tasks for deadlines`, openKanban.length);
   }
 
   // Project deadline warnings (due within 7 days)

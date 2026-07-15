@@ -48,7 +48,8 @@ import { registerSecurityRoutes } from './security-routes';
 import { logSecurityEvent, requestContext } from './security-audit';
 import {
   addKanbanChecklistItem, addKanbanComment, applyKanbanPatch, createKanbanTask,
-  kanbanStats, kanbanTaskVisible, patchKanbanChecklistItem, removeKanbanChecklistItem,
+  kanbanStats, kanbanTaskVisible, kanbanTimeRemainingMs, patchKanbanChecklistItem,
+  removeKanbanChecklistItem, validateKanbanTimeLimit,
 } from './kanban';
 
 export type { AuthedRequest } from './middleware';
@@ -785,6 +786,8 @@ export async function registerRoutes(app: Express) {
     if (!me) return res.status(401).json({ error: 'Unauthorized' });
     const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
     if (!title) return res.status(400).json({ error: 'Title is required' });
+    const timeErr = validateKanbanTimeLimit(req.body);
+    if (timeErr) return res.status(400).json({ error: timeErr });
 
     const manager = isManagerOrAdmin(me);
     let assigneeId: string | null = req.body.assigneeId ?? req.userId!;
@@ -799,8 +802,13 @@ export async function registerRoutes(app: Express) {
     db().kanbanTasks.push(t);
     saveDb();
 
-    if (assigneeId && assigneeId !== req.userId) {
-      pushNotification(assigneeId, 'Task assigned', `You have been assigned: "${t.title}"`, { triggerId: 'tasks.assigned' });
+    const assigneeNotify = assigneeId || req.userId!;
+    const dueLabel = t.dueDate ? new Date(t.dueDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    const msg = dueLabel
+      ? `You have been assigned: "${t.title}" — due ${dueLabel}`
+      : `You have been assigned: "${t.title}"`;
+    if (assigneeNotify !== req.userId) {
+      pushNotification(assigneeNotify, 'Task assigned', msg, { triggerId: 'tasks.assigned' });
     }
     res.json({ success: true, task: t });
   });
@@ -814,6 +822,10 @@ export async function registerRoutes(app: Express) {
 
     if (!manager && req.body.assigneeId !== undefined && req.body.assigneeId !== req.userId && req.body.assigneeId !== null) {
       return res.status(403).json({ error: 'You cannot reassign tasks to others' });
+    }
+    if (req.body.timeLimitHours !== undefined || req.body.dueDate !== undefined || req.body.dueTime !== undefined) {
+      const timeErr = validateKanbanTimeLimit({ ...req.body, dueDate: req.body.dueDate ?? t.dueDate });
+      if (timeErr) return res.status(400).json({ error: timeErr });
     }
 
     applyKanbanPatch(t, req.body);

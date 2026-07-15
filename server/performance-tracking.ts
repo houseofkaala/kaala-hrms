@@ -1,6 +1,6 @@
 import { getDb, getUserById } from './db';
 import { activeUsers } from './security';
-import type { KanbanTaskRecord } from './kanban';
+import { getTaskDeadline, isKanbanTaskOverdue, type KanbanTaskRecord } from './kanban';
 
 export type PerformancePeriod = '30d' | '90d' | 'quarter' | 'ytd' | 'all';
 
@@ -99,13 +99,15 @@ function isLateClockIn(clockIn: string): boolean {
 }
 
 function kanbanOnTime(task: KanbanTaskRecord): boolean {
-  if (task.stage !== 'done' || !task.dueDate) return false;
+  if (task.stage !== 'done') return false;
+  const deadline = getTaskDeadline(task);
+  if (!deadline) return false;
   const doneAt = task.updatedAt || task.createdAt;
-  return new Date(doneAt).getTime() <= new Date(task.dueDate).getTime();
+  return new Date(doneAt).getTime() <= deadline.getTime();
 }
 
 function kanbanOverdue(task: KanbanTaskRecord): boolean {
-  return Boolean(task.dueDate && task.stage !== 'done' && new Date(task.dueDate).getTime() < Date.now());
+  return isKanbanTaskOverdue(task);
 }
 
 export function computePerformanceBreakdown(counts: PerformanceCounts): PerformanceBreakdown {
@@ -185,7 +187,7 @@ export function computeEmployeeCounts(userId: string, period: PerformancePeriod 
     ? reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length
     : 0;
 
-  const datedTasks = kanbanTasks.filter(t => t.dueDate && t.stage === 'done');
+  const datedTasks = kanbanTasks.filter(t => getTaskDeadline(t) && t.stage === 'done');
   const onTimeRate = datedTasks.length ? kanbanOnTime / datedTasks.length : (kanbanCompleted > 0 ? 0.7 : 0);
 
   return {
