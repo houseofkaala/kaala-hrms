@@ -48,7 +48,14 @@ const EMPLOYEE_PORTAL_MODULES = new Set([
   'performance', 'learning', 'surveys', 'community', 'helpdesk', 'marketplace',
   'rewards', 'leaderboard', 'chat', 'ai', 'profile', 'notifications',
   'timesheets', 'holidays', 'policies', 'projects', 'tasks', 'onboarding', 'orgchart',
-  'settings', 'security', 'benefits', 'tax',
+  'settings', 'security', 'benefits', 'tax', 'expenses', 'field', 'crm',
+]);
+
+const SALES_MODULES = new Set([
+  'dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
+  'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
+  'chat', 'ai', 'profile', 'notifications', 'settings', 'security', 'benefits', 'tax',
+  'holidays', 'policies',
 ]);
 
 export function moduleForRoute(route: string): string {
@@ -56,11 +63,10 @@ export function moduleForRoute(route: string): string {
   return ROUTE_MODULE[route] || route;
 }
 
-const SALES_MODULES = new Set([
-  'dashboard', 'crm', 'projects', 'tasks', 'field', 'people', 'documents', 'expenses',
-  'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
-  'chat', 'ai', 'profile', 'notifications', 'settings', 'security',
-]);
+function fallbackModulesForRole(role: User['role']): Set<string> {
+  if (role === 'sales' || role === 'executive_assistant') return SALES_MODULES;
+  return EMPLOYEE_PORTAL_MODULES;
+}
 
 export function canAccessModule(user: User | null, route: string): boolean {
   if (!user) return false;
@@ -71,15 +77,15 @@ export function canAccessModule(user: User | null, route: string): boolean {
     return user.role === 'admin' || user.role === 'manager';
   }
 
-  if (user.role === 'sales' || user.role === 'executive_assistant') {
-    return SALES_MODULES.has(mod) || mod === 'crm';
+  const allowed = user.allowedModules;
+  if (allowed?.includes('*')) {
+    return fallbackModulesForRole(user.role).has(mod);
+  }
+  if (allowed?.length) {
+    return allowed.includes(mod);
   }
 
-  if (user.allowedModules?.includes('*')) return EMPLOYEE_PORTAL_MODULES.has(mod);
-  if (user.allowedModules?.length) {
-    return user.allowedModules.includes(mod) && EMPLOYEE_PORTAL_MODULES.has(mod);
-  }
-  return EMPLOYEE_PORTAL_MODULES.has(mod);
+  return fallbackModulesForRole(user.role).has(mod);
 }
 
 export function filterNavByRole(user: User | null, route: string): boolean {

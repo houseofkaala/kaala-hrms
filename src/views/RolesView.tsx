@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Shield, Users } from 'lucide-react';
 import { fetcher } from '../utils';
@@ -27,13 +28,20 @@ export function RolesView() {
     enabled: currentUser?.role === 'admin',
   });
 
+  const [actionError, setActionError] = useState('');
+
   const updateRole = async (userId: string, role: string) => {
-    await fetcher(`/api/roles/users/${userId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ role }),
-    });
-    queryClient.invalidateQueries({ queryKey: ['role-users'] });
-    queryClient.invalidateQueries({ queryKey: ['employees'] });
+    setActionError('');
+    try {
+      await fetcher(`/api/roles/users/${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['role-users'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to update role');
+    }
   };
 
   if (currentUser?.role !== 'admin') {
@@ -51,6 +59,12 @@ export function RolesView() {
         <p className="text-sm text-gray-500 mt-1">Configure roles and assign permissions across the organization</p>
       </div>
 
+      {actionError && (
+        <p className="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-500/20 px-3 py-2 rounded-lg">
+          {actionError}
+        </p>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {roles && Object.entries(roles).map(([role, config]) => (
           <div key={role} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -67,9 +81,16 @@ export function RolesView() {
               <button
                 onClick={async () => {
                   const modules = prompt('Enter comma-separated modules:', config.modules.join(', '));
-                  if (modules) {
-                    await fetcher('/api/roles', { method: 'PATCH', body: JSON.stringify({ role, modules: modules.split(',').map(m => m.trim()) }) });
+                  if (!modules) return;
+                  setActionError('');
+                  try {
+                    await fetcher('/api/roles', {
+                      method: 'PATCH',
+                      body: JSON.stringify({ role, modules: modules.split(',').map(m => m.trim()) }),
+                    });
                     queryClient.invalidateQueries({ queryKey: ['roles'] });
+                  } catch (err) {
+                    setActionError(err instanceof Error ? err.message : 'Failed to update modules');
                   }
                 }}
                 className="text-xs text-emerald-600 font-semibold hover:underline"

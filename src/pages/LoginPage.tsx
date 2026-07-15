@@ -22,6 +22,12 @@ export default function LoginPage() {
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const oauthHandled = useRef(false);
 
+  function oauthExchangeKey(authCode: string | null, legacyToken: string | null) {
+    if (authCode) return `oauth:code:${authCode}`;
+    if (legacyToken) return `oauth:token:${legacyToken.slice(0, 24)}`;
+    return '';
+  }
+
   const mismatch = location.state as { portalMismatch?: boolean; correctPortal?: Portal; message?: string } | null;
 
   useEffect(() => {
@@ -50,8 +56,23 @@ export default function LoginPage() {
       if (isAuthenticated()) navigate('/dashboard', { replace: true });
       return;
     }
+
+    const exchangeKey = oauthExchangeKey(authCode, legacyToken);
+    try {
+      if (exchangeKey && sessionStorage.getItem(exchangeKey) === 'complete') {
+        if (isAuthenticated()) navigate('/dashboard', { replace: true });
+        return;
+      }
+      if (exchangeKey && sessionStorage.getItem(exchangeKey) === 'pending') return;
+    } catch {
+      /* ignore storage errors */
+    }
+
     if (oauthHandled.current) return;
     oauthHandled.current = true;
+    if (exchangeKey) {
+      try { sessionStorage.setItem(exchangeKey, 'pending'); } catch { /* ignore */ }
+    }
 
     let cancelled = false;
     setLoading(true);
@@ -79,9 +100,15 @@ export default function LoginPage() {
         }
         setStoredPortal(portalForRole(user.role));
         setCurrentUser(user);
+        if (exchangeKey) {
+          try { sessionStorage.setItem(exchangeKey, 'complete'); } catch { /* ignore */ }
+        }
         navigate('/dashboard', { replace: true });
       } catch (err) {
         if (cancelled) return;
+        if (exchangeKey) {
+          try { sessionStorage.removeItem(exchangeKey); } catch { /* ignore */ }
+        }
         clearToken();
         setError(err instanceof Error ? err.message : 'Google sign-in failed');
         navigate('/login', { replace: true });
@@ -90,7 +117,10 @@ export default function LoginPage() {
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      oauthHandled.current = false;
+    };
   }, [location.search, navigate, portal, setCurrentUser]);
 
   const handleGoogleSignIn = async () => {
@@ -193,7 +223,7 @@ export default function LoginPage() {
                 />
               </div>
               {error && (
-                <p className="text-[13px] text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+                <p className="text-[13px] text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-500/20 px-3 py-2 rounded-lg">{error}</p>
               )}
               <button
                 type="submit"

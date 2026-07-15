@@ -95,7 +95,12 @@ export function moduleAccessMiddleware(req: AuthedRequest, res: Response, next: 
   if (!user || isManagerOrAdmin(user)) return next();
 
   for (const [pattern, module] of PATH_MODULE_RULES) {
-    if (pattern.test(path) && !hasModuleAccess(user.role, module)) {
+    if (!pattern.test(path)) continue;
+    if (module === 'marketplace' && /^\/api\/tasks/.test(path)) {
+      if (hasModuleAccess(user.role, 'marketplace') || hasModuleAccess(user.role, 'tasks')) continue;
+      return res.status(403).json({ error: 'Module access denied' });
+    }
+    if (!hasModuleAccess(user.role, module)) {
       return res.status(403).json({ error: 'Module access denied' });
     }
   }

@@ -328,7 +328,7 @@ export function registerExtraRoutes(app: Express) {
     'surveys', 'community', 'helpdesk', 'marketplace', 'rewards', 'leaderboard', 'chat', 'ai',
     'profile', 'notifications', 'expenses', 'timesheets', 'onboarding', 'offboarding', 'holidays',
     'policies', 'orgchart', 'projects', 'tasks', 'settings', 'benefits', 'tax', 'recruit',
-    'employees', 'payroll', 'finance', 'reports', 'roles', 'crm', 'field', '*',
+    'employees', 'payroll', 'finance', 'reports', 'roles', 'crm', 'field', 'security', '*',
   ]);
 
   app.patch('/api/roles', requireRole('admin'), (req, res) => {

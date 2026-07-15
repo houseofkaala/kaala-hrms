@@ -38,37 +38,59 @@ export function IntegrationsSettings() {
     }
   }, [data]);
 
+  const [saveError, setSaveError] = useState('');
+
   const saveGoogle = async () => {
-    const payload: { enabled: boolean; clientId: string; clientSecret?: string } = {
-      enabled: googleEnabled,
-      clientId: googleClientId,
-    };
-    const secret = googleClientSecret.trim();
-    if (secret && secret !== '••••••••') payload.clientSecret = secret;
-    await fetcher('/api/integrations', {
-      method: 'PATCH',
-      body: JSON.stringify({ googleSso: payload }),
-    });
-    qc.invalidateQueries({ queryKey: ['integrations'] });
+    setSaveError('');
+    try {
+      const payload: { enabled: boolean; clientId: string; clientSecret?: string } = {
+        enabled: googleEnabled,
+        clientId: googleClientId,
+      };
+      const secret = googleClientSecret.trim();
+      if (secret && secret !== '••••••••') payload.clientSecret = secret;
+      await fetcher('/api/integrations', {
+        method: 'PATCH',
+        body: JSON.stringify({ googleSso: payload }),
+      });
+      qc.invalidateQueries({ queryKey: ['integrations'] });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save Google SSO settings');
+    }
   };
 
   const addWebhook = async () => {
     if (!webhookUrl.trim()) return;
-    await fetcher('/api/integrations/webhooks', {
-      method: 'POST',
-      body: JSON.stringify({ url: webhookUrl, events: EVENTS }),
-    });
-    setWebhookUrl('');
-    qc.invalidateQueries({ queryKey: ['integrations'] });
+    setSaveError('');
+    try {
+      await fetcher('/api/integrations/webhooks', {
+        method: 'POST',
+        body: JSON.stringify({ url: webhookUrl, events: EVENTS }),
+      });
+      setWebhookUrl('');
+      qc.invalidateQueries({ queryKey: ['integrations'] });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to add webhook');
+    }
   };
 
   const testWebhooks = async () => {
-    await fetcher('/api/integrations/webhooks/test', { method: 'POST' });
-    alert('Test event sent to all active webhooks.');
+    setSaveError('');
+    try {
+      await fetcher('/api/integrations/webhooks/test', { method: 'POST' });
+      alert('Test event sent to all active webhooks.');
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Webhook test failed');
+    }
   };
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-6">
+      {saveError && (
+        <p className="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-500/20 px-3 py-2 rounded-lg">
+          {saveError}
+        </p>
+      )}
       <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
         <Link2 className="w-4 h-4" /> Integrations Hub
       </h3>

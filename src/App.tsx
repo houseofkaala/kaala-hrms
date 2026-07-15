@@ -14,7 +14,8 @@ import {
   ClipboardList, Network, Timer, Receipt, Target, Heart, FileSpreadsheet, Menu, X
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { cn, fetcher } from './utils';
+import { cn, fetcher, ApiError } from './utils';
+import { canAccessModule } from './rbac';
 import { clearToken, isAuthenticated } from './auth';
 import type { User, Task, Transaction } from './types';
 import {
@@ -38,7 +39,6 @@ import LoginPage from './pages/LoginPage';
 import { useRBACStore, useTimerStore } from './store';
 import { getPortal, PORTAL_META } from './portal';
 import { hasSalesToolkit } from './sales-access';
-import { canAccessModule } from './rbac';
 import { ModuleGuard } from './components/ModuleGuard';
 import { ThemeToggle } from './components/ThemeToggle';
 
@@ -122,17 +122,30 @@ function HRMSApp() {
     try {
       const user = await loadUser();
       if (scope === 'all') {
-        await Promise.all([
-          loadTasks(),
-          loadUsers(),
-          loadTransactions(user.id),
-        ]);
+        const optional: Promise<unknown>[] = [];
+        if (canAccessModule(user, 'marketplace') || canAccessModule(user, 'tasks')) {
+          optional.push(loadTasks().catch(err => console.warn('Tasks load skipped', err)));
+        }
+        if (
+          canAccessModule(user, 'leaderboard') ||
+          canAccessModule(user, 'chat') ||
+          canAccessModule(user, 'people')
+        ) {
+          optional.push(loadUsers().catch(err => console.warn('Users load skipped', err)));
+        }
+        if (canAccessModule(user, 'rewards') || canAccessModule(user, 'marketplace')) {
+          optional.push(loadTransactions(user.id).catch(err => console.warn('Transactions load skipped', err)));
+        }
+        await Promise.all(optional);
       }
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        clearToken();
+        setCurrentUser(null);
+        navigate('/login', { replace: true });
+        return;
+      }
       console.error('Failed to load data', err);
-      clearToken();
-      setCurrentUser(null);
-      navigate('/login', { replace: true });
     } finally {
       if (!silent) setLoading(false);
     }
@@ -577,7 +590,10 @@ function TaskItem({ task, activeTimers, handleStartTimer, handleStopTimer, onCom
           body: JSON.stringify({ title }),
         });
         if (onRefresh) onRefresh();
-      } catch (err) {}
+      } catch (err) {
+        console.error('Failed to save task title', err);
+        alert('Could not save task title.');
+      }
     }
   };
 

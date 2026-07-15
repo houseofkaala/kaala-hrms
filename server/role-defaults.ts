@@ -21,7 +21,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, { modules: string[]; descr
   executive_assistant: {
     modules: [
       'dashboard', 'crm', 'people', 'documents', 'tasks', 'projects', 'field', 'expenses',
-      'chat', 'ai', 'attendance', 'leave', 'timesheets', 'profile', 'notifications', 'settings', 'security',
+      'attendance', 'leave', 'timesheets', 'marketplace', 'rewards', 'leaderboard',
+      'chat', 'ai', 'profile', 'notifications', 'settings', 'security', 'benefits', 'tax',
+      'holidays', 'policies',
     ],
     description: 'Executive Assistant — CRM, pipeline, and executive support',
   },
