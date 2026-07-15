@@ -40,6 +40,7 @@ import { getPortal, PORTAL_META } from './portal';
 import { hasSalesToolkit } from './sales-access';
 import { canAccessModule } from './rbac';
 import { ModuleGuard } from './components/ModuleGuard';
+import { ThemeToggle } from './components/ThemeToggle';
 
 import type { LucideIcon } from 'lucide-react';
 
@@ -440,6 +441,7 @@ function HRMSApp() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <ThemeToggle />
               <AttendanceHeaderButton onStatusChange={() => loadData(true, 'user')} />
               <div className="hidden md:flex studio-chip studio-chip-live">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#34c759]" />

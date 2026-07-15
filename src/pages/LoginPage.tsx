@@ -6,6 +6,7 @@ import type { User } from '../types';
 import { useRBACStore } from '../store';
 import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, getPortalLoginUrl, setStoredPortal, type Portal } from '../portal';
 import { PasswordInput } from '../components/PasswordInput';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 
 export default function LoginPage() {
@@ -152,6 +153,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-obsidian flex flex-col">
+      <div className="absolute top-4 right-4 z-20 safe-top">
+        <ThemeToggle />
+      </div>
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-[400px]">
           <div className="flex flex-col items-center text-center mb-8">

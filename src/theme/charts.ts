@@ -1,4 +1,5 @@
-/** Recharts palette — Apple light theme */
+import { useThemeStore } from '../theme';
+
 export const CHART_LIGHT = {
   gold: '#007aff',
   goldLight: '#409cff',
@@ -12,10 +13,24 @@ export const CHART_LIGHT = {
   series: ['#007aff', '#34c759', '#ff9500', '#5856d6', '#ff2d55'],
 };
 
+export const CHART_DARK = {
+  gold: '#0a84ff',
+  goldLight: '#409cff',
+  goldMuted: '#98989d',
+  goldDim: '#0066cc',
+  ivory: '#f5f5f7',
+  ivoryMuted: '#98989d',
+  grid: 'rgba(255, 255, 255, 0.08)',
+  tooltipBg: '#1c1c1e',
+  tooltipBorder: 'rgba(255, 255, 255, 0.12)',
+  series: ['#0a84ff', '#30d158', '#ff9f0a', '#5e5ce6', '#ff375f'],
+};
+
 export const CHART = CHART_LIGHT;
 
 export function useChartTheme() {
-  const palette = CHART_LIGHT;
+  const theme = useThemeStore(s => s.theme);
+  const palette = theme === 'light' ? CHART_LIGHT : CHART_DARK;
   return {
     CHART: palette,
     chartTooltipStyle: {

@@ -77,7 +77,8 @@
     color: var(--color-ivory);
   }
 
-  :root {
+  :root,
+  html.light {
     --text: var(--color-ivory);
     --text-muted: var(--color-ivory-muted);
     --accent: var(--color-gold);
@@ -86,10 +87,41 @@
     --bg-muted: var(--color-marble-light);
     --card-bg: #ffffff;
     --card-border: var(--color-slate);
+    --surface-bg: #ffffff;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
     --hover-fill: rgba(0, 0, 0, 0.04);
     --active-fill: color-mix(in srgb, var(--color-gold) 12%, transparent);
+  }
+
+  html.dark {
+    --color-obsidian: #000000;
+    --color-charcoal: #2c2c2e;
+    --color-marble: #1c1c1e;
+    --color-marble-light: #1c1c1e;
+    --color-slate: #38383a;
+    --color-gold: #0a84ff;
+    --color-gold-light: #409cff;
+    --color-gold-muted: #98989d;
+    --color-gold-dim: #0066cc;
+    --color-ivory: #f5f5f7;
+    --color-ivory-muted: #98989d;
+    --color-ink: #f5f5f7;
+    --color-cream: #000000;
+
+    --text: var(--color-ivory);
+    --text-muted: var(--color-ivory-muted);
+    --accent: var(--color-gold);
+    --accent-soft: color-mix(in srgb, var(--color-gold) 15%, transparent);
+    --border: var(--color-slate);
+    --bg-muted: #2c2c2e;
+    --card-bg: #1c1c1e;
+    --card-border: var(--color-slate);
+    --surface-bg: #1c1c1e;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.55);
+    --hover-fill: rgba(255, 255, 255, 0.06);
+    --active-fill: color-mix(in srgb, var(--color-gold) 18%, transparent);
   }
 }
 
@@ -170,7 +202,7 @@
 
 .studio-sidebar,
 .atelier-rail {
-  background: #ffffff;
+  background: var(--surface-bg);
   border-right: 1px solid var(--border);
   box-shadow: none;
 }
@@ -237,7 +269,7 @@
 
 .studio-header {
   border-bottom: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--surface-bg);
 }
 
 .studio-page-header {
@@ -285,7 +317,7 @@
 /* Dashboard hero */
 .executive-profile {
   border-radius: var(--radius-luxury);
-  background: #ffffff;
+  background: var(--card-bg);
   color: var(--color-ivory);
   position: relative;
   overflow: hidden;
@@ -368,7 +400,7 @@
 
 .studio-hero {
   border-radius: var(--radius-luxury);
-  background: #ffffff;
+  background: var(--card-bg);
   color: var(--color-ivory);
   position: relative;
   overflow: hidden;
@@ -379,7 +411,7 @@
 .studio-stat,
 .premium-stat {
   border-radius: var(--radius-luxury-sm);
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--card-border);
   padding: 1.25rem 1.35rem;
   position: relative;
@@ -542,7 +574,7 @@
 .premium-panel-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--card-bg);
   position: relative;
 }
 
@@ -600,16 +632,16 @@
 }
 
 .period-toggle button[data-active="true"] {
-  background: #ffffff;
+  background: var(--card-bg);
   color: var(--color-ivory);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 .premium-mini-stat {
   text-align: center;
   padding: 0.85rem 0.75rem;
   border-radius: var(--radius-luxury-sm);
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   transition: box-shadow 0.2s ease;
 }
@@ -691,6 +723,62 @@
   background-color: var(--bg-muted);
 }
 
+/* ─── Dark theme: module views (Tailwind utility overrides) ─── */
+html.dark .kaala-content .bg-white {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border) !important;
+}
+
+html.dark .kaala-content .bg-gray-50,
+html.dark .kaala-content .bg-gray-50\/50,
+html.dark .kaala-content .bg-gray-50\/30,
+html.dark .kaala-content .bg-gray-100 {
+  background-color: var(--bg-muted) !important;
+}
+
+html.dark .kaala-content .border-gray-200,
+html.dark .kaala-content .border-gray-100 {
+  border-color: var(--border) !important;
+}
+
+html.dark .kaala-content .text-gray-900,
+html.dark .kaala-content .text-gray-800,
+html.dark .kaala-content .text-gray-700 {
+  color: var(--color-ivory) !important;
+}
+
+html.dark .kaala-content .text-gray-600,
+html.dark .kaala-content .text-gray-500 {
+  color: var(--color-ivory-muted) !important;
+}
+
+html.dark .kaala-content .text-gray-400 {
+  color: color-mix(in srgb, var(--color-ivory-muted) 75%, transparent) !important;
+}
+
+html.dark .kaala-content input,
+html.dark .kaala-content select,
+html.dark .kaala-content textarea {
+  background-color: var(--bg-muted) !important;
+  color: var(--color-ivory) !important;
+  border-color: var(--border) !important;
+}
+
+html.dark .kaala-content .disabled\:bg-gray-50:disabled {
+  background-color: var(--bg-muted) !important;
+}
+
+html.dark .kaala-content .bg-red-50 {
+  background-color: color-mix(in srgb, #ff453a 12%, var(--card-bg)) !important;
+}
+
+html.dark .kaala-content .bg-emerald-50,
+html.dark .kaala-content .bg-blue-50,
+html.dark .kaala-content .bg-amber-50,
+html.dark .kaala-content .bg-indigo-50 {
+  background-color: var(--bg-muted) !important;
+}
+
 /* Login */
 .login-blob {
   display: none;
@@ -737,13 +825,13 @@
   border-radius: var(--radius-luxury);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-md);
-  background: #ffffff;
+  background: var(--card-bg);
 }
 
 /* ─── Team chat ─── */
 .kaala-chat {
   --chat-sidebar: var(--color-marble-light);
-  --chat-surface: #ffffff;
+  --chat-surface: var(--card-bg);
   --chat-thread: var(--color-marble-light);
   --chat-border: var(--border);
   --chat-hover: var(--hover-fill);
@@ -761,7 +849,7 @@
 }
 
 .kaala-chat-search {
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--chat-border);
   color: var(--color-ivory);
   border-radius: var(--radius-luxury-sm);
@@ -837,7 +925,7 @@
 
 .kaala-chat-input {
   flex: 1;
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--chat-border);
   color: var(--color-ivory);
   border-radius: 9999px;
@@ -881,7 +969,7 @@
 }
 
 .kaala-chat-widget-header {
-  background: #ffffff;
+  background: var(--surface-bg);
   border-bottom: 1px solid var(--border);
   color: var(--color-ivory);
 }
@@ -898,7 +986,7 @@
 }
 
 .executive-profile a.absolute {
-  background: #ffffff !important;
+  background: var(--card-bg) !important;
   border: 1px solid var(--border) !important;
   color: var(--color-gold) !important;
   font-size: 11px !important;
