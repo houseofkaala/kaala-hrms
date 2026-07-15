@@ -25,6 +25,31 @@ interface TimerState {
   stopTimer: (taskId: string) => number | null; // returns duration in ms
 }
 
+export interface ToastNotification {
+  id: string;
+  title: string;
+  message: string;
+  link?: string;
+}
+
+interface NotificationToastState {
+  toasts: ToastNotification[];
+  addToast: (toast: ToastNotification) => void;
+  removeToast: (id: string) => void;
+}
+
+export const useNotificationToastStore = create<NotificationToastState>((set) => ({
+  toasts: [],
+  addToast: (toast) => set((state) => {
+    if (state.toasts.some(t => t.id === toast.id)) return state;
+    const next = [toast, ...state.toasts].slice(0, 4);
+    return { toasts: next };
+  }),
+  removeToast: (id) => set((state) => ({
+    toasts: state.toasts.filter(t => t.id !== id),
+  })),
+}));
+
 export const useTimerStore = create<TimerState>((set, get) => ({
   activeTimers: {},
   startTimer: (taskId: string) => set((state) => ({

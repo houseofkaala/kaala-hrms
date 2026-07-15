@@ -9,6 +9,7 @@ import { seedOperationalContent } from './operational-seed';
 import { hasOperationalData, isDataPreserveMode, markDataVersionCurrent } from './data-preserve';
 import { ensureRolePermissions, mergeDefaultModuleAccess } from './role-defaults';
 import { mergeEmailSettings } from './notifications/registry';
+import { createInAppNotification } from './notifications/in-app';
 import {
   flushPersistence,
   getStorageBackend,
@@ -316,14 +317,7 @@ export function pushNotification(userId: string, title: string, message: string,
     );
     return;
   }
-  db.notifications.unshift({
-    id: `n${Date.now()}`,
-    userId,
-    title,
-    message,
-    read: false,
-    createdAt: new Date().toISOString(),
-  });
+  createInAppNotification(userId, title, message);
   saveDb();
 }
 

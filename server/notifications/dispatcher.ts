@@ -1,5 +1,6 @@
 import { getDb, getUserById, saveDb } from '../db';
 import { sendEmail, buildEmailHtml, isEmailConfigured } from '../email/transport';
+import { createInAppNotification } from './in-app';
 import { TRIGGER_MAP, mergeEmailSettings } from './registry';
 import type { NotifyOptions, NotifyRole, TriggerDef } from './types';
 
@@ -54,16 +55,8 @@ function queueDigest(opts: NotifyOptions): void {
   });
 }
 
-function writeInApp(userId: string, title: string, message: string): void {
-  const db = getDb();
-  db.notifications.unshift({
-    id: `n${Date.now()}`,
-    userId,
-    title,
-    message,
-    read: false,
-    createdAt: new Date().toISOString(),
-  });
+function writeInApp(userId: string, title: string, message: string, triggerId?: string): void {
+  createInAppNotification(userId, title, message, { triggerId });
 }
 
 function welcomeHtml(name: string, email: string, loginUrl: string, password: string | undefined, company: string): string {
@@ -89,13 +82,13 @@ export async function notify(opts: NotifyOptions): Promise<void> {
   const trigger = TRIGGER_MAP[opts.triggerId];
   if (!trigger) {
     console.warn('[HRMS Notify] Unknown trigger:', opts.triggerId);
-    writeInApp(opts.userId, opts.title, opts.message);
+    writeInApp(opts.userId, opts.title, opts.message, opts.triggerId);
     saveDb();
     return;
   }
 
   if (shouldShowInApp(opts)) {
-    writeInApp(opts.userId, opts.title, opts.message);
+    writeInApp(opts.userId, opts.title, opts.message, opts.triggerId);
   }
 
   if (trigger.priority === 'digest') {

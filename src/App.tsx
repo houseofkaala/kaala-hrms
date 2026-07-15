@@ -30,6 +30,8 @@ import {
   TimesheetsView, AdminTimesheetsView, PoliciesView, CRMView, BenefitsView, TaxComplianceView,
 } from './lazy-views';
 import { NotificationsPanel } from './components/NotificationsPanel';
+import { NotificationToasts } from './components/NotificationToasts';
+import { useInAppNotifications, useNotificationAlerts } from './hooks/useInAppNotifications';
 import { AttendanceHeaderButton } from './components/AttendanceHeaderButton';
 import { DeferredChatWidget } from './components/DeferredChatWidget';
 import { ViewFallback } from './components/ViewFallback';
@@ -304,6 +306,15 @@ function HRMSApp() {
     }
   };
 
+  const {
+    notifications: inAppNotifications,
+    unread: unreadNotifications,
+    markRead: markNotificationRead,
+    markAllRead: markAllNotificationsRead,
+  } = useInAppNotifications(!!currentUser && !loading);
+
+  useNotificationAlerts(!!currentUser && !loading, inAppNotifications);
+
   if (loading || !currentUser) {
     return (
       <div className="min-h-[100dvh] bg-obsidian flex flex-col items-center justify-center gap-6">
@@ -336,6 +347,7 @@ function HRMSApp() {
 
   return (
     <div className="flex h-[100dvh] bg-obsidian text-ivory overflow-hidden relative">
+      <NotificationToasts />
 
       {navOpen && (
         <button
@@ -430,7 +442,7 @@ function HRMSApp() {
         )}
 
         <div className="mt-auto flex flex-col gap-0.5 pt-4">
-          <VisibleNavItem onNavigate={closeNav} route="notifications" icon={Bell} label="Notifications" to="/notifications" active={activeTab === 'notifications'} />
+          <VisibleNavItem onNavigate={closeNav} route="notifications" icon={Bell} label="Notifications" to="/notifications" active={activeTab === 'notifications'} badge={unreadNotifications || undefined} />
           <VisibleNavItem onNavigate={closeNav} route="security" icon={Shield} label="Security" to="/security" active={activeTab === 'security'} />
           <VisibleNavItem onNavigate={closeNav} route="settings" icon={Settings} label="Settings" to="/settings" active={activeTab === 'settings'} />
           <button
@@ -480,7 +492,15 @@ function HRMSApp() {
                 <span className="tabular-nums">{currentUser.points}</span>
                 <span className="text-[9px] uppercase tracking-wider opacity-60">KP</span>
               </div>
-              <NotificationsPanel open={notifOpen} onToggle={() => setNotifOpen(!notifOpen)} onClose={() => setNotifOpen(false)} />
+              <NotificationsPanel
+                open={notifOpen}
+                onToggle={() => setNotifOpen(!notifOpen)}
+                onClose={() => setNotifOpen(false)}
+                notifications={inAppNotifications}
+                unread={unreadNotifications}
+                onMarkRead={markNotificationRead}
+                onMarkAllRead={markAllNotificationsRead}
+              />
               <Link to="/profile" className="flex items-center gap-2 group">
                 <div className="w-8 h-8 rounded-full bg-gold text-white flex items-center justify-center text-xs font-semibold uppercase group-hover:opacity-90 transition-opacity">
                   {currentUser.name.charAt(0)}

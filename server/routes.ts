@@ -33,6 +33,7 @@ import {
   applyAttendancePatch, attendanceCounts, filterAttendanceLogs, parseDateTimeLocal,
   toDateInput, toTimeInput, type AttendanceLogRecord,
 } from './attendance-admin';
+import { serializeNotification, type InAppNotificationRecord } from './notifications/in-app';
 import { validateLeaveSubmission, validateLeaveApproval } from './leave-rules';
 import { verifyPassword, hashPassword, upgradePasswordIfNeeded } from './password';
 import { buildReport } from './reports';
@@ -579,8 +580,19 @@ export async function registerRoutes(app: Express) {
 
   // Notifications
   app.get('/api/notifications', (req: AuthedRequest, res) => {
-    const data = db().notifications.filter(n => userIdMatches(n.userId, req.userId!));
-    res.json({ data, unread: data.filter(n => !n.read).length });
+    const since = typeof req.query.since === 'string' ? req.query.since : undefined;
+    let data = db().notifications.filter(n => userIdMatches(n.userId, req.userId!));
+    if (since) {
+      const sinceMs = new Date(since).getTime();
+      if (!isNaN(sinceMs)) {
+        data = data.filter(n => new Date(n.createdAt).getTime() > sinceMs);
+      }
+    }
+    const sorted = [...data].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    res.json({
+      data: sorted.map(n => serializeNotification(n as InAppNotificationRecord)),
+      unread: db().notifications.filter(n => userIdMatches(n.userId, req.userId!) && !n.read).length,
+    });
   });
 
   app.patch('/api/notifications/:id/read', (req: AuthedRequest, res) => {
