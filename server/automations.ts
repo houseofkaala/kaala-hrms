@@ -1,5 +1,5 @@
-import { getDb, saveDb, pushNotification, getUserById } from './db';
-import { employeePerformanceScore } from './algorithms';
+import { getDb, saveDb, pushNotification } from './db';
+import { employeePerformanceScore, recordPerformanceSnapshots } from './performance-tracking';
 
 export interface AutomationLog {
   id: string;
@@ -86,6 +86,16 @@ export function runDailyAutomations(): number {
     }
     log('project_deadline', `Warned team for project "${p.name}"`, p.memberIds?.length || 0);
     total += p.memberIds?.length || 0;
+  }
+
+  // Monthly performance snapshots (first week of month, once per label)
+  const monthLabel = now.toISOString().slice(0, 7);
+  if (now.getDate() <= 7) {
+    const recorded = recordPerformanceSnapshots(monthLabel);
+    if (recorded > 0) {
+      log('performance_snapshot', `Recorded ${recorded} performance snapshots for ${monthLabel}`, recorded);
+      total += recorded;
+    }
   }
 
   if (total > 0) saveDb();

@@ -33,6 +33,10 @@ import { validateLeaveSubmission, validateLeaveApproval } from './leave-rules';
 import { verifyPassword, hashPassword, upgradePasswordIfNeeded } from './password';
 import { buildReport } from './reports';
 import { employeePerformanceScore } from './algorithms';
+import {
+  buildPerformanceReport, buildTeamRankings, computeEmployeeMetrics,
+  getUserPerformanceTrend, recordPerformanceSnapshots, type PerformancePeriod,
+} from './performance-tracking';
 import { getAutomationLogs, runDailyAutomations } from './automations';
 import {
   activeUsers, assertManager, assertSelfOrManager, canAccessTask, canAccessKanbanTask,
@@ -1348,6 +1352,8 @@ export async function registerRoutes(app: Express) {
     const type = req.params.type;
     const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+    const department = typeof req.query.department === 'string' ? req.query.department : undefined;
+    const period = (typeof req.query.period === 'string' ? req.query.period : '90d') as PerformancePeriod;
 
     if (type === 'employee' && !userId) {
       return res.status(400).json({ error: 'userId query parameter required for employee report' });
@@ -1356,7 +1362,7 @@ export async function registerRoutes(app: Express) {
       return res.status(400).json({ error: 'projectId query parameter required for project report' });
     }
 
-    const data = buildReport(type, { userId, projectId });
+    const data = buildReport(type, { userId, projectId, period, department });
     res.json({ type, generatedAt: new Date().toISOString(), data });
   });
 
@@ -1371,6 +1377,11 @@ export async function registerRoutes(app: Express) {
   });
 
   // Performance
+  const parsePerfPeriod = (raw: unknown): PerformancePeriod => {
+    const valid = new Set(['30d', '90d', 'quarter', 'ytd', 'all']);
+    return typeof raw === 'string' && valid.has(raw) ? (raw as PerformancePeriod) : '90d';
+  };
+
   app.get('/api/performance', (req: AuthedRequest, res) => {
     const requested = req.query.userId as string | undefined;
     const me = getUserById(req.userId!);
@@ -1378,17 +1389,82 @@ export async function registerRoutes(app: Express) {
       return res.status(403).json({ error: 'Forbidden' });
     }
     const uid = requested || req.userId!;
-    const completedTasks = db().tasks.filter(t => t.status === 'completed' && (t.claimedById === uid || t.ownerId === uid));
-    const logs = db().attendanceLogs.filter(l => l.userId === uid && l.clockOut);
-    const avgHours = logs.length ? Math.round(logs.reduce((s, l) => s + (new Date(l.clockOut!).getTime() - new Date(l.clockIn).getTime()) / 3600000, 0) / logs.length * 10) / 10 : 0;
-    const performanceScore = employeePerformanceScore(uid);
+    const period = parsePerfPeriod(req.query.period);
+    const metrics = computeEmployeeMetrics(uid, period);
+    const counts = metrics?.counts;
+    const tasksCompleted =
+      (counts?.marketplaceCompleted ?? 0) +
+      (counts?.kanbanCompleted ?? 0) +
+      (counts?.projectCompleted ?? 0);
+
     res.json({
       goals: db().performanceGoals.filter(g => g.userId === uid),
       reviews: db().performanceReviews.filter(r => r.userId === uid),
       skills: db().skills.filter(s => s.userId === uid),
-      productivity: { tasksCompleted: completedTasks.length, avgHours, qualityScore: performanceScore, performanceScore },
-      teamStats: (getUserById(req.userId!)?.role === 'manager' || getUserById(req.userId!)?.role === 'admin') ? { directReports: db().users.filter(u => u.managerId === req.userId || (u.department === getUserById(req.userId!)?.department && u.role === 'employee')).length, pendingReviews: db().tasks.filter(t => t.status === 'under_review').length } : null,
+      metrics,
+      trend: getUserPerformanceTrend(uid),
+      productivity: {
+        tasksCompleted,
+        marketplaceCompleted: counts?.marketplaceCompleted ?? 0,
+        kanbanCompleted: counts?.kanbanCompleted ?? 0,
+        projectCompleted: counts?.projectCompleted ?? 0,
+        kanbanOverdue: counts?.kanbanOverdue ?? 0,
+        onTimeRate: counts?.onTimeRate ?? 0,
+        avgHours: counts?.avgHours ?? 0,
+        qualityScore: metrics?.score ?? employeePerformanceScore(uid),
+        performanceScore: metrics?.score ?? employeePerformanceScore(uid),
+        grade: metrics?.grade ?? 'Developing',
+        breakdown: metrics?.breakdown,
+      },
+      teamStats: isManagerOrAdmin(me) ? {
+        directReports: db().users.filter(
+          u => u.managerId === req.userId ||
+            (u.department === me?.department && u.role === 'employee'),
+        ).length,
+        pendingReviews: db().performanceReviews.filter(r => r.status === 'Pending').length,
+        lowPerformers: buildTeamRankings(period).filter(r => r.score < 50).length,
+      } : null,
     });
+  });
+
+  app.get('/api/performance/metrics', (req: AuthedRequest, res) => {
+    const requested = req.query.userId as string | undefined;
+    const me = getUserById(req.userId!);
+    if (requested && requested !== req.userId && !isManagerOrAdmin(me)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const uid = requested || req.userId!;
+    const metrics = computeEmployeeMetrics(uid, parsePerfPeriod(req.query.period));
+    if (!metrics) return res.status(404).json({ error: 'Not found' });
+    res.json(metrics);
+  });
+
+  app.get('/api/performance/team', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
+    const period = parsePerfPeriod(req.query.period);
+    const department = typeof req.query.department === 'string' ? req.query.department : undefined;
+    res.json({
+      period,
+      rankings: buildTeamRankings(period, department),
+      report: buildPerformanceReport({ period, department }),
+    });
+  });
+
+  app.get('/api/performance/report', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    const requested = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    if (!isManagerOrAdmin(me) && requested && requested !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const period = parsePerfPeriod(req.query.period);
+    const department = typeof req.query.department === 'string' ? req.query.department : undefined;
+    const userId = isManagerOrAdmin(me) ? requested : req.userId;
+    res.json(buildPerformanceReport({ period, department, userId }));
+  });
+
+  app.post('/api/performance/snapshots', requireRole('manager', 'admin'), (_req, res) => {
+    const recorded = recordPerformanceSnapshots();
+    saveDb();
+    res.json({ success: true, recorded });
   });
   app.post('/api/performance/reviews', requireRole('manager', 'admin'), (req, res) => {
     const r = { id: `rv${Date.now()}`, userId: req.body.userId, reviewerId: (req as AuthedRequest).userId!, rating: req.body.rating, feedback: req.body.feedback, period: req.body.period || 'Current', status: 'Completed' };

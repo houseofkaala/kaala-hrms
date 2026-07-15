@@ -32,6 +32,8 @@ export function ReportsView() {
   const [activeReport, setActiveReport] = useState('attendance');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [selectedProject, setSelectedProject] = useState('');
+  const [perfPeriod, setPerfPeriod] = useState('90d');
+  const [perfDepartment, setPerfDepartment] = useState('');
 
   const reportMeta = REPORTS.find(r => r.id === activeReport);
   const needsEmployee = reportMeta?.needsEmployee;
@@ -52,15 +54,26 @@ export function ReportsView() {
   const queryParams = new URLSearchParams();
   if (needsEmployee && selectedEmployee) queryParams.set('userId', selectedEmployee);
   if (needsProject && selectedProject) queryParams.set('projectId', selectedProject);
+  if (activeReport === 'performance') {
+    queryParams.set('period', perfPeriod);
+    if (perfDepartment) queryParams.set('department', perfDepartment);
+  }
   const qs = queryParams.toString();
 
   const { data: report, isLoading } = useQuery({
-    queryKey: ['reports', activeReport, selectedEmployee, selectedProject],
+    queryKey: ['reports', activeReport, selectedEmployee, selectedProject, perfPeriod, perfDepartment],
     queryFn: () => fetcher<{ type: string; generatedAt: string; data: Record<string, unknown> }>(
       `/api/reports/${activeReport}${qs ? `?${qs}` : ''}`,
     ),
     enabled: (!needsEmployee || !!selectedEmployee) && (!needsProject || !!selectedProject),
   });
+
+  const { data: allUsers = [] } = useQuery<Employee[]>({
+    queryKey: ['report-users'],
+    queryFn: () => fetcher('/api/users'),
+    enabled: activeReport === 'performance',
+  });
+  const departments = [...new Set(allUsers.map(u => u.department).filter(Boolean))];
 
   const downloadCsv = () => {
     if (!report) return;
@@ -71,12 +84,15 @@ export function ReportsView() {
       const chart = (d.chart as { date: string; count: number }[]) || [];
       chart.forEach(row => { csv += `${row.date},${row.count}\n`; });
     } else if (activeReport === 'performance') {
-      csv = 'name,department,score\n';
-      const rankings = (d.rankings as { name: string; department: string; score: number }[]) || [];
-      rankings.forEach(r => { csv += `${r.name},${r.department},${r.score}\n`; });
+      csv = 'name,department,score,grade,kanban_done,overdue,on_time_rate\n';
+      const rankings = (d.rankings as { name: string; department: string; score: number; grade: string; counts: { kanbanCompleted: number; kanbanOverdue: number; onTimeRate: number } }[]) || [];
+      rankings.forEach(r => {
+        csv += `${r.name},${r.department},${r.score},${r.grade},${r.counts?.kanbanCompleted ?? 0},${r.counts?.kanbanOverdue ?? 0},${Math.round((r.counts?.onTimeRate ?? 0) * 100)}%\n`;
+      });
     } else if (activeReport === 'employee') {
       const emp = d.employee as { name: string; email: string; department: string } | undefined;
-      csv = `Employee,${emp?.name ?? ''}\nEmail,${emp?.email ?? ''}\nDepartment,${emp?.department ?? ''}\nPerformance Score,${d.performanceScore ?? ''}\n`;
+      const counts = d.counts as { kanbanCompleted: number; marketplaceCompleted: number; projectCompleted: number } | undefined;
+      csv = `Employee,${emp?.name ?? ''}\nEmail,${emp?.email ?? ''}\nDepartment,${emp?.department ?? ''}\nPerformance Score,${d.performanceScore ?? ''}\nGrade,${d.grade ?? ''}\nKanban Tasks,${counts?.kanbanCompleted ?? 0}\nMarketplace Tasks,${counts?.marketplaceCompleted ?? 0}\nProject Tasks,${counts?.projectCompleted ?? 0}\n`;
     } else if (activeReport === 'projects') {
       csv = 'name,status,progress,health,openTasks\n';
       const list = (d.projects as { name: string; status: string; progress: number; health: number; openTasks: number }[]) || [];
@@ -154,13 +170,22 @@ export function ReportsView() {
     }
 
     if (activeReport === 'performance') {
-      const rankings = (d.rankings as { name: string; department: string; score: number }[]) || [];
-      const top = (d.topPerformers as { name: string; score: number }[]) || [];
+      const summary = d.summary as {
+        employeesRanked: number; avgScore: number; avgRating: number;
+        lowPerformers: number; kanbanCompleted: number; overdue: number;
+        topPerformers: { name: string; score: number; grade: string }[];
+      } | undefined;
+      const rankings = (d.rankings as { name: string; department: string; score: number; grade: string }[]) || [];
+      const top = summary?.topPerformers ?? [];
+      const deptStats = (d.departmentStats as { department: string; avgScore: number; headcount: number }[]) || [];
+      const distribution = (d.scoreDistribution as { band: string; count: number }[]) || [];
       return (
         <div className="w-full space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <StatCard label="Avg Rating" value={String(d.avgRating ?? '—')} accent="emerald" />
-            <StatCard label="Employees Ranked" value={String(rankings.length)} />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <StatCard label="Avg Score" value={String(summary?.avgScore ?? '—')} accent="emerald" />
+            <StatCard label="Employees Ranked" value={String(summary?.employeesRanked ?? rankings.length)} />
+            <StatCard label="Kanban Completed" value={String(summary?.kanbanCompleted ?? 0)} />
+            <StatCard label="Overdue Tasks" value={String(summary?.overdue ?? 0)} accent="red" />
           </div>
           {rankings.length > 0 && (
             <ResponsiveContainer width="100%" height={260}>
@@ -173,6 +198,17 @@ export function ReportsView() {
               </BarChart>
             </ResponsiveContainer>
           )}
+          {distribution.some(s => s.count > 0) && (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={distribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="band" tick={{ fontSize: 10, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="count" fill={CHART.goldMuted} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
           {top.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {top.map((p, i) => (
@@ -180,6 +216,18 @@ export function ReportsView() {
                   <p className="text-xs text-emerald-600 uppercase">#{i + 1}</p>
                   <p className="font-semibold text-gray-900 mt-1">{p.name}</p>
                   <p className="text-2xl font-bold text-emerald-800">{p.score}</p>
+                  <p className="text-xs text-emerald-600 mt-1">{p.grade}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {deptStats.length > 0 && (
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              <p className="text-xs font-semibold text-ivory-muted uppercase">By Department</p>
+              {deptStats.map(ds => (
+                <div key={ds.department} className="flex justify-between text-sm border-b border-gray-50 pb-2">
+                  <span className="text-gray-700">{ds.department} ({ds.headcount})</span>
+                  <span className="font-medium text-gray-900">Avg {ds.avgScore}</span>
                 </div>
               ))}
             </div>
@@ -203,12 +251,15 @@ export function ReportsView() {
       const emp = d.employee as { name: string; email: string; department: string; title: string } | undefined;
       const att = d.attendance as { totalDays: number; avgHours: number; lateCount: number } | undefined;
       const leaves = d.leaves as { total: number; approved: number; pending: number } | undefined;
+      const counts = d.counts as { kanbanCompleted: number; marketplaceCompleted: number; projectCompleted: number; onTimeRate: number } | undefined;
+      const breakdown = d.breakdown as { attendance: number; taskDelivery: number; onTimeDelivery: number; goals: number; reviews: number } | undefined;
       return (
         <div className="w-full space-y-6">
           <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100">
             <h4 className="font-semibold text-gray-900 text-lg">{emp?.name}</h4>
             <p className="text-sm text-gray-600">{emp?.title} · {emp?.department}</p>
             <p className="text-sm text-gray-500">{emp?.email}</p>
+            {d.grade && <p className="text-sm font-medium text-emerald-700 mt-2">Grade: {String(d.grade)}</p>}
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <StatCard label="Performance Score" value={String(d.performanceScore ?? 0)} accent="emerald" />
@@ -216,6 +267,31 @@ export function ReportsView() {
             <StatCard label="Avg Hours" value={String(att?.avgHours ?? 0)} />
             <StatCard label="Tasks Done" value={String(d.tasksCompleted ?? 0)} />
           </div>
+          {counts && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <StatCard label="Kanban Done" value={String(counts.kanbanCompleted)} />
+              <StatCard label="Marketplace" value={String(counts.marketplaceCompleted)} />
+              <StatCard label="Project Tasks" value={String(counts.projectCompleted)} />
+              <StatCard label="On-Time Rate" value={`${Math.round(counts.onTimeRate * 100)}%`} accent="emerald" />
+            </div>
+          )}
+          {breakdown && (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={[
+                { name: 'Attendance', value: breakdown.attendance },
+                { name: 'Tasks', value: breakdown.taskDelivery },
+                { name: 'On-time', value: breakdown.onTimeDelivery },
+                { name: 'Goals', value: breakdown.goals },
+                { name: 'Reviews', value: breakdown.reviews },
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+                <XAxis dataKey="name" tick={{ fontSize: 10, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 25]} tick={{ fontSize: 11, fill: CHART.ivoryMuted }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={chartTooltipStyle} />
+                <Bar dataKey="value" fill={CHART.gold} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
           <div className="grid grid-cols-3 gap-4">
             <StatCard label="Leave Requests" value={String(leaves?.total ?? 0)} />
             <StatCard label="Approved" value={String(leaves?.approved ?? 0)} accent="emerald" />
@@ -389,6 +465,21 @@ export function ReportsView() {
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+              )}
+              {activeReport === 'performance' && (
+                <>
+                  <select value={perfPeriod} onChange={e => setPerfPeriod(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
+                    <option value="30d">Last 30 days</option>
+                    <option value="90d">Last 90 days</option>
+                    <option value="quarter">This quarter</option>
+                    <option value="ytd">Year to date</option>
+                    <option value="all">All time</option>
+                  </select>
+                  <select value={perfDepartment} onChange={e => setPerfDepartment(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-1.5">
+                    <option value="">All departments</option>
+                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </>
               )}
               <button className="p-2 border border-gray-200 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors shadow-sm">
                 <Filter className="w-4 h-4" />

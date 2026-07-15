@@ -1,9 +1,12 @@
 import { getDb, getUserById } from './db';
-import { activeUsers } from './security';
-import { employeePerformanceScore, projectHealthScore, employeeReport } from './algorithms';
+import { projectHealthScore, employeeReport } from './algorithms';
 import { normalizeProject } from './project-management';
+import { buildPerformanceReport, type PerformancePeriod } from './performance-tracking';
 
-export function buildReport(type: string, opts: { userId?: string; projectId?: string } = {}) {
+export function buildReport(
+  type: string,
+  opts: { userId?: string; projectId?: string; period?: PerformancePeriod; department?: string } = {},
+) {
   const db = getDb();
   const now = new Date();
 
@@ -36,21 +39,11 @@ export function buildReport(type: string, opts: { userId?: string; projectId?: s
   }
 
   if (type === 'performance') {
-    const reviews = db.performanceReviews;
-    const avgRating = reviews.length
-      ? Math.round(reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length * 10) / 10
-      : 0;
-    const rankings = activeUsers()
-      .filter(u => u.role === 'employee')
-      .map(u => ({ id: u.id, name: u.name, department: u.department, score: employeePerformanceScore(u.id) }))
-      .sort((a, b) => b.score - a.score);
-    return {
-      goals: db.performanceGoals,
-      reviews,
-      avgRating,
-      rankings,
-      topPerformers: rankings.slice(0, 5),
-    };
+    return buildPerformanceReport({
+      period: opts.period || '90d',
+      department: opts.department,
+      userId: opts.userId,
+    });
   }
 
   if (type === 'attrition') {
