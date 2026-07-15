@@ -1,6 +1,21 @@
 @import "tailwindcss";
 
 @theme {
+  --dash-blue: #5b9fd4;
+  --dash-blue-bg: #e8f4fc;
+  --dash-green: #3cb371;
+  --dash-green-bg: #e6f7ee;
+  --dash-yellow: #e8b84a;
+  --dash-yellow-bg: #fef8e8;
+  --dash-pink: #e8789a;
+  --dash-pink-bg: #fce8ef;
+  --dash-purple: #9b7ed9;
+  --dash-purple-bg: #f0ebfa;
+  --dash-cyan: #4ecdc4;
+  --dash-cyan-bg: #e5f9f7;
+  --dash-orange: #f5925d;
+  --dash-orange-bg: #fef0e8;
+
   --color-obsidian: #f5f5f7;
   --color-charcoal: #e8e8ed;
   --color-marble: #ffffff;
@@ -75,11 +90,17 @@
 
   body {
     @apply bg-obsidian text-ivory overflow-x-hidden;
-    background-color: var(--color-obsidian);
+    background: linear-gradient(180deg, #fff9f0 0%, #f8f4ff 18%, #f0f6ff 38%, var(--color-obsidian) 72%);
+    background-attachment: fixed;
     color: var(--color-ivory);
     font-size: 15px;
     line-height: 1.47059;
     letter-spacing: -0.022em;
+  }
+
+  html.dark body {
+    background: linear-gradient(180deg, #1a1528 0%, #12101c 25%, #0a0a12 55%, #000000 100%);
+    background-attachment: fixed;
   }
 
   ::selection {
@@ -338,12 +359,18 @@
 /* Dashboard hero */
 .executive-profile {
   border-radius: var(--radius-luxury);
-  background: var(--card-bg);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f4ff 45%, #e8f4fc 100%);
   color: var(--color-ivory);
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  border: 1px solid color-mix(in srgb, var(--dash-purple) 18%, var(--border));
+  box-shadow: 0 8px 32px -12px rgba(91, 159, 212, 0.2);
+}
+
+html.dark .executive-profile {
+  background: linear-gradient(135deg, #1c1c2e 0%, #1a1528 50%, #12101c 100%);
+  border-color: color-mix(in srgb, var(--dash-purple) 25%, var(--border));
+  box-shadow: 0 8px 32px -12px rgba(155, 126, 217, 0.15);
 }
 
 .gold-corners {
@@ -993,6 +1020,168 @@ html.dark .kaala-content .bg-indigo-50 {
   background: var(--surface-bg);
   border-bottom: 1px solid var(--border);
   color: var(--color-ivory);
+}
+
+/* ─── Colorful HRMS dashboard cards ─── */
+.color-stat-card {
+  border-radius: 1rem;
+  padding: 1.15rem 1.25rem;
+  border: none;
+  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.color-stat-card::after {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -15%;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+
+.color-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.12);
+}
+
+.color-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+.color-stat-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-top: 0.5rem;
+  letter-spacing: -0.03em;
+}
+
+.color-stat-sub {
+  font-size: 11px;
+  margin-top: 0.35rem;
+  opacity: 0.75;
+}
+
+.color-stat-icon { opacity: 0.9; }
+
+.color-card-blue { background: linear-gradient(135deg, var(--dash-blue-bg), #d4ebf9); color: #1e5a8a; }
+.color-card-green { background: linear-gradient(135deg, var(--dash-green-bg), #d0f0dc); color: #1a6b42; }
+.color-card-yellow { background: linear-gradient(135deg, var(--dash-yellow-bg), #fdf0c8); color: #8a6518; }
+.color-card-pink { background: linear-gradient(135deg, var(--dash-pink-bg), #f9d4e2); color: #9a3d5c; }
+.color-card-purple { background: linear-gradient(135deg, var(--dash-purple-bg), #e4daf5); color: #5c3d9a; }
+.color-card-cyan { background: linear-gradient(135deg, var(--dash-cyan-bg), #c8f5f0); color: #1a7a72; }
+.color-card-orange { background: linear-gradient(135deg, var(--dash-orange-bg), #fce0cc); color: #9a4e20; }
+
+html.dark .color-card-blue { background: linear-gradient(135deg, #1a3050, #152540); color: #7ec8f8; }
+html.dark .color-card-green { background: linear-gradient(135deg, #152a20, #102218); color: #6ee7a8; }
+html.dark .color-card-yellow { background: linear-gradient(135deg, #2a2410, #201c0c); color: #fcd34d; }
+html.dark .color-card-pink { background: linear-gradient(135deg, #2a1520, #201018); color: #f9a8c4; }
+html.dark .color-card-purple { background: linear-gradient(135deg, #221a38, #181228); color: #c4b5fd; }
+html.dark .color-card-cyan { background: linear-gradient(135deg, #102a28, #0c201e); color: #5eead4; }
+html.dark .color-card-orange { background: linear-gradient(135deg, #2a1a10, #201408); color: #fdba74; }
+
+.color-mini-stat {
+  text-align: center;
+  padding: 0.85rem 0.65rem;
+  border-radius: 0.875rem;
+  border: none;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.06);
+}
+
+.color-mini-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.color-mini-label {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 0.25rem;
+  opacity: 0.8;
+}
+
+.announcement-card {
+  border-radius: 0.875rem;
+  padding: 1rem 1.15rem;
+  border-left: 4px solid;
+  box-shadow: 0 2px 10px -3px rgba(0, 0, 0, 0.07);
+}
+
+.announcement-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.announcement-message {
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.85;
+}
+
+.announcement-blue { background: var(--dash-blue-bg); border-color: var(--dash-blue); color: #1e5a8a; }
+.announcement-green { background: var(--dash-green-bg); border-color: var(--dash-green); color: #1a6b42; }
+.announcement-yellow { background: var(--dash-yellow-bg); border-color: var(--dash-yellow); color: #8a6518; }
+.announcement-pink { background: var(--dash-pink-bg); border-color: var(--dash-pink); color: #9a3d5c; }
+.announcement-purple { background: var(--dash-purple-bg); border-color: var(--dash-purple); color: #5c3d9a; }
+.announcement-cyan { background: var(--dash-cyan-bg); border-color: var(--dash-cyan); color: #1a7a72; }
+.announcement-orange { background: var(--dash-orange-bg); border-color: var(--dash-orange); color: #9a4e20; }
+
+html.dark .announcement-blue { background: #152540; color: #7ec8f8; }
+html.dark .announcement-green { background: #102218; color: #6ee7a8; }
+html.dark .announcement-yellow { background: #201c0c; color: #fcd34d; }
+html.dark .announcement-pink { background: #201018; color: #f9a8c4; }
+html.dark .announcement-purple { background: #181228; color: #c4b5fd; }
+
+.color-panel {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  box-shadow: 0 4px 16px -6px rgba(0, 0, 0, 0.08);
+}
+
+.color-panel-header {
+  padding: 0.9rem 1.15rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.color-panel-header-blue { background: linear-gradient(90deg, #5b9fd4, #7eb8e8); }
+.color-panel-header-green { background: linear-gradient(90deg, #3cb371, #5dd68f); }
+.color-panel-header-yellow { background: linear-gradient(90deg, #e8b84a, #f0cc6a); color: #4a3810; }
+.color-panel-header-pink { background: linear-gradient(90deg, #e8789a, #f09ab8); }
+.color-panel-header-purple { background: linear-gradient(90deg, #9b7ed9, #b49ae8); }
+.color-panel-header-cyan { background: linear-gradient(90deg, #4ecdc4, #6eddd6); color: #0a3d38; }
+
+.chart-bar-blue { background: linear-gradient(to top, #5b9fd4, #9ecae8) !important; }
+.chart-bar-green { background: linear-gradient(to top, #3cb371, #7dd9a0) !important; }
+.chart-bar-yellow { background: linear-gradient(to top, #e8b84a, #f5d078) !important; }
+.chart-bar-pink { background: linear-gradient(to top, #e8789a, #f5a8be) !important; }
+.chart-bar-purple { background: linear-gradient(to top, #9b7ed9, #c4b0eb) !important; }
+
+.dashboard-section-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-ivory);
+  margin-bottom: 0.25rem;
+}
+
+.dashboard-section-sub {
+  font-size: 13px;
+  color: var(--color-ivory-muted);
 }
 
 /* ─── Dashboard hero polish ─── */

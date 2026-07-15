@@ -9,8 +9,11 @@ import {
 import { format } from 'date-fns';
 import { cn, fetcher } from '../utils';
 import { UserPortrait } from '../components/UserPortrait';
+import { ColorStatCard, AnnouncementCard, ColorMiniStat } from '../components/ColorStatCard';
 import { useRBACStore } from '../store';
 import type { Task, User } from '../types';
+
+const CHART_BAR_COLORS = ['chart-bar-blue', 'chart-bar-green', 'chart-bar-yellow', 'chart-bar-pink', 'chart-bar-purple', 'chart-bar-blue', 'chart-bar-green'];
 
 type Period = 'daily' | 'weekly' | 'monthly';
 
@@ -78,19 +81,6 @@ interface DashboardViewProps {
   onComplete: (id: string) => void;
   onReview: (id: string, action: 'approve' | 'reject') => void;
   onRefresh: () => void;
-}
-
-function StatCard({ label, value, sub, icon: Icon }: { label: string; value: string | number; sub?: string; icon?: typeof Users }) {
-  return (
-    <div className="premium-stat group">
-      <div className="flex items-start justify-between gap-2">
-        <p className="premium-stat-label">{label}</p>
-        {Icon && <Icon className="w-4 h-4 premium-stat-icon shrink-0 opacity-70 group-hover:opacity-100 transition-opacity" />}
-      </div>
-      <p className="premium-stat-value">{value}</p>
-      {sub && <p className="text-xs text-ivory-muted mt-1.5">{sub}</p>}
-    </div>
-  );
 }
 
 function PeriodToggle({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
@@ -247,28 +237,79 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
         <div className="py-20 text-center text-ivory-muted text-sm">Loading dashboard…</div>
       ) : tab === 'team' ? (
         <div className="space-y-6 studio-reveal studio-reveal-d2">
-          {/* Row 1: Headline stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <StatCard label="Employees" value={data.stats.totalEmployees} sub="In your team" icon={Users} />
-            <StatCard label="Kaala Points" value={currentUser?.points ?? 0} sub="Your balance" icon={TrendingUp} />
-            <StatCard label="On Leave" value={data.stats.onLeave} sub="Team members away" icon={Calendar} />
-            <StatCard label="New Joinees" value={data.stats.newJoinees} sub="Last 30 days" icon={UserPlus} />
-            <StatCard
-              label="Upcoming Holiday"
-              value={data.stats.upcomingHoliday?.name || '—'}
-              sub={data.stats.upcomingHoliday
-                ? format(new Date(data.stats.upcomingHoliday.date), 'MMM d, yyyy')
-                : 'No holidays scheduled'}
-              icon={Calendar}
-            />
+          {/* Project overview — colorful stat row */}
+          <div>
+            <h3 className="dashboard-section-title">Project Overview</h3>
+            <p className="dashboard-section-sub mb-4">Team workload at a glance</p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <ColorStatCard variant="blue" label="Total Projects" value={data.projects.taken} sub="Assigned to team" icon={FolderKanban} />
+              <ColorStatCard variant="green" label="Completed" value={data.projects.completed} sub={`${data.projects.efficiency}% efficiency`} icon={CheckCircle2} />
+              <ColorStatCard variant="yellow" label="In Progress" value={data.projects.inProgress} sub="Active now" icon={Briefcase} />
+              <ColorStatCard
+                variant="pink"
+                label="Not Started"
+                value={Math.max(0, data.projects.taken - data.projects.completed - data.projects.inProgress)}
+                sub="Awaiting kickoff"
+                icon={ClipboardList}
+              />
+            </div>
           </div>
 
-          {/* Row 2: Attendance metrics */}
+          {/* Announcements */}
+          <div>
+            <h3 className="dashboard-section-title">Announcements</h3>
+            <p className="dashboard-section-sub mb-4">Latest updates for your team</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <AnnouncementCard
+                variant="green"
+                title="Attendance"
+                message={`${data.attendance.presentToday} of ${data.attendance.teamSize} team members checked in today. Avg ${data.attendance.avgWorkingHours}h worked.`}
+              />
+              <AnnouncementCard
+                variant="yellow"
+                title="Leave & Holidays"
+                message={
+                  data.stats.upcomingHoliday
+                    ? `Upcoming holiday: ${data.stats.upcomingHoliday.name} on ${format(new Date(data.stats.upcomingHoliday.date), 'MMM d')}. ${data.stats.onLeave} member(s) on leave.`
+                    : `${data.stats.onLeave} team member(s) on leave. ${data.leaves.pending} leave request(s) pending approval.`
+                }
+              />
+              <AnnouncementCard
+                variant="blue"
+                title="Timesheets"
+                message={`${data.timesheets.totalHours}h logged this period. ${data.timesheets.pending} pending · ${data.timesheets.approved} approved.`}
+              />
+            </div>
+          </div>
+
+          {/* HR headline stats */}
+          <div>
+            <h3 className="dashboard-section-title">HR Dashboard</h3>
+            <p className="dashboard-section-sub mb-4">People & performance snapshot</p>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <ColorStatCard variant="blue" label="Employees" value={data.stats.totalEmployees} sub="In your team" icon={Users} />
+              <ColorStatCard variant="green" label="Kaala Points" value={currentUser?.points ?? 0} sub="Your balance" icon={TrendingUp} />
+              <ColorStatCard variant="yellow" label="On Leave" value={data.stats.onLeave} sub="Away today" icon={Calendar} />
+              <ColorStatCard variant="pink" label="New Joinees" value={data.stats.newJoinees} sub="Last 30 days" icon={UserPlus} />
+              <ColorStatCard
+                variant="purple"
+                label="Upcoming Holiday"
+                value={data.stats.upcomingHoliday?.name?.split(' ')[0] || '—'}
+                sub={data.stats.upcomingHoliday
+                  ? format(new Date(data.stats.upcomingHoliday.date), 'MMM d, yyyy')
+                  : 'None scheduled'}
+                icon={Calendar}
+              />
+            </div>
+          </div>
+
+          {/* Attendance metrics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Avg Clock In" value={data.attendance.avgClockIn} sub={`${period} average`} icon={Clock} />
-            <StatCard label="Avg Clock Out" value={data.attendance.avgClockOut} sub={`${period} average`} icon={Clock} />
-            <StatCard label="Avg Working Hours" value={`${data.attendance.avgWorkingHours}h`} sub="Per day" icon={Timer} />
-            <StatCard
+            <ColorStatCard variant="cyan" label="Avg Clock In" value={data.attendance.avgClockIn} sub={`${period} average`} icon={Clock} />
+            <ColorStatCard variant="orange" label="Avg Clock Out" value={data.attendance.avgClockOut} sub={`${period} average`} icon={Clock} />
+            <ColorStatCard variant="purple" label="Avg Working Hours" value={`${data.attendance.avgWorkingHours}h`} sub="Per day" icon={Timer} />
+            <ColorStatCard
+              variant="green"
               label="Present Today"
               value={`${data.attendance.presentToday}/${data.attendance.teamSize}`}
               sub="Team checked in"
@@ -295,8 +336,8 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
                   Day {data.payPeriod.dayOfMonth} of {data.payPeriod.daysInPeriod}
                 </span>
               </div>
-              <div className="w-full h-1 bg-charcoal rounded-full overflow-hidden border border-gold/10">
-                <div className="h-full bg-gradient-to-r from-gold-muted to-gold rounded-full transition-all" style={{ width: `${payProgress}%` }} />
+              <div className="w-full h-2 bg-charcoal/30 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-[#5b9fd4] via-[#9b7ed9] to-[#e8789a] rounded-full transition-all" style={{ width: `${payProgress}%` }} />
               </div>
               <p className="text-xs text-ivory-muted mt-2">{data.payPeriod.daysRemaining} days until reset</p>
             </div>
@@ -307,18 +348,9 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
                 <span className="studio-chip studio-chip-live">{data.projects.efficiency}% efficiency</span>
               </div>
               <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="premium-mini-stat">
-                  <p className="value">{data.projects.taken}</p>
-                  <p className="label">Taken</p>
-                </div>
-                <div className="premium-mini-stat">
-                  <p className="value">{data.projects.completed}</p>
-                  <p className="label">Completed</p>
-                </div>
-                <div className="premium-mini-stat">
-                  <p className="value">{data.projects.inProgress}</p>
-                  <p className="label">In Progress</p>
-                </div>
+                <ColorMiniStat variant="blue" value={data.projects.taken} label="Taken" />
+                <ColorMiniStat variant="green" value={data.projects.completed} label="Completed" />
+                <ColorMiniStat variant="yellow" value={data.projects.inProgress} label="In Progress" />
               </div>
               {data.projects.items.length > 0 && (
                 <div className="space-y-2">
@@ -338,10 +370,10 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
 
           {/* Row 4: Timesheets, Latest members, Attendance chart */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="studio-card overflow-hidden">
-              <div className="premium-panel-header flex justify-between items-center">
-                <h3 className="font-display text-sm font-medium text-ivory">Timesheets</h3>
-                <Link to="/timesheets" className="link-gold">View all</Link>
+            <div className="color-panel">
+              <div className="color-panel-header color-panel-header-blue flex justify-between items-center">
+                <h3 className="font-display text-sm font-semibold">Timesheets</h3>
+                <Link to="/timesheets" className="text-white/90 text-xs font-semibold hover:underline">View all</Link>
               </div>
               <div className="p-5 space-y-3">
                 <div className="flex gap-4 text-xs">
@@ -369,10 +401,10 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
               </div>
             </div>
 
-            <div className="studio-card overflow-hidden">
-              <div className="premium-panel-header flex justify-between items-center">
-                <h3 className="font-display text-sm font-medium text-ivory">Latest Members</h3>
-                <Link to="/people" className="link-gold">Directory</Link>
+            <div className="color-panel">
+              <div className="color-panel-header color-panel-header-pink flex justify-between items-center">
+                <h3 className="font-display text-sm font-semibold">Latest Members</h3>
+                <Link to="/people" className="text-white/90 text-xs font-semibold hover:underline">Directory</Link>
               </div>
               <div className="p-5 space-y-3">
                 {data.latestMembers.map(m => (
@@ -393,19 +425,19 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
               </div>
             </div>
 
-            <div className="studio-card overflow-hidden">
-              <div className="premium-panel-header">
-                <h3 className="font-display text-sm font-medium text-ivory">Attendance</h3>
+            <div className="color-panel">
+              <div className="color-panel-header color-panel-header-green">
+                <h3 className="font-display text-sm font-semibold">Attendance</h3>
               </div>
               <div className="p-5">
-                <div className="flex items-end gap-1 h-28">
-                  {data.attendance.chart.map(d => {
+                <div className="flex items-end gap-1.5 h-28">
+                  {data.attendance.chart.map((d, i) => {
                     const maxH = Math.max(...data.attendance.chart.map(c => c.present), 1);
                     const h = Math.max(8, (d.present / maxH) * 100);
                     return (
                       <div key={d.date} className="flex-1 flex flex-col items-center gap-1">
                         <div
-                          className="w-full bg-gradient-to-t from-gold-muted to-gold rounded-t min-h-[4px] transition-all opacity-80 hover:opacity-100"
+                          className={cn('w-full rounded-t min-h-[4px] transition-all opacity-90 hover:opacity-100', CHART_BAR_COLORS[i % CHART_BAR_COLORS.length])}
                           style={{ height: `${h}%` }}
                           title={`${d.present} present, ${d.hours}h`}
                         />
@@ -423,10 +455,10 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
 
           {/* Row 5: Leaves */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="studio-card overflow-hidden">
-              <div className="premium-panel-header flex justify-between items-center">
-                <h3 className="font-display text-sm font-medium text-ivory">Member&apos;s Leave</h3>
-                {isManager && <Link to="/leave" className="link-gold">Manage</Link>}
+            <div className="color-panel">
+              <div className="color-panel-header color-panel-header-yellow flex justify-between items-center">
+                <h3 className="font-display text-sm font-semibold">Member&apos;s Leave</h3>
+                {isManager && <Link to="/leave" className="text-[#4a3810]/80 text-xs font-semibold hover:underline">Manage</Link>}
               </div>
               <div className="p-5 space-y-2">
                 {data.memberLeaves.length === 0 ? (
@@ -452,25 +484,16 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
               </div>
             </div>
 
-            <div className="studio-card overflow-hidden">
-              <div className="premium-panel-header flex justify-between items-center">
-                <h3 className="font-display text-sm font-medium text-ivory">My Leaves</h3>
-                <Link to="/leave" className="link-gold">Apply</Link>
+            <div className="color-panel">
+              <div className="color-panel-header color-panel-header-purple flex justify-between items-center">
+                <h3 className="font-display text-sm font-semibold">My Leaves</h3>
+                <Link to="/leave" className="text-white/90 text-xs font-semibold hover:underline">Apply</Link>
               </div>
               <div className="p-5">
                 <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="premium-mini-stat">
-                    <p className="value text-xl">{data.leaves.pending}</p>
-                    <p className="label">Pending</p>
-                  </div>
-                  <div className="premium-mini-stat">
-                    <p className="value text-xl">{data.leaves.approved}</p>
-                    <p className="label">Approved</p>
-                  </div>
-                  <div className="premium-mini-stat">
-                    <p className="value text-xl">{data.leaves.annualRemaining}</p>
-                    <p className="label">Annual left</p>
-                  </div>
+                  <ColorMiniStat variant="yellow" value={data.leaves.pending} label="Pending" />
+                  <ColorMiniStat variant="green" value={data.leaves.approved} label="Approved" />
+                  <ColorMiniStat variant="purple" value={data.leaves.annualRemaining} label="Annual left" />
                 </div>
                 {data.leaves.recent.map(l => (
                   <div key={l.id} className="flex justify-between py-2 border-b border-maroon-50 last:border-0 text-sm">
@@ -504,22 +527,10 @@ export function DashboardView({ isManager, reviewTasks, allUsers, onReview, onRe
         /* To Do tab */
         <div className="space-y-6 studio-reveal studio-reveal-d2">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total To Do" value={data.todos.length} sub="Across all modules" icon={ListTodo} />
-            <StatCard
-              label="Marketplace"
-              value={data.todos.filter(t => t.type === 'marketplace').length}
-              icon={Briefcase}
-            />
-            <StatCard
-              label="Projects"
-              value={data.todos.filter(t => t.type === 'project').length}
-              icon={FolderKanban}
-            />
-            <StatCard
-              label="Onboarding"
-              value={data.todos.filter(t => t.type === 'onboarding').length}
-              icon={ClipboardList}
-            />
+            <ColorStatCard variant="blue" label="Total To Do" value={data.todos.length} sub="Across all modules" icon={ListTodo} />
+            <ColorStatCard variant="green" label="Marketplace" value={data.todos.filter(t => t.type === 'marketplace').length} icon={Briefcase} />
+            <ColorStatCard variant="yellow" label="Projects" value={data.todos.filter(t => t.type === 'project').length} icon={FolderKanban} />
+            <ColorStatCard variant="pink" label="Onboarding" value={data.todos.filter(t => t.type === 'onboarding').length} icon={ClipboardList} />
           </div>
 
           <div className="studio-card overflow-hidden">
