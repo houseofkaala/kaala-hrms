@@ -59,6 +59,20 @@ function formatDeadlineCountdown(task: KanbanTask) {
   return { text: `${formatDistanceToNow(deadline)} left`, overdue: false };
 }
 
+function formatDeadlineDateTime(task: KanbanTask) {
+  const deadline = getTaskDeadline(task);
+  if (!deadline) return null;
+  return format(deadline, 'MMM d, yyyy · h:mm a');
+}
+
+function canEditTaskDetails(task: KanbanTask, userId: string | undefined, isManager: boolean) {
+  return isManager || task.createdBy === userId;
+}
+
+function isAssigneeViewOnly(task: KanbanTask, userId: string | undefined, isManager: boolean) {
+  return !isManager && task.assigneeId === userId && task.createdBy !== userId;
+}
+
 function priorityChip(p: KanbanPriority) {
   const map: Record<KanbanPriority, string> = {
     low: 'bg-charcoal text-ivory-muted',
@@ -251,7 +265,10 @@ export function TasksView() {
       {/* Toolbar */}
       <div className="studio-card px-4 sm:px-6 py-4 flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold text-ivory">Task Management</h2>
+          <h2 className="text-xl font-semibold text-ivory">{isManager ? 'Task Management' : 'My Tasks'}</h2>
+          {!isManager && (
+            <p className="text-sm text-ivory-muted sm:hidden">Tasks assigned to you — view deadline and update status only.</p>
+          )}
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg border border-slate overflow-hidden">
               <button
@@ -267,11 +284,16 @@ export function TasksView() {
                 <List className="w-4 h-4" /> List
               </button>
             </div>
-            <button onClick={() => setShowCreate(true)} className="btn-primary text-xs px-4 py-2 flex items-center gap-2">
-              <Plus className="w-4 h-4" /> New Task
-            </button>
+            {isManager && (
+              <button onClick={() => setShowCreate(true)} className="btn-primary text-xs px-4 py-2 flex items-center gap-2">
+                <Plus className="w-4 h-4" /> New Task
+              </button>
+            )}
           </div>
         </div>
+        {!isManager && (
+          <p className="text-sm text-ivory-muted hidden sm:block">Tasks assigned to you by your manager. You can view details and move tasks through stages — editing is not allowed.</p>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -384,10 +406,10 @@ export function TasksView() {
             </div>
             {isManager && (
               <div>
-                <label className="studio-kicker block mb-1.5">Assignee</label>
-                <select value={form.assigneeId} onChange={e => setForm(f => ({ ...f, assigneeId: e.target.value }))} className="input-field">
-                  <option value="">Unassigned</option>
-                  {activeUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                <label className="studio-kicker block mb-1.5">Assignee *</label>
+                <select required value={form.assigneeId} onChange={e => setForm(f => ({ ...f, assigneeId: e.target.value }))} className="input-field">
+                  <option value="">Select employee…</option>
+                  {activeUsers.filter(u => u.role !== 'admin').map(u => <option key={u.id} value={u.id}>{u.name} — {u.department}</option>)}
                 </select>
               </div>
             )}
@@ -437,10 +459,11 @@ export function TasksView() {
                     task={task}
                     assigneeName={userName(task.assigneeId)}
                     projectLabel={projectName(task.projectId)}
+                    viewOnly={isAssigneeViewOnly(task, currentUser?.id, isManager)}
                     onOpen={() => setSelectedId(task.id)}
                     onMove={s => patchTask(task.id, { stage: s })}
                     onDelete={() => deleteTask(task.id)}
-                    canDelete={isManager || task.createdBy === currentUser?.id}
+                    canDelete={canEditTaskDetails(task, currentUser?.id, isManager)}
                   />
                 ))}
               </div>
@@ -485,14 +508,18 @@ export function TasksView() {
                   )}
                 </div>
               </div>
-              <select
-                value={task.stage}
-                onClick={e => e.stopPropagation()}
-                onChange={e => { e.stopPropagation(); patchTask(task.id, { stage: e.target.value }); }}
-                className="input-field text-xs py-1.5 w-auto shrink-0"
-              >
-                {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
+              {isAssigneeViewOnly(task, currentUser?.id, isManager) ? (
+                <span className="text-xs text-ivory-muted capitalize shrink-0 px-2">{task.stage.replace('_', ' ')}</span>
+              ) : (
+                <select
+                  value={task.stage}
+                  onClick={e => e.stopPropagation()}
+                  onChange={e => { e.stopPropagation(); patchTask(task.id, { stage: e.target.value }); }}
+                  className="input-field text-xs py-1.5 w-auto shrink-0"
+                >
+                  {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+              )}
             </button>
           ))}
         </div>
@@ -505,6 +532,7 @@ export function TasksView() {
           users={activeUsers}
           projects={projects}
           isManager={isManager}
+          readOnly={isAssigneeViewOnly(selected, currentUser?.id, isManager)}
           currentUserId={currentUser?.id}
           assigneeName={userName(selected.assigneeId)}
           projectLabel={projectName(selected.projectId)}
@@ -519,11 +547,12 @@ export function TasksView() {
 }
 
 function TaskCard({
-  task, assigneeName, projectLabel, onOpen, onMove, onDelete, canDelete,
+  task, assigneeName, projectLabel, viewOnly, onOpen, onMove, onDelete, canDelete,
 }: {
   task: KanbanTask;
   assigneeName: string;
   projectLabel: string | null;
+  viewOnly?: boolean;
   onOpen: () => void;
   onMove: (stage: KanbanStage) => void | Promise<void>;
   onDelete: () => void | Promise<void>;
@@ -539,6 +568,12 @@ function TaskCard({
   return (
     <div className="studio-card p-4 relative group cursor-pointer" onClick={onOpen}>
       <p className="font-semibold text-ivory leading-snug pr-6">{task.title}</p>
+      {formatDeadlineDateTime(task) && (
+        <p className={cn('text-xs mt-2 flex items-center gap-1.5 font-medium', isOverdue(task) ? 'text-red-500' : 'text-gold')}>
+          <Clock className="w-3.5 h-3.5 shrink-0" />
+          <span>Due {formatDeadlineDateTime(task)}</span>
+        </p>
+      )}
       {task.description && (
         <p className="text-xs text-ivory-muted mt-1.5 line-clamp-2">{task.description}</p>
       )}
@@ -614,13 +649,14 @@ function TaskCard({
 }
 
 function TaskDetailDrawer({
-  task, users, projects, isManager, currentUserId, assigneeName, projectLabel,
+  task, users, projects, isManager, readOnly, currentUserId, assigneeName, projectLabel,
   onClose, onPatch, onDelete, onRefresh,
 }: {
   task: KanbanTask;
   users: AppUser[];
   projects: Project[];
   isManager: boolean;
+  readOnly?: boolean;
   currentUserId?: string;
   assigneeName: string;
   projectLabel: string | null;
@@ -710,8 +746,115 @@ function TaskDetailDrawer({
     onRefresh();
   };
 
-  const canDelete = isManager || task.createdBy === currentUserId;
+  const canDelete = !readOnly && (isManager || task.createdBy === currentUserId);
   const doneCount = task.checklist.filter(i => i.done).length;
+
+  if (readOnly) {
+    return (
+      <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <div
+          className="relative w-full max-w-lg bg-marble-light border-l border-slate h-full overflow-y-auto shadow-2xl"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="sticky top-0 bg-marble-light border-b border-slate px-5 py-4 flex items-center justify-between z-10">
+            <div>
+              <p className="text-xs text-ivory-muted">Assigned task</p>
+              <p className="text-sm font-semibold text-ivory mt-0.5">{task.id}</p>
+            </div>
+            <button onClick={onClose} className="p-2 text-ivory-muted hover:text-ivory rounded-lg hover:bg-charcoal/30">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="p-5 space-y-5">
+            <div>
+              <h3 className="text-xl font-semibold text-ivory">{task.title}</h3>
+              {task.description && <p className="text-sm text-ivory-muted mt-3 leading-relaxed">{task.description}</p>}
+            </div>
+            {deadline && (
+              <div className={cn('rounded-xl px-4 py-3 border', isOverdue(task) ? 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-500/30' : 'bg-charcoal/30 border-slate')}>
+                <p className="text-xs text-ivory-muted uppercase tracking-wide mb-1">Deadline</p>
+                <p className={cn('text-base font-semibold flex items-center gap-2', isOverdue(task) ? 'text-red-500' : 'text-ivory')}>
+                  <Clock className="w-4 h-4" />
+                  {format(deadline, 'EEEE, MMM d, yyyy')}
+                </p>
+                <p className={cn('text-sm mt-1', isOverdue(task) ? 'text-red-400' : 'text-gold')}>
+                  {format(deadline, 'h:mm a')}
+                  {task.timeLimitHours ? ` · ${formatTimeLimitLabel(task.timeLimitHours)}` : ''}
+                </p>
+                {task.stage !== 'done' && formatDeadlineCountdown(task) && (
+                  <p className={cn('text-xs mt-2', formatDeadlineCountdown(task)?.overdue ? 'text-red-500' : 'text-ivory-muted')}>
+                    {formatDeadlineCountdown(task)?.text}
+                  </p>
+                )}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="studio-kicker mb-1">Status</p>
+                <p className="text-ivory capitalize">{task.stage.replace('_', ' ')}</p>
+              </div>
+              <div>
+                <p className="studio-kicker mb-1">Priority</p>
+                <p className="text-ivory capitalize">{task.priority}</p>
+              </div>
+              <div>
+                <p className="studio-kicker mb-1">Assigned to</p>
+                <p className="text-ivory">{assigneeName}</p>
+              </div>
+              {projectLabel && (
+                <div>
+                  <p className="studio-kicker mb-1">Project</p>
+                  <p className="text-ivory">{projectLabel}</p>
+                </div>
+              )}
+            </div>
+            {task.labels.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {task.labels.map(l => (
+                  <span key={l} className="text-xs px-2 py-1 rounded-md bg-charcoal text-ivory-muted">{l}</span>
+                ))}
+              </div>
+            )}
+            {task.checklist.length > 0 && (
+              <div>
+                <p className="studio-kicker mb-2">Checklist</p>
+                <div className="space-y-2">
+                  {task.checklist.map(item => (
+                    <div key={item.id} className="flex items-center gap-2 text-sm">
+                      {item.done ? <CheckCircle2 className="w-4 h-4 text-gold" /> : <Circle className="w-4 h-4 text-ivory-muted" />}
+                      <span className={cn(item.done && 'line-through text-ivory-muted')}>{item.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {task.stage !== 'done' && (
+              <div className="flex gap-2 pt-2 border-t border-slate">
+                {STAGES.findIndex(s => s.key === task.stage) > 0 && (
+                  <button
+                    onClick={() => onPatch({ stage: STAGES[STAGES.findIndex(s => s.key === task.stage) - 1].key })}
+                    className="btn-secondary text-sm flex-1"
+                  >
+                    ← Previous stage
+                  </button>
+                )}
+                {STAGES.findIndex(s => s.key === task.stage) < STAGES.length - 1 && (
+                  <button
+                    onClick={() => onPatch({ stage: STAGES[STAGES.findIndex(s => s.key === task.stage) + 1].key })}
+                    className="btn-primary text-sm flex-1"
+                  >
+                    Advance to {STAGES[STAGES.findIndex(s => s.key === task.stage) + 1].label} →
+                  </button>
+                )}
+              </div>
+            )}
+            <p className="text-xs text-ivory-muted text-center">This task was assigned by your manager. Details cannot be edited.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>

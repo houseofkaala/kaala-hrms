@@ -59,6 +59,34 @@ export function canAccessKanbanTask(
   return task.assigneeId === userId || task.createdBy === userId;
 }
 
+/** Full edit (title, deadline, assignee, delete, comments, checklist). */
+export function canEditKanbanTask(
+  task: { assigneeId?: string | null; createdBy?: string },
+  userId: string,
+  role: string,
+): boolean {
+  if (isManagerOrAdmin({ role } as UserRecord)) return true;
+  return task.createdBy === userId;
+}
+
+/** Assigned employees may advance workflow stage only. */
+export function canMoveKanbanStage(
+  task: { assigneeId?: string | null; createdBy?: string },
+  userId: string,
+  role: string,
+): boolean {
+  if (isManagerOrAdmin({ role } as UserRecord)) return true;
+  return task.assigneeId === userId || task.createdBy === userId;
+}
+
+export function isKanbanAssigneeOnly(
+  task: { assigneeId?: string | null; createdBy?: string },
+  userId: string,
+  role: string,
+): boolean {
+  return !canEditKanbanTask(task, userId, role) && task.assigneeId === userId;
+}
+
 export function directoryUser(user: UserRecord) {
   const { password, bankAccount, ...safe } = user;
   return {

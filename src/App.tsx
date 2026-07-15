@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { cn, fetcher, ApiError } from './utils';
 import { canAccessModule } from './rbac';
 import { clearToken, isAuthenticated } from './auth';
-import type { User, Task, Transaction } from './types';
+import type { User, Task, Transaction, KanbanTask } from './types';
 import {
   DashboardView, RecruitView, PeopleView, AttendanceView, PayrollView,
   AssetsView, ProjectsView, TasksView, PerformanceView,
@@ -90,6 +90,7 @@ function HRMSApp() {
   
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [kanbanTasks, setKanbanTasks] = useState<KanbanTask[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState<{ status: string; uptime: number } | null>(null);
@@ -104,6 +105,12 @@ function HRMSApp() {
     const allTasks = await fetcher<Task[]>('/api/tasks');
     setTasks(allTasks);
     return allTasks;
+  }, []);
+
+  const loadKanbanTasks = useCallback(async () => {
+    const assigned = await fetcher<KanbanTask[]>('/api/kanban');
+    setKanbanTasks(assigned);
+    return assigned;
   }, []);
 
   const loadUsers = useCallback(async () => {
@@ -125,6 +132,9 @@ function HRMSApp() {
         const optional: Promise<unknown>[] = [];
         if (canAccessModule(user, 'marketplace') || canAccessModule(user, 'tasks')) {
           optional.push(loadTasks().catch(err => console.warn('Tasks load skipped', err)));
+        }
+        if (canAccessModule(user, 'tasks')) {
+          optional.push(loadKanbanTasks().catch(err => console.warn('Kanban load skipped', err)));
         }
         if (
           canAccessModule(user, 'leaderboard') ||
@@ -310,6 +320,9 @@ function HRMSApp() {
   const closeNav = () => setNavOpen(false);
 
   const myTasks = tasks.filter(t => t.ownerId === currentUser.id || t.claimedById === currentUser.id);
+  const myAssignedKanban = kanbanTasks.filter(
+    t => t.assigneeId === currentUser.id && t.stage !== 'done',
+  );
   const marketplaceTasks = tasks.filter(t => t.status === 'marketplace');
   const reviewTasks = tasks.filter(t => t.status === 'under_review');
   const portal = getPortal();
@@ -388,6 +401,7 @@ function HRMSApp() {
               </>
             )}
             <RailSection label="My Work" />
+            <VisibleNavItem onNavigate={closeNav} route="tasks" icon={CheckSquare} label="My Tasks" to="/tasks" active={activeTab === 'tasks'} badge={myAssignedKanban.length} />
             <VisibleNavItem onNavigate={closeNav} route="projects" icon={FolderKanban} label="Projects" to="/projects" active={activeTab === 'projects'} />
             <VisibleNavItem onNavigate={closeNav} route="people" icon={Users} label="People Directory" to="/people" active={activeTab === 'people'} />
             <VisibleNavItem onNavigate={closeNav} route="leave" icon={Calendar} label="Leave Management" to="/leave" active={activeTab === 'leave'} />

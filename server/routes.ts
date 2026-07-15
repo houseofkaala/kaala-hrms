@@ -40,6 +40,7 @@ import {
 import { getAutomationLogs, runDailyAutomations } from './automations';
 import {
   activeUsers, assertManager, assertSelfOrManager, canAccessTask, canAccessKanbanTask,
+  canEditKanbanTask, canMoveKanbanStage, isKanbanAssigneeOnly,
   directoryUser, isManagerOrAdmin,
 } from './security';
 import { registerGoogleSsoRoutes } from './google-sso';
@@ -791,7 +792,16 @@ export async function registerRoutes(app: Express) {
 
     const manager = isManagerOrAdmin(me);
     let assigneeId: string | null = req.body.assigneeId ?? req.userId!;
-    if (!manager) {
+    if (manager) {
+      const aid = typeof req.body.assigneeId === 'string' ? req.body.assigneeId.trim() : '';
+      if (!aid) {
+        return res.status(400).json({ error: 'Assignee is required — select an employee for this task' });
+      }
+      if (!getUserById(aid) || getUserById(aid)?.status === 'Inactive') {
+        return res.status(400).json({ error: 'Invalid assignee' });
+      }
+      assigneeId = aid;
+    } else {
       if (assigneeId && assigneeId !== req.userId) {
         return res.status(403).json({ error: 'You can only create tasks assigned to yourself' });
       }
@@ -807,9 +817,7 @@ export async function registerRoutes(app: Express) {
     const msg = dueLabel
       ? `You have been assigned: "${t.title}" — due ${dueLabel}`
       : `You have been assigned: "${t.title}"`;
-    if (assigneeNotify !== req.userId) {
-      pushNotification(assigneeNotify, 'Task assigned', msg, { triggerId: 'tasks.assigned' });
-    }
+    pushNotification(assigneeNotify, 'Task assigned', msg, { triggerId: 'tasks.assigned' });
     res.json({ success: true, task: t });
   });
 
@@ -819,6 +827,20 @@ export async function registerRoutes(app: Express) {
     const { task: t, me } = ctx;
     const manager = isManagerOrAdmin(me);
     const prevAssignee = t.assigneeId;
+
+    if (!canMoveKanbanStage(t, req.userId!, me.role)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (isKanbanAssigneeOnly(t, req.userId!, me.role)) {
+      const keys = Object.keys(req.body).filter(k => req.body[k] !== undefined);
+      if (keys.length !== 1 || keys[0] !== 'stage' || !req.body.stage) {
+        return res.status(403).json({ error: 'You can only update task status on assigned tasks' });
+      }
+      applyKanbanPatch(t, { stage: req.body.stage });
+      saveDb();
+      return res.json({ success: true, task: t });
+    }
 
     if (!manager && req.body.assigneeId !== undefined && req.body.assigneeId !== req.userId && req.body.assigneeId !== null) {
       return res.status(403).json({ error: 'You cannot reassign tasks to others' });
@@ -854,6 +876,9 @@ export async function registerRoutes(app: Express) {
   app.post('/api/kanban/:id/comments', (req: AuthedRequest, res) => {
     const ctx = getKanbanTaskOr404(req, res);
     if (!ctx) return;
+    if (isKanbanAssigneeOnly(ctx.task, req.userId!, ctx.me.role)) {
+      return res.status(403).json({ error: 'You cannot edit assigned tasks' });
+    }
     const content = typeof req.body.content === 'string' ? req.body.content.trim() : '';
     if (!content) return res.status(400).json({ error: 'Comment content is required' });
     const comment = addKanbanComment(ctx.task, req.userId!, ctx.me.name, content);
@@ -864,6 +889,9 @@ export async function registerRoutes(app: Express) {
   app.post('/api/kanban/:id/checklist', (req: AuthedRequest, res) => {
     const ctx = getKanbanTaskOr404(req, res);
     if (!ctx) return;
+    if (isKanbanAssigneeOnly(ctx.task, req.userId!, ctx.me.role)) {
+      return res.status(403).json({ error: 'You cannot edit assigned tasks' });
+    }
     const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
     if (!text) return res.status(400).json({ error: 'Checklist text is required' });
     const item = addKanbanChecklistItem(ctx.task, text);
@@ -874,6 +902,9 @@ export async function registerRoutes(app: Express) {
   app.patch('/api/kanban/:id/checklist/:itemId', (req: AuthedRequest, res) => {
     const ctx = getKanbanTaskOr404(req, res);
     if (!ctx) return;
+    if (isKanbanAssigneeOnly(ctx.task, req.userId!, ctx.me.role)) {
+      return res.status(403).json({ error: 'You cannot edit assigned tasks' });
+    }
     const item = patchKanbanChecklistItem(ctx.task, req.params.itemId, req.body);
     if (!item) return res.status(404).json({ error: 'Checklist item not found' });
     saveDb();
@@ -883,6 +914,9 @@ export async function registerRoutes(app: Express) {
   app.delete('/api/kanban/:id/checklist/:itemId', (req: AuthedRequest, res) => {
     const ctx = getKanbanTaskOr404(req, res);
     if (!ctx) return;
+    if (isKanbanAssigneeOnly(ctx.task, req.userId!, ctx.me.role)) {
+      return res.status(403).json({ error: 'You cannot edit assigned tasks' });
+    }
     if (!removeKanbanChecklistItem(ctx.task, req.params.itemId)) {
       return res.status(404).json({ error: 'Checklist item not found' });
     }
