@@ -51,12 +51,12 @@ export function canAccessTask(
 }
 
 export function canAccessKanbanTask(
-  task: { assigneeId?: string },
+  task: { assigneeId?: string | null; createdBy?: string },
   userId: string,
   role: string,
 ): boolean {
   if (isManagerOrAdmin({ role } as UserRecord)) return true;
-  return task.assigneeId === userId;
+  return task.assigneeId === userId || task.createdBy === userId;
 }
 
 export function directoryUser(user: UserRecord) {

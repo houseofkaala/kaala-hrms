@@ -8,7 +8,7 @@ export function createEmptyOperationalDb() {
   return {
     users,
     tasks: [] as TaskRecord[],
-    kanbanTasks: [] as { id: string; title: string; stage: string; priority: string; assigneeId?: string }[],
+    kanbanTasks: [] as import('./kanban').KanbanTaskRecord[],
     transactions: [] as { id: string; userId: string; amount: number; reason: string; timestamp: string }[],
     assets: [] as { id: string; name: string; userId: string | null; user: string | null; status: string }[],
     leaveRequests: [] as { id: string; userId: string; type: string; startDate: string; endDate: string; days: number; reason: string; status: string; createdAt: string }[],

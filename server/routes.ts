@@ -42,6 +42,10 @@ import { registerGoogleSsoRoutes } from './google-sso';
 import { dbWriteMutex } from './db-mutex';
 import { registerSecurityRoutes } from './security-routes';
 import { logSecurityEvent, requestContext } from './security-audit';
+import {
+  addKanbanChecklistItem, addKanbanComment, applyKanbanPatch, createKanbanTask,
+  kanbanStats, kanbanTaskVisible, patchKanbanChecklistItem, removeKanbanChecklistItem,
+} from './kanban';
 
 export type { AuthedRequest } from './middleware';
 
@@ -739,28 +743,135 @@ export async function registerRoutes(app: Express) {
     res.json({ success: true, task: t });
   });
 
-  // Kanban
-  app.get('/api/kanban', (req: AuthedRequest, res) => {
-    const me = getUserById(req.userId!);
-    if (isManagerOrAdmin(me)) return res.json(db().kanbanTasks);
-    res.json(db().kanbanTasks.filter(t => t.assigneeId === req.userId));
-  });
-  app.post('/api/kanban', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
-    const assigneeId = req.body.assigneeId || req.userId!;
-    const t = { id: `KT-${Date.now()}`, title: req.body.title, stage: 'todo', priority: req.body.priority || 'Normal', assigneeId };
-    db().kanbanTasks.push(t); saveDb();
-    res.json({ success: true, task: t });
-  });
-  app.patch('/api/kanban/:id', (req: AuthedRequest, res) => {
+  // Kanban task management
+  function visibleKanbanTasks(userId: string, role: string) {
+    const manager = isManagerOrAdmin({ role } as UserRecord);
+    return db().kanbanTasks.filter(t => kanbanTaskVisible(t, userId, manager));
+  }
+
+  function getKanbanTaskOr404(req: AuthedRequest, res: import('express').Response) {
     const t = db().kanbanTasks.find(x => x.id === req.params.id);
     const me = getUserById(req.userId!);
-    if (!t || !me) return res.status(404).json({ error: 'Not found' });
-    if (!canAccessKanbanTask(t, req.userId!, me.role)) return res.status(403).json({ error: 'Forbidden' });
-    if (req.body.stage) t.stage = req.body.stage;
-    if (req.body.title) t.title = req.body.title;
-    if (req.body.priority) t.priority = req.body.priority;
+    if (!t || !me) { res.status(404).json({ error: 'Not found' }); return null; }
+    if (!canAccessKanbanTask(t, req.userId!, me.role)) { res.status(403).json({ error: 'Forbidden' }); return null; }
+    return { task: t, me };
+  }
+
+  app.get('/api/kanban/stats', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    if (!me) return res.status(401).json({ error: 'Unauthorized' });
+    const tasks = visibleKanbanTasks(req.userId!, me.role);
+    res.json(kanbanStats(tasks));
+  });
+
+  app.get('/api/kanban', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    if (!me) return res.status(401).json({ error: 'Unauthorized' });
+    res.json(visibleKanbanTasks(req.userId!, me.role));
+  });
+
+  app.get('/api/kanban/:id', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    res.json(ctx.task);
+  });
+
+  app.post('/api/kanban', (req: AuthedRequest, res) => {
+    const me = getUserById(req.userId!);
+    if (!me) return res.status(401).json({ error: 'Unauthorized' });
+    const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+
+    const manager = isManagerOrAdmin(me);
+    let assigneeId: string | null = req.body.assigneeId ?? req.userId!;
+    if (!manager) {
+      if (assigneeId && assigneeId !== req.userId) {
+        return res.status(403).json({ error: 'You can only create tasks assigned to yourself' });
+      }
+      assigneeId = req.userId!;
+    }
+
+    const t = createKanbanTask({ ...req.body, assigneeId }, req.userId!);
+    db().kanbanTasks.push(t);
     saveDb();
+
+    if (assigneeId && assigneeId !== req.userId) {
+      pushNotification(assigneeId, 'Task assigned', `You have been assigned: "${t.title}"`, { triggerId: 'tasks.assigned' });
+    }
     res.json({ success: true, task: t });
+  });
+
+  app.patch('/api/kanban/:id', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    const { task: t, me } = ctx;
+    const manager = isManagerOrAdmin(me);
+    const prevAssignee = t.assigneeId;
+
+    if (!manager && req.body.assigneeId !== undefined && req.body.assigneeId !== req.userId && req.body.assigneeId !== null) {
+      return res.status(403).json({ error: 'You cannot reassign tasks to others' });
+    }
+
+    applyKanbanPatch(t, req.body);
+    saveDb();
+
+    const newAssignee = t.assigneeId;
+    if (newAssignee && newAssignee !== prevAssignee && newAssignee !== req.userId) {
+      pushNotification(newAssignee, 'Task assigned', `You have been assigned: "${t.title}"`, { triggerId: 'tasks.assigned' });
+    }
+    res.json({ success: true, task: t });
+  });
+
+  app.delete('/api/kanban/:id', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    const { task: t, me } = ctx;
+    if (!isManagerOrAdmin(me) && t.createdBy !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const idx = db().kanbanTasks.findIndex(x => x.id === t.id);
+    if (idx >= 0) db().kanbanTasks.splice(idx, 1);
+    saveDb();
+    res.json({ success: true });
+  });
+
+  app.post('/api/kanban/:id/comments', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    const content = typeof req.body.content === 'string' ? req.body.content.trim() : '';
+    if (!content) return res.status(400).json({ error: 'Comment content is required' });
+    const comment = addKanbanComment(ctx.task, req.userId!, ctx.me.name, content);
+    saveDb();
+    res.json({ success: true, comment, task: ctx.task });
+  });
+
+  app.post('/api/kanban/:id/checklist', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
+    if (!text) return res.status(400).json({ error: 'Checklist text is required' });
+    const item = addKanbanChecklistItem(ctx.task, text);
+    saveDb();
+    res.json({ success: true, item, task: ctx.task });
+  });
+
+  app.patch('/api/kanban/:id/checklist/:itemId', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    const item = patchKanbanChecklistItem(ctx.task, req.params.itemId, req.body);
+    if (!item) return res.status(404).json({ error: 'Checklist item not found' });
+    saveDb();
+    res.json({ success: true, item, task: ctx.task });
+  });
+
+  app.delete('/api/kanban/:id/checklist/:itemId', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    if (!removeKanbanChecklistItem(ctx.task, req.params.itemId)) {
+      return res.status(404).json({ error: 'Checklist item not found' });
+    }
+    saveDb();
+    res.json({ success: true, task: ctx.task });
   });
 
   app.get('/api/transactions/:userId', (req: AuthedRequest, res) => {

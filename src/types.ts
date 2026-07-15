@@ -95,3 +95,43 @@ export interface ProjectDetail extends Project {
   tasks: ProjectTask[];
 }
 
+export type KanbanStage = 'todo' | 'in_progress' | 'in_review' | 'done';
+export type KanbanPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface KanbanComment {
+  id: string;
+  userId: string;
+  userName: string;
+  content: string;
+  createdAt: string;
+}
+
+export interface KanbanChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+export interface KanbanTask {
+  id: string;
+  title: string;
+  description: string;
+  stage: KanbanStage;
+  priority: KanbanPriority;
+  assigneeId: string | null;
+  dueDate: string | null;
+  labels: string[];
+  projectId: string | null;
+  checklist: KanbanChecklistItem[];
+  comments: KanbanComment[];
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+}
+
+export interface KanbanStats {
+  total: number;
+  byStage: Record<KanbanStage, number>;
+  overdue: number;
+}
+

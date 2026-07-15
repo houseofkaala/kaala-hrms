@@ -1,6 +1,7 @@
 import { syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
 import { hasLegacyUserIds, LEGACY_ID_MAP, resolveUserIds } from './user-ids';
 import { ensureProjectSchema } from './project-management';
+import { ensureKanbanSchema } from './kanban';
 import { createEmptyOperationalDb } from './db-defaults';
 import { purgeDemoOperationalData } from './clean-production-data';
 import { seedOperationalContent } from './operational-seed';
@@ -106,6 +107,7 @@ function applyMigrations() {
   if (!db.chatMessages) db.chatMessages = [];
   if (!db.projectMessages) db.projectMessages = [];
   ensureProjectSchema(db);
+  ensureKanbanSchema(db);
   ensureRolePermissions(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergeDefaultModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
   mergeCrmModuleAccess(db.rolePermissions as Record<string, { modules: string[]; description: string }>);
