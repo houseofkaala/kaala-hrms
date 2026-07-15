@@ -29,6 +29,10 @@ import { EMAIL_TRIGGERS, TRIGGER_CATEGORIES, mergeEmailSettings } from './notifi
 import { isEmailConfigured, sendEmail } from './email/transport';
 import { notify, notifyManager } from './notifications/dispatcher';
 import { attendanceStatusPayload, evaluateClockOut, MIN_CLOCK_OUT_HOURS, FULL_DAY_HOURS } from './attendance-rules';
+import {
+  applyAttendancePatch, attendanceCounts, filterAttendanceLogs, parseDateTimeLocal,
+  toDateInput, toTimeInput, type AttendanceLogRecord,
+} from './attendance-admin';
 import { validateLeaveSubmission, validateLeaveApproval } from './leave-rules';
 import { verifyPassword, hashPassword, upgradePasswordIfNeeded } from './password';
 import { buildReport } from './reports';
@@ -1166,11 +1170,97 @@ export async function registerRoutes(app: Express) {
 
   app.get('/api/attendance/summary', (req: AuthedRequest, res) => res.json(weeklySummary(req.userId!)));
 
-  app.get('/api/attendance/logs', requireRole('manager', 'admin'), (_req, res) => res.json(db().attendanceLogs.map(formatLog).reverse()));
+  app.get('/api/attendance/logs', requireRole('manager', 'admin'), (req, res) => {
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    const from = typeof req.query.from === 'string' ? req.query.from : undefined;
+    const to = typeof req.query.to === 'string' ? req.query.to : undefined;
+    const logs = filterAttendanceLogs(db().attendanceLogs as AttendanceLogRecord[], { userId, from, to });
+    res.json(logs.map(formatLog).reverse());
+  });
   app.get('/api/attendance/logs/:userId', (req: AuthedRequest, res) => {
     const u = getUserById(req.userId!);
     if (req.params.userId !== req.userId && u?.role !== 'manager' && u?.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
     res.json(db().attendanceLogs.filter(l => l.userId === req.params.userId).map(formatLog).reverse());
+  });
+
+  app.get('/api/attendance/admin/summary', requireRole('manager', 'admin'), (_req, res) => {
+    const logs = db().attendanceLogs as AttendanceLogRecord[];
+    res.json(attendanceCounts(logs));
+  });
+
+  app.post('/api/attendance/logs', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
+    const userId = String(req.body.userId || '').trim();
+    const date = String(req.body.date || '').trim();
+    if (!userId || !getUserById(userId)) return res.status(400).json({ error: 'Valid employee is required' });
+    try {
+      const clockIn = req.body.clockIn
+        ? String(req.body.clockIn)
+        : parseDateTimeLocal(date, String(req.body.clockInTime || '09:00'));
+      let clockOut: string | null = null;
+      if (req.body.clockOut) clockOut = String(req.body.clockOut);
+      else if (req.body.clockOutDate) {
+        clockOut = parseDateTimeLocal(String(req.body.clockOutDate), String(req.body.clockOutTime || '18:00'));
+      }
+      const logDate = date || toDateInput(clockIn);
+      if (clockOut && new Date(clockOut).getTime() <= new Date(clockIn).getTime()) {
+        return res.status(400).json({ error: 'Clock-out must be after clock-in' });
+      }
+      const log: AttendanceLogRecord = {
+        id: `att_${Date.now()}`,
+        userId,
+        clockIn,
+        clockOut,
+        date: logDate,
+        earlyClockOutApproved: Boolean(req.body.earlyClockOutApproved),
+        editedBy: req.userId!,
+        editedAt: new Date().toISOString(),
+        adminNote: String(req.body.adminNote || '').trim() || undefined,
+      };
+      db().attendanceLogs.push(log as never);
+      saveDb();
+      res.json({ success: true, log: formatLog(log) });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid entry' });
+    }
+  });
+
+  app.patch('/api/attendance/logs/:id', requireRole('manager', 'admin'), (req: AuthedRequest, res) => {
+    const log = db().attendanceLogs.find(l => l.id === req.params.id) as AttendanceLogRecord | undefined;
+    if (!log) return res.status(404).json({ error: 'Log not found' });
+    try {
+      applyAttendancePatch(log, req.body, req.userId!);
+      saveDb();
+      res.json({ success: true, log: formatLog(log) });
+    } catch (err) {
+      res.status(400).json({ error: err instanceof Error ? err.message : 'Update failed' });
+    }
+  });
+
+  app.delete('/api/attendance/logs/:id', requireRole('manager', 'admin'), (req, res) => {
+    const idx = db().attendanceLogs.findIndex(l => l.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Log not found' });
+    const removed = db().attendanceLogs.splice(idx, 1)[0];
+    saveDb();
+    res.json({ success: true, removed: formatLog(removed) });
+  });
+
+  app.post('/api/attendance/admin/reset', requireRole('admin'), (req: AuthedRequest, res) => {
+    if (!req.body.confirm) return res.status(400).json({ error: 'Confirmation required' });
+    const userId = typeof req.body.userId === 'string' ? req.body.userId : undefined;
+    const from = typeof req.body.from === 'string' ? req.body.from : undefined;
+    const to = typeof req.body.to === 'string' ? req.body.to : undefined;
+    const before = db().attendanceLogs.length;
+    const toRemove = new Set(
+      filterAttendanceLogs(db().attendanceLogs as AttendanceLogRecord[], { userId, from, to }).map(l => l.id),
+    );
+    if (toRemove.size === 0) return res.json({ success: true, removed: 0, message: 'No matching records to reset' });
+    db().attendanceLogs = db().attendanceLogs.filter(l => !toRemove.has(l.id));
+    saveDb();
+    res.json({
+      success: true,
+      removed: before - db().attendanceLogs.length,
+      message: `Reset ${toRemove.size} attendance record(s)`,
+    });
   });
 
   // Recruit

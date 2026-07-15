@@ -15,6 +15,7 @@ const PAGE_TITLES: Record<string, { title: string; subtitle: string }> = {
   holidays: { title: 'Holidays', subtitle: 'Company calendar' },
   attendance: { title: 'Attendance', subtitle: 'Punch in and out' },
   timesheets: { title: 'Timesheets', subtitle: 'Project hours' },
+  'employee-timesheets': { title: 'Employee Timesheets', subtitle: 'Clock-in records & edits' },
   documents: { title: 'Documents', subtitle: 'Files and contracts' },
   payroll: { title: 'Payroll', subtitle: 'Salary and payslips' },
   expenses: { title: 'Expenses', subtitle: 'Claims and reimbursement' },

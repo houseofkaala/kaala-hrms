@@ -27,7 +27,7 @@ import {
   EmployeeManagementView, LeaveManagementView, DocumentsView,
   ProfileView, SettingsView, SecurityView, RolesView, NotificationsView,
   OnboardingView, OffboardingView, ExpensesView, OrgChartView, HolidaysView,
-  TimesheetsView, PoliciesView, CRMView, BenefitsView, TaxComplianceView,
+  TimesheetsView, AdminTimesheetsView, PoliciesView, CRMView, BenefitsView, TaxComplianceView,
 } from './lazy-views';
 import { NotificationsPanel } from './components/NotificationsPanel';
 import { AttendanceHeaderButton } from './components/AttendanceHeaderButton';
@@ -378,6 +378,7 @@ function HRMSApp() {
             <VisibleNavItem onNavigate={closeNav} route="benefits" icon={Heart} label="Benefits" to="/benefits" active={activeTab === 'benefits'} />
             <VisibleNavItem onNavigate={closeNav} route="expenses" icon={Receipt} label="Expenses" to="/expenses" active={activeTab === 'expenses'} />
             <VisibleNavItem onNavigate={closeNav} route="tasks" icon={CheckSquare} label="Tasks" to="/tasks" active={activeTab === 'tasks'} />
+            <VisibleNavItem onNavigate={closeNav} route="employee-timesheets" icon={Timer} label="Timesheets" to="/employee-timesheets" active={activeTab === 'employee-timesheets'} />
             <VisibleNavItem onNavigate={closeNav} route="finance" icon={PieChart} label="Finance" to="/finance" active={activeTab === 'finance'} />
             <VisibleNavItem onNavigate={closeNav} route="reports" icon={FileText} label="Reports" to="/reports" active={activeTab === 'reports'} />
             <RailSection label="Sales & CRM" />
@@ -552,8 +553,9 @@ function HRMSApp() {
               {activeTab === 'orgchart' && <GuardedView module="orgchart"><OrgChartView /></GuardedView>}
               {activeTab === 'holidays' && <GuardedView module="holidays"><HolidaysView /></GuardedView>}
               {activeTab === 'timesheets' && <GuardedView module="timesheets"><TimesheetsView /></GuardedView>}
+              {activeTab === 'employee-timesheets' && <GuardedView module="attendance"><AdminTimesheetsView /></GuardedView>}
               {activeTab === 'policies' && <GuardedView module="policies"><PoliciesView /></GuardedView>}
-              {!['dashboard','marketplace','leaderboard','recruit','employees','onboarding','offboarding','orgchart','people','leave','holidays','documents','attendance','timesheets','payroll','tax','benefits','expenses','assets','projects','tasks','performance','learning','chat','survey','field','crm','finance','ai','community','helpdesk','reports','rewards','profile','settings','security','roles','notifications','policies'].includes(activeTab) && (
+              {!['dashboard','marketplace','leaderboard','recruit','employees','onboarding','offboarding','orgchart','people','leave','holidays','documents','attendance','timesheets','employee-timesheets','payroll','tax','benefits','expenses','assets','projects','tasks','performance','learning','chat','survey','field','crm','finance','ai','community','helpdesk','reports','rewards','profile','settings','security','roles','notifications','policies'].includes(activeTab) && (
                 <Navigate to="/dashboard" replace />
               )}
               </Suspense>

@@ -15,6 +15,7 @@ const ROUTE_MODULE: Record<string, string> = {
   holidays: 'holidays',
   attendance: 'attendance',
   timesheets: 'timesheets',
+  'employee-timesheets': 'attendance',
   documents: 'documents',
   payroll: 'payroll',
   expenses: 'expenses',
