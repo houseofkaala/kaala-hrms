@@ -417,9 +417,9 @@ function HRMSApp() {
       </aside>
 
       {/* Floating workspace panel */}
-      <div className="flex-1 flex flex-col min-w-0 p-2 sm:p-3 pl-2 pb-2 sm:pb-3 relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <div className="studio-canvas flex-1 flex flex-col min-h-0 overflow-hidden">
-          <div className="studio-header shrink-0 flex items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 safe-top">
+          <div className="studio-header shrink-0 flex items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 lg:px-10 py-3 sm:py-3.5 safe-top">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <button
                 type="button"
