@@ -1,9 +1,9 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Search, Filter, LayoutGrid, List, X, Calendar, User, Flag,
   MessageSquare, CheckCircle2, Circle, Trash2, MoreHorizontal, Send,
-  AlertCircle, Tag, Clock,
+  AlertCircle, Tag, Clock, Play, Square,
 } from 'lucide-react';
 import { format, isPast, parseISO, formatDistanceToNow } from 'date-fns';
 import { fetcher, cn } from '../utils';
@@ -73,6 +73,36 @@ function isAssigneeViewOnly(task: KanbanTask, userId: string | undefined, isMana
   return !isManager && task.assigneeId === userId && task.createdBy !== userId;
 }
 
+function kanbanElapsedMs(task: KanbanTask, at = Date.now()) {
+  let total = task.timeSpentMs || 0;
+  if (task.timerStartedAt) {
+    total += Math.max(0, at - parseISO(task.timerStartedAt).getTime());
+  }
+  return total;
+}
+
+function formatDuration(ms: number) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m ${sec}s`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+function canUseTaskTimer(task: KanbanTask, userId: string | undefined, isManager: boolean) {
+  if (task.stage === 'done') return false;
+  return isManager || task.assigneeId === userId;
+}
+
+function canStopTaskTimer(task: KanbanTask, isManager: boolean) {
+  if (!task.timerStartedAt) return false;
+  if (isManager) return true;
+  const deadline = getTaskDeadline(task);
+  return deadline ? Date.now() >= deadline.getTime() : false;
+}
+
 function priorityChip(p: KanbanPriority) {
   const map: Record<KanbanPriority, string> = {
     low: 'bg-charcoal text-ivory-muted',
@@ -120,6 +150,7 @@ export function TasksView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [actionError, setActionError] = useState('');
+  const [tick, setTick] = useState(0);
 
   const { data: tasks = [], isError, error, refetch, isLoading } = useQuery<KanbanTask[]>({
     queryKey: ['kanban'],
@@ -176,6 +207,23 @@ export function TasksView() {
   }, [tasks, search, stageFilter, priorityFilter, assigneeFilter, activeUsers]);
 
   const selected = tasks.find(t => t.id === selectedId) ?? null;
+  const hasRunningTimer = tasks.some(t => t.timerStartedAt);
+
+  useEffect(() => {
+    if (!hasRunningTimer) return;
+    const id = window.setInterval(() => setTick(n => n + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [hasRunningTimer]);
+
+  const timerAction = async (taskId: string, action: 'start' | 'stop') => {
+    setActionError('');
+    try {
+      await fetcher(`/api/kanban/${taskId}/timer`, { method: 'POST', body: JSON.stringify({ action }) });
+      refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Timer action failed');
+    }
+  };
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ['kanban'] });
@@ -461,6 +509,10 @@ export function TasksView() {
                     projectLabel={projectName(task.projectId)}
                     viewOnly={isAssigneeViewOnly(task, currentUser?.id, isManager)}
                     isOwnTask={task.createdBy === currentUser?.id}
+                    isManager={isManager}
+                    currentUserId={currentUser?.id}
+                    tick={tick}
+                    onTimer={timerAction}
                     onOpen={() => setSelectedId(task.id)}
                     onMove={s => patchTask(task.id, { stage: s })}
                     onDelete={() => deleteTask(task.id)}
@@ -540,6 +592,8 @@ export function TasksView() {
           onClose={() => setSelectedId(null)}
           onPatch={body => patchTask(selected.id, body)}
           onDelete={() => deleteTask(selected.id)}
+          onTimer={timerAction}
+          tick={tick}
           onRefresh={refresh}
         />
       )}
@@ -547,14 +601,92 @@ export function TasksView() {
   );
 }
 
+function TaskTimerPanel({
+  task, isManager, currentUserId, onTimer, compact, tick,
+}: {
+  task: KanbanTask;
+  isManager: boolean;
+  currentUserId?: string;
+  onTimer: (taskId: string, action: 'start' | 'stop') => void | Promise<void>;
+  compact?: boolean;
+  tick?: number;
+}) {
+  const running = Boolean(task.timerStartedAt);
+  void tick;
+  const elapsed = formatDuration(kanbanElapsedMs(task));
+  const canUse = canUseTaskTimer(task, currentUserId, isManager);
+  const canStop = canStopTaskTimer(task, isManager);
+  const deadline = getTaskDeadline(task);
+
+  if (!canUse && !running && (task.timeSpentMs || 0) === 0) return null;
+
+  return (
+    <div
+      className={cn('rounded-xl border border-slate', compact ? 'p-2.5' : 'p-4')}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className={cn('font-mono font-semibold tabular-nums', compact ? 'text-sm text-ivory' : 'text-lg text-ivory')}>
+            {elapsed}
+          </p>
+          <p className="text-[10px] text-ivory-muted mt-0.5">
+            {running ? 'Timer running' : 'Total tracked time'}
+          </p>
+        </div>
+        {canUse && task.stage !== 'done' && (
+          <div className="flex gap-1.5 shrink-0">
+            {!running ? (
+              <button
+                type="button"
+                onClick={() => onTimer(task.id, 'start')}
+                disabled={!deadline}
+                title={deadline ? 'Start tracking time' : 'Set a deadline first'}
+                className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1 disabled:opacity-50"
+              >
+                <Play className="w-3.5 h-3.5" /> Start
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onTimer(task.id, 'stop')}
+                disabled={!canStop}
+                title={canStop ? 'Stop timer' : 'Stop unlocks when the deadline is reached'}
+                className={cn(
+                  'text-xs px-3 py-1.5 flex items-center gap-1 rounded-lg border font-semibold',
+                  canStop
+                    ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                    : 'bg-charcoal text-ivory-muted border-slate opacity-60 cursor-not-allowed',
+                )}
+              >
+                <Square className="w-3.5 h-3.5" /> Stop
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      {running && !canStop && !isManager && deadline && (
+        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-2">
+          Stop available at {format(deadline, 'MMM d, h:mm a')}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function TaskCard({
-  task, assigneeName, projectLabel, viewOnly, isOwnTask, onOpen, onMove, onDelete, canDelete,
+  task, assigneeName, projectLabel, viewOnly, isOwnTask, isManager, currentUserId, tick, onTimer,
+  onOpen, onMove, onDelete, canDelete,
 }: {
   task: KanbanTask;
   assigneeName: string;
   projectLabel: string | null;
   viewOnly?: boolean;
   isOwnTask?: boolean;
+  isManager: boolean;
+  currentUserId?: string;
+  tick: number;
+  onTimer: (taskId: string, action: 'start' | 'stop') => void | Promise<void>;
   onOpen: () => void;
   onMove: (stage: KanbanStage) => void | Promise<void>;
   onDelete: () => void | Promise<void>;
@@ -628,6 +760,11 @@ function TaskCard({
           <span className="flex items-center gap-1"><Flag className="w-3 h-3" /> {projectLabel}</span>
         )}
       </div>
+      {(task.timerStartedAt || (task.timeSpentMs || 0) > 0 || canUseTaskTimer(task, currentUserId, isManager)) && (
+        <div className="mt-3">
+          <TaskTimerPanel task={task} isManager={isManager} currentUserId={currentUserId} onTimer={onTimer} compact tick={tick} />
+        </div>
+      )}
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate" onClick={e => e.stopPropagation()}>
         <div className="flex gap-1">
           {prev && (
@@ -662,7 +799,7 @@ function TaskCard({
 
 function TaskDetailDrawer({
   task, users, projects, isManager, readOnly, currentUserId, assigneeName, projectLabel,
-  onClose, onPatch, onDelete, onRefresh,
+  onClose, onPatch, onDelete, onRefresh, onTimer, tick,
 }: {
   task: KanbanTask;
   users: AppUser[];
@@ -676,6 +813,8 @@ function TaskDetailDrawer({
   onPatch: (body: Record<string, unknown>) => Promise<void>;
   onDelete: () => void | Promise<void>;
   onRefresh: () => void;
+  onTimer: (taskId: string, action: 'start' | 'stop') => void | Promise<void>;
+  tick: number;
 }) {
   const deadline = getTaskDeadline(task);
   const [edit, setEdit] = useState({
@@ -828,6 +967,7 @@ function TaskDetailDrawer({
                 ))}
               </div>
             )}
+            <TaskTimerPanel task={task} isManager={isManager} currentUserId={currentUserId} onTimer={onTimer} tick={tick} />
             {task.checklist.length > 0 && (
               <div>
                 <p className="studio-kicker mb-2">Checklist</p>
@@ -961,6 +1101,13 @@ function TaskDetailDrawer({
               </div>
             )}
           </div>
+
+          {(task.timerStartedAt || (task.timeSpentMs || 0) > 0 || canUseTaskTimer(task, currentUserId, isManager)) && (
+            <div>
+              <label className="studio-kicker block mb-1.5">Time tracking</label>
+              <TaskTimerPanel task={task} isManager={isManager} currentUserId={currentUserId} onTimer={onTimer} tick={tick} />
+            </div>
+          )}
 
           <div>
             <label className="studio-kicker block mb-1.5">Description</label>

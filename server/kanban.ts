@@ -1,4 +1,5 @@
 import type { Database } from './db';
+import { isManagerOrAdmin } from './security';
 
 export type KanbanStage = 'todo' | 'in_progress' | 'in_review' | 'done';
 export type KanbanPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -35,6 +36,10 @@ export interface KanbanTaskRecord {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  /** Active work timer session start (ISO) */
+  timerStartedAt: string | null;
+  /** Total tracked work time in milliseconds */
+  timeSpentMs: number;
 }
 
 export const TIME_LIMIT_PRESETS = [
@@ -197,7 +202,72 @@ export function normalizeKanbanTask(
     createdAt: raw.createdAt || now,
     updatedAt: raw.updatedAt || now,
     createdBy: raw.createdBy || raw.assigneeId || fallbackUserId,
+    timerStartedAt: raw.timerStartedAt ?? null,
+    timeSpentMs: Math.max(0, Number(raw.timeSpentMs) || 0),
   };
+}
+
+export function isKanbanTimerRunning(task: Pick<KanbanTaskRecord, 'timerStartedAt'>): boolean {
+  return Boolean(task.timerStartedAt);
+}
+
+export function kanbanElapsedMs(task: Pick<KanbanTaskRecord, 'timerStartedAt' | 'timeSpentMs'>, at = Date.now()): number {
+  let total = task.timeSpentMs || 0;
+  if (task.timerStartedAt) {
+    total += Math.max(0, at - new Date(task.timerStartedAt).getTime());
+  }
+  return total;
+}
+
+export function isDeadlineReached(task: Pick<KanbanTaskRecord, 'dueDate' | 'timeLimitHours' | 'createdAt'>): boolean {
+  const deadline = getTaskDeadline(task);
+  if (!deadline) return false;
+  return Date.now() >= deadline.getTime();
+}
+
+export function canUseKanbanTimer(
+  task: Pick<KanbanTaskRecord, 'assigneeId' | 'stage'>,
+  userId: string,
+  role: string,
+): boolean {
+  if (task.stage === 'done') return false;
+  if (isManagerOrAdmin({ role } as { role: string })) return true;
+  return task.assigneeId === userId;
+}
+
+export function canStopKanbanTimer(
+  task: KanbanTaskRecord,
+  role: string,
+): { allowed: boolean; reason?: string } {
+  if (!isKanbanTimerRunning(task)) {
+    return { allowed: false, reason: 'Timer is not running' };
+  }
+  if (isManagerOrAdmin({ role })) return { allowed: true };
+  const deadline = getTaskDeadline(task);
+  if (!deadline) {
+    return { allowed: false, reason: 'Task has no deadline' };
+  }
+  if (Date.now() < deadline.getTime()) {
+    return { allowed: false, reason: 'You can stop the timer only after the deadline is reached' };
+  }
+  return { allowed: true };
+}
+
+export function startKanbanTimer(task: KanbanTaskRecord): void {
+  if (isKanbanTimerRunning(task)) throw new Error('Timer is already running');
+  if (!getTaskDeadline(task)) throw new Error('Task must have a deadline before starting the timer');
+  task.timerStartedAt = new Date().toISOString();
+  if (task.stage === 'todo') task.stage = 'in_progress';
+  task.updatedAt = new Date().toISOString();
+}
+
+export function stopKanbanTimer(task: KanbanTaskRecord, role: string): void {
+  const gate = canStopKanbanTimer(task, role);
+  if (!gate.allowed) throw new Error(gate.reason || 'Cannot stop timer');
+  const started = task.timerStartedAt!;
+  task.timeSpentMs = (task.timeSpentMs || 0) + Math.max(0, Date.now() - new Date(started).getTime());
+  task.timerStartedAt = null;
+  task.updatedAt = new Date().toISOString();
 }
 
 export function ensureKanbanSchema(db: Database & { kanbanTasks?: unknown[] }) {

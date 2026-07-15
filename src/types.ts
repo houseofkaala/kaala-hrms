@@ -120,6 +120,7 @@ export interface KanbanTask {
   priority: KanbanPriority;
   assigneeId: string | null;
   dueDate: string | null;
+  timeLimitHours: number | null;
   labels: string[];
   projectId: string | null;
   checklist: KanbanChecklistItem[];
@@ -127,6 +128,8 @@ export interface KanbanTask {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  timerStartedAt: string | null;
+  timeSpentMs: number;
 }
 
 export interface KanbanStats {

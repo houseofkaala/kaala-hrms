@@ -48,9 +48,10 @@ import { dbWriteMutex } from './db-mutex';
 import { registerSecurityRoutes } from './security-routes';
 import { logSecurityEvent, requestContext } from './security-audit';
 import {
-  addKanbanChecklistItem, addKanbanComment, applyKanbanPatch, createKanbanTask,
-  kanbanStats, kanbanTaskVisible, kanbanTimeRemainingMs, patchKanbanChecklistItem,
-  removeKanbanChecklistItem, validateKanbanTimeLimit,
+  addKanbanChecklistItem, addKanbanComment, applyKanbanPatch, canStopKanbanTimer,
+  canUseKanbanTimer, createKanbanTask, isKanbanTimerRunning, kanbanStats, kanbanTaskVisible,
+  kanbanTimeRemainingMs, patchKanbanChecklistItem, removeKanbanChecklistItem,
+  startKanbanTimer, stopKanbanTimer, validateKanbanTimeLimit,
 } from './kanban';
 
 export type { AuthedRequest } from './middleware';
@@ -924,6 +925,39 @@ export async function registerRoutes(app: Express) {
     }
     saveDb();
     res.json({ success: true, task: ctx.task });
+  });
+
+  app.post('/api/kanban/:id/timer', (req: AuthedRequest, res) => {
+    const ctx = getKanbanTaskOr404(req, res);
+    if (!ctx) return;
+    const { task: t, me } = ctx;
+    const action = req.body.action;
+
+    if (!canUseKanbanTimer(t, req.userId!, me.role)) {
+      return res.status(403).json({ error: 'Only the assignee can use the task timer' });
+    }
+
+    try {
+      if (action === 'start') {
+        startKanbanTimer(t);
+      } else if (action === 'stop') {
+        stopKanbanTimer(t, me.role);
+      } else {
+        return res.status(400).json({ error: 'action must be start or stop' });
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Timer action failed';
+      const status = message.includes('deadline') || message.includes('already') ? 400 : 403;
+      return res.status(status).json({ error: message });
+    }
+
+    saveDb();
+    res.json({
+      success: true,
+      task: t,
+      timerRunning: isKanbanTimerRunning(t),
+      canStop: canStopKanbanTimer(t, me.role).allowed,
+    });
   });
 
   app.get('/api/transactions/:userId', (req: AuthedRequest, res) => {
