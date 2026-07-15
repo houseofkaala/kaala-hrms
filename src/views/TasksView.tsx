@@ -192,7 +192,7 @@ export function TasksView() {
           title: form.title,
           description: form.description,
           priority: form.priority,
-          assigneeId: form.assigneeId || (isManager ? null : currentUser?.id),
+          assigneeId: isManager ? (form.assigneeId || null) : currentUser?.id,
           timeLimitHours: form.limitMode === 'preset' ? form.timeLimitHours : undefined,
           dueDate: form.limitMode === 'custom' ? form.dueDate : undefined,
           dueTime: form.limitMode === 'custom' ? form.dueTime : undefined,
@@ -266,9 +266,6 @@ export function TasksView() {
       <div className="studio-card px-4 sm:px-6 py-4 flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h2 className="text-xl font-semibold text-ivory">{isManager ? 'Task Management' : 'My Tasks'}</h2>
-          {!isManager && (
-            <p className="text-sm text-ivory-muted sm:hidden">Tasks assigned to you — view deadline and update status only.</p>
-          )}
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg border border-slate overflow-hidden">
               <button
@@ -284,15 +281,13 @@ export function TasksView() {
                 <List className="w-4 h-4" /> List
               </button>
             </div>
-            {isManager && (
-              <button onClick={() => setShowCreate(true)} className="btn-primary text-xs px-4 py-2 flex items-center gap-2">
-                <Plus className="w-4 h-4" /> New Task
-              </button>
-            )}
+            <button onClick={() => setShowCreate(true)} className="btn-primary text-xs px-4 py-2 flex items-center gap-2">
+              <Plus className="w-4 h-4" /> {isManager ? 'New Task' : 'Add Task'}
+            </button>
           </div>
         </div>
         {!isManager && (
-          <p className="text-sm text-ivory-muted hidden sm:block">Tasks assigned to you by your manager. You can view details and move tasks through stages — editing is not allowed.</p>
+          <p className="text-sm text-ivory-muted">Add your own tasks anytime. Tasks assigned by your manager are read-only — you can view the deadline and update status only.</p>
         )}
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -335,7 +330,12 @@ export function TasksView() {
       {showCreate && (
         <form onSubmit={createTask} className="studio-card p-5 sm:p-6 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-ivory">Create Task</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-ivory">{isManager ? 'Create Task' : 'Add Personal Task'}</h3>
+              {!isManager && (
+                <p className="text-xs text-ivory-muted mt-1">Assigned to you — you can edit this task after creating it.</p>
+              )}
+            </div>
             <button type="button" onClick={() => setShowCreate(false)} className="p-1 text-ivory-muted hover:text-ivory">
               <X className="w-5 h-5" />
             </button>
@@ -460,6 +460,7 @@ export function TasksView() {
                     assigneeName={userName(task.assigneeId)}
                     projectLabel={projectName(task.projectId)}
                     viewOnly={isAssigneeViewOnly(task, currentUser?.id, isManager)}
+                    isOwnTask={task.createdBy === currentUser?.id}
                     onOpen={() => setSelectedId(task.id)}
                     onMove={s => patchTask(task.id, { stage: s })}
                     onDelete={() => deleteTask(task.id)}
@@ -547,12 +548,13 @@ export function TasksView() {
 }
 
 function TaskCard({
-  task, assigneeName, projectLabel, viewOnly, onOpen, onMove, onDelete, canDelete,
+  task, assigneeName, projectLabel, viewOnly, isOwnTask, onOpen, onMove, onDelete, canDelete,
 }: {
   task: KanbanTask;
   assigneeName: string;
   projectLabel: string | null;
   viewOnly?: boolean;
+  isOwnTask?: boolean;
   onOpen: () => void;
   onMove: (stage: KanbanStage) => void | Promise<void>;
   onDelete: () => void | Promise<void>;
@@ -578,6 +580,16 @@ function TaskCard({
         <p className="text-xs text-ivory-muted mt-1.5 line-clamp-2">{task.description}</p>
       )}
       <div className="flex flex-wrap gap-1.5 mt-3">
+        {viewOnly && (
+          <span className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-500/20 font-semibold uppercase tracking-wider">
+            Assigned
+          </span>
+        )}
+        {isOwnTask && !viewOnly && (
+          <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold uppercase tracking-wider">
+            My task
+          </span>
+        )}
         <span className={cn('text-[10px] px-2 py-0.5 rounded-md font-semibold uppercase tracking-wider', priorityChip(task.priority))}>
           {task.priority}
         </span>

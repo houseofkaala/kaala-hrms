@@ -817,7 +817,9 @@ export async function registerRoutes(app: Express) {
     const msg = dueLabel
       ? `You have been assigned: "${t.title}" — due ${dueLabel}`
       : `You have been assigned: "${t.title}"`;
-    pushNotification(assigneeNotify, 'Task assigned', msg, { triggerId: 'tasks.assigned' });
+    if (assigneeNotify !== req.userId) {
+      pushNotification(assigneeNotify, 'Task assigned', msg, { triggerId: 'tasks.assigned' });
+    }
     res.json({ success: true, task: t });
   });
 
