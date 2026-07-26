@@ -26,7 +26,7 @@ export function getSeedUsers(): UserRecord[] {
   return [
     {
       id: 'admin-1',
-      name: process.env.SEED_ADMIN_NAME || 'House of Kaala Admin',
+      name: process.env.SEED_ADMIN_NAME || 'By Marketing Only Admin',
       points: 1000,
       role: 'admin',
       department: 'Operations',

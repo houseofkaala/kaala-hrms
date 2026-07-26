@@ -31,7 +31,7 @@ export function registerEnterpriseRoutes(app: Express) {
     if (!d.fieldVisits) d.fieldVisits = [];
     if (!d.salaryStructures) d.salaryStructures = {};
     if (!d.orgSettings.officeGeofence) {
-      d.orgSettings.officeGeofence = { name: 'House of Kaala Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 };
+      d.orgSettings.officeGeofence = { name: 'By Marketing Only Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 };
     }
     if (d.orgSettings.geoAttendanceRequired === undefined) {
       d.orgSettings.geoAttendanceRequired = false;

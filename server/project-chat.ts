@@ -25,7 +25,7 @@ export function ensureProjectChat(project: ProjectRecord) {
       id: `pm${Date.now()}`,
       projectId: project.id,
       fromId: 'system',
-      authorName: 'House of Kaala',
+      authorName: 'By Marketing Only',
       content: `Welcome to the "${project.name}" project room. Share updates, attach files, or schedule a Google Meet.`,
       type: 'message',
       createdAt: new Date().toISOString(),

@@ -31,6 +31,7 @@ import {
 } from './lazy-views';
 import { NotificationsPanel } from './components/NotificationsPanel';
 import { NotificationToasts } from './components/NotificationToasts';
+import { MaintenanceScreen, DEFAULT_MAINTENANCE_MESSAGE } from './components/MaintenanceScreen';
 import { useInAppNotifications, useNotificationAlerts } from './hooks/useInAppNotifications';
 import { AttendanceHeaderButton } from './components/AttendanceHeaderButton';
 import { DeferredChatWidget } from './components/DeferredChatWidget';
@@ -96,6 +97,7 @@ function HRMSApp() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [health, setHealth] = useState<{ status: string; uptime: number } | null>(null);
+  const [maintenance, setMaintenance] = useState<{ enabled: boolean; message: string; allowAdminBypass: boolean } | null>(null);
 
   const loadUser = useCallback(async () => {
     const user = await fetcher<User>('/api/me');
@@ -168,6 +170,21 @@ function HRMSApp() {
       navigate('/login');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    fetch('/api/maintenance')
+      .then(r => r.json())
+      .then((body: { enabled?: boolean; message?: string; allowAdminBypass?: boolean }) => {
+        setMaintenance({
+          enabled: Boolean(body.enabled),
+          message: body.message || DEFAULT_MAINTENANCE_MESSAGE,
+          allowAdminBypass: body.allowAdminBypass !== false,
+        });
+      })
+      .catch(() => {
+        setMaintenance({ enabled: false, message: DEFAULT_MAINTENANCE_MESSAGE, allowAdminBypass: true });
+      });
+  }, []);
 
   useEffect(() => {
     if (location.pathname === '/') {
@@ -320,7 +337,7 @@ function HRMSApp() {
       <div className="min-h-[100dvh] bg-obsidian flex flex-col items-center justify-center gap-6">
         <img src="/logo.svg" alt="" className="w-16 h-16 rounded-[18px] shadow-sm" />
         <div className="text-center">
-          <p className="text-[17px] font-semibold text-ivory">House of Kaala</p>
+          <p className="text-[17px] font-semibold text-ivory">By Marketing Only LLP</p>
           <p className="text-[15px] text-ivory-muted mt-1">Loading…</p>
         </div>
       </div>
@@ -344,10 +361,28 @@ function HRMSApp() {
   const isManagerView = isAdminPortal;
   const showAdminSection = isAdminPortal;
   const showAdminCrons = isAdminPortal && currentUser.role === 'admin';
+  const isAdminOrManager = currentUser.role === 'admin' || currentUser.role === 'manager';
+  const inMaintenance =
+    Boolean(maintenance?.enabled) &&
+    !(maintenance?.allowAdminBypass && isAdminOrManager);
+
+  if (inMaintenance) {
+    return (
+      <MaintenanceScreen
+        message={maintenance?.message || DEFAULT_MAINTENANCE_MESSAGE}
+        showSignOut
+      />
+    );
+  }
 
   return (
     <div className="flex h-[100dvh] bg-obsidian text-ivory overflow-hidden relative">
       <NotificationToasts />
+      {maintenance?.enabled && isAdminOrManager && (
+        <div className="absolute top-0 left-0 right-0 z-[70] bg-amber-500 text-white text-center text-xs sm:text-sm font-semibold px-3 py-2">
+          Maintenance mode is ON for employees. Clock-out is disabled for everyone. {maintenance.message}
+        </div>
+      )}
 
       {navOpen && (
         <button
@@ -370,7 +405,7 @@ function HRMSApp() {
         <Link to="/dashboard" onClick={closeNav} className="studio-brand mb-3 mx-1 px-2.5 py-3 flex items-center gap-2.5 transition-colors">
           <img src="/logo.svg" alt="" className="w-9 h-9 shrink-0 rounded-[10px]" />
           <span className="min-w-0">
-            <span className="text-[13px] font-semibold text-ivory leading-tight block truncate">House of Kaala</span>
+            <span className="text-[13px] font-semibold text-ivory leading-tight block truncate">By Marketing Only LLP</span>
             <span className="text-[11px] text-ivory-muted block truncate">{portalMeta.title}</span>
           </span>
         </Link>

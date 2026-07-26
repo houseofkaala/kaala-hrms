@@ -61,7 +61,7 @@ export function createEmptyOperationalDb() {
       { id: 'gc2', name: 'Flipkart Voucher', pointsCost: 200, value: 200, currency: 'INR' },
     ],
     orgSettings: {
-      companyName: 'House of Kaala',
+      companyName: 'By Marketing Only LLP',
       timezone: 'Asia/Kolkata',
       workWeekStart: 'Monday',
       defaultLeaveDays: 18,
@@ -70,8 +70,11 @@ export function createEmptyOperationalDb() {
       fridayScanTime: '18:30',
       notificationsEnabled: true,
       twoFactorRequired: false,
+      maintenanceMode: false,
+      maintenanceMessage:
+        'ARIA is making changes to the HRMS. No one will be able to clock out today. Please use your email for communication.',
       geoAttendanceRequired: false,
-      officeGeofence: { name: 'House of Kaala Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 },
+      officeGeofence: { name: 'By Marketing Only Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 },
       emailNotifications: defaultEmailNotificationSettings(),
     },
     emailDigestQueue: [] as { id: string; userId: string; triggerId: string; title: string; message: string; digestType: 'daily' | 'weekly' | 'monthly'; createdAt: string }[],

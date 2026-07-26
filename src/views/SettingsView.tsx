@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Settings, Bell, Shield, Clock, Zap, Play } from 'lucide-react';
+import { Settings, Bell, Shield, Clock, Zap, Play, Wrench } from 'lucide-react';
 import { fetcher } from '../utils';
 import { useRBACStore } from '../store';
 import { EmailNotificationsSettings } from './EmailNotificationsSettings';
@@ -18,6 +18,8 @@ interface OrgSettings {
   fridayScanTime: string;
   notificationsEnabled: boolean;
   twoFactorRequired: boolean;
+  maintenanceMode?: boolean;
+  maintenanceMessage?: string;
 }
 
 export function SettingsView() {
@@ -191,6 +193,32 @@ export function SettingsView() {
               className="w-full mt-1 border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-50"
             />
           </div>
+        </div>
+
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 pt-4 border-t border-gray-100">
+          <Wrench className="w-4 h-4" /> Maintenance
+        </h3>
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-sm text-gray-700 block">Maintenance mode</span>
+            <span className="text-xs text-gray-500">Employees see the maintenance screen; clock-out is blocked for everyone</span>
+          </div>
+          <input
+            type="checkbox"
+            checked={Boolean(form.maintenanceMode)}
+            onChange={e => setForm({ ...form, maintenanceMode: e.target.checked })}
+            disabled={currentUser?.role !== 'admin'}
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-gray-700">Maintenance message</label>
+          <textarea
+            value={form.maintenanceMessage || ''}
+            onChange={e => setForm({ ...form, maintenanceMessage: e.target.value })}
+            disabled={currentUser?.role !== 'admin'}
+            className="w-full mt-1 border border-gray-200 rounded-lg px-3 py-2 text-sm disabled:bg-gray-50 min-h-[72px]"
+            rows={3}
+          />
         </div>
 
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 pt-4 border-t border-gray-100">

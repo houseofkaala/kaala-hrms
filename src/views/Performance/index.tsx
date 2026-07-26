@@ -31,7 +31,7 @@ export function PerformanceView() {
       <div className="bg-white px-8 py-6 border border-gray-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between shadow-sm gap-4">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Performance Management</h2>
-          <p className="text-sm text-gray-500 mt-1">Track, measure, and improve with House of Kaala formula</p>
+          <p className="text-sm text-gray-500 mt-1">Track, measure, and improve performance across teams</p>
         </div>
       </div>
 

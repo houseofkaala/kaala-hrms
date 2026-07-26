@@ -1,4 +1,6 @@
 import { syncSeedUsers, migrateLegacyUserRefs } from './seed-users';
+import { applyCompanyBranding, syncBmoRoster } from './seed-bmo-roster';
+import { applyMaintenanceDefaults } from './maintenance';
 import { hasLegacyUserIds, LEGACY_ID_MAP, resolveUserIds } from './user-ids';
 import { ensureProjectSchema } from './project-management';
 import { ensureKanbanSchema } from './kanban';
@@ -85,6 +87,13 @@ function dedupeUsers(users: UserRecord[]): UserRecord[] {
 
 function applyMigrations() {
   db.users = dedupeUsers(syncSeedUsers(db.users));
+  const roster = syncBmoRoster(db.users);
+  db.users = dedupeUsers(roster.users);
+  if (roster.added > 0 || roster.updated > 0) {
+    console.log(`[HRMS] BMO roster sync: ${roster.added} added, ${roster.updated} updated (total users: ${db.users.length})`);
+  }
+  applyCompanyBranding(db.orgSettings as Parameters<typeof applyCompanyBranding>[0]);
+  applyMaintenanceDefaults(db.orgSettings as Parameters<typeof applyMaintenanceDefaults>[0]);
   for (const user of db.users) {
     if (user.status === 'Offline') user.status = 'Active';
   }
@@ -135,7 +144,7 @@ function applyMigrations() {
   if (!ext.fieldVisits) ext.fieldVisits = [];
   if (!ext.salaryStructures) ext.salaryStructures = {};
   if (!ext.orgSettings.officeGeofence) {
-    ext.orgSettings.officeGeofence = { name: 'House of Kaala Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 };
+    ext.orgSettings.officeGeofence = { name: 'By Marketing Only Office', lat: 12.9716, lng: 77.5946, radiusMeters: 500 };
   }
   if (ext.orgSettings.geoAttendanceRequired === undefined) ext.orgSettings.geoAttendanceRequired = false;
   const p2 = db as Database & {

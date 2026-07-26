@@ -82,6 +82,7 @@ const MODULE_EXEMPT = new Set([
   '/api/me',
   '/api/users',
   '/api/health',
+  '/api/maintenance',
   '/api/auth/logout',
 ]);
 

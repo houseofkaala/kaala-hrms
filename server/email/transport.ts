@@ -25,7 +25,7 @@ function fromAddress(settings?: EmailNotificationSettings): string {
 }
 
 function formatFrom(settings?: EmailNotificationSettings): string {
-  const name = settings?.fromName || process.env.SMTP_FROM_NAME || 'House of Kaala HR';
+  const name = settings?.fromName || process.env.SMTP_FROM_NAME || 'By Marketing Only HR';
   return `"${name}" <${fromAddress(settings)}>`;
 }
 
@@ -68,7 +68,7 @@ export async function sendEmail(payload: SendEmailPayload, settings?: EmailNotif
       to: payload.to,
       subject: payload.subject,
       text: payload.text,
-      html: payload.html || buildEmailHtml(payload.subject, payload.text, settings?.fromName || 'House of Kaala'),
+      html: payload.html || buildEmailHtml(payload.subject, payload.text, settings?.fromName || 'By Marketing Only LLP'),
     });
 
     console.log('[HRMS Email] Sent:', payload.subject, '→', payload.to);

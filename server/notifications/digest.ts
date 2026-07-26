@@ -109,7 +109,7 @@ async function sendDigestEmail(userId: string, title: string, lines: string[]): 
   const db = getDb();
   const settings = mergeEmailSettings(db.orgSettings.emailNotifications);
   if (!settings.enabled) return;
-  const company = db.orgSettings.companyName || 'House of Kaala';
+  const company = db.orgSettings.companyName || 'By Marketing Only LLP';
   const message = lines.join('\n');
   await sendEmail({
     to: user.email,

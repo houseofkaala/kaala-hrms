@@ -64,7 +64,7 @@ export function purgeDemoOperationalData(db: Database & { dataVersion?: number }
 
   db.orgSettings = {
     ...db.orgSettings,
-    companyName: 'House of Kaala',
+    companyName: 'By Marketing Only LLP',
     timezone: 'Asia/Kolkata',
     workWeekStart: 'Monday',
     defaultLeaveDays: 18,

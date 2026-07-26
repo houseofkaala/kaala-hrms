@@ -130,7 +130,7 @@ export function EmployeeManagementView() {
 
   const copyInvite = async () => {
     if (!onboarded) return;
-    const text = `House of Kaala HRMS — Your account is ready
+    const text = `By Marketing Only HRMS — Your account is ready
 
 Name: ${onboarded.employee.name}
 Email: ${onboarded.access.email}

@@ -63,7 +63,7 @@ function welcomeHtml(name: string, email: string, loginUrl: string, password: st
   const lines = [
     `Dear ${name},`,
     '',
-    'Your House of Kaala HRMS account has been created.',
+    'Your By Marketing Only HRMS account has been created.',
     '',
     `Sign in at: ${loginUrl}`,
     `Email: ${email}`,
@@ -74,7 +74,7 @@ function welcomeHtml(name: string, email: string, loginUrl: string, password: st
     'Regards,',
     'HR Team',
   ];
-  return buildEmailHtml('Welcome to House of Kaala', lines.join('\n'), company);
+  return buildEmailHtml('Welcome to By Marketing Only', lines.join('\n'), company);
 }
 
 /** Central notification dispatcher — in-app + optional email based on trigger config. */
@@ -106,7 +106,7 @@ export async function notify(opts: NotifyOptions): Promise<void> {
 
   const db = getDb();
   const emailSettings = mergeEmailSettings(db.orgSettings.emailNotifications);
-  const company = db.orgSettings.companyName || 'House of Kaala';
+  const company = db.orgSettings.companyName || 'By Marketing Only LLP';
 
   let html = opts.html;
   if (!html && opts.triggerId === 'lifecycle.welcome' && opts.emailContext) {

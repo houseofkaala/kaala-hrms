@@ -195,7 +195,7 @@ export function defaultEmailNotificationSettings(): EmailNotificationSettings {
   }
   return {
     enabled: true,
-    fromName: 'House of Kaala HR',
+    fromName: 'By Marketing Only HR',
     triggers,
     digests: {
       dailyAttendance: true,

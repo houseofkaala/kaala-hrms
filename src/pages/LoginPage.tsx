@@ -7,6 +7,7 @@ import { useRBACStore } from '../store';
 import { getPortal, PORTAL_META, portalForRole, roleMatchesPortal, getPortalLoginUrl, setStoredPortal, type Portal } from '../portal';
 import { PasswordInput } from '../components/PasswordInput';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { MaintenanceBanner, DEFAULT_MAINTENANCE_MESSAGE } from '../components/MaintenanceScreen';
 
 
 export default function LoginPage() {
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const oauthHandled = useRef(false);
+  const [maintenanceMsg, setMaintenanceMsg] = useState<string | null>(null);
 
   function oauthExchangeKey(authCode: string | null, legacyToken: string | null) {
     if (authCode) return `oauth:code:${authCode}`;
@@ -39,6 +41,16 @@ export default function LoginPage() {
       .then(r => r.json())
       .then((body: { configured?: boolean }) => setGoogleAvailable(Boolean(body.configured)))
       .catch(() => setGoogleAvailable(false));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/maintenance')
+      .then(r => r.json())
+      .then((body: { enabled?: boolean; message?: string }) => {
+        if (body.enabled) setMaintenanceMsg(body.message || DEFAULT_MAINTENANCE_MESSAGE);
+        else setMaintenanceMsg(null);
+      })
+      .catch(() => setMaintenanceMsg(null));
   }, []);
 
   useEffect(() => {
@@ -189,12 +201,13 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-[400px]">
           <div className="flex flex-col items-center text-center mb-8">
-            <img src="/logo.svg" alt="House of Kaala" className="w-16 h-16 rounded-[18px] mb-4 shadow-sm" />
-            <h1 className="text-[22px] font-semibold text-ivory tracking-tight">House of Kaala</h1>
+            <img src="/logo.svg" alt="By Marketing Only LLP" className="w-16 h-16 rounded-[18px] mb-4 shadow-sm" />
+            <h1 className="text-[22px] font-semibold text-ivory tracking-tight">By Marketing Only LLP</h1>
             <p className="text-[15px] text-ivory-muted mt-1">{meta.title}</p>
           </div>
 
           <div className="studio-login-card p-8">
+            {maintenanceMsg && <MaintenanceBanner message={maintenanceMsg} />}
             <div className="mb-6">
               <h2 className="text-[22px] font-semibold text-ivory tracking-tight">Sign In</h2>
               <p className="text-[15px] text-ivory-muted mt-1">Use your company credentials to continue.</p>

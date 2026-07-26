@@ -6,7 +6,7 @@ export interface Geofence {
 }
 
 export const DEFAULT_GEOFENCE: Geofence = {
-  name: 'House of Kaala Office',
+  name: 'By Marketing Only Office',
   lat: 12.9716,
   lng: 77.5946,
   radiusMeters: 500,

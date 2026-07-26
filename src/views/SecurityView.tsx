@@ -180,7 +180,7 @@ export function SecurityView() {
             <ShieldAlert className="w-4 h-4" /> System protections
           </h3>
           <p className="text-xs text-gray-500">
-            Active defences that protect House of Kaala HRMS from hacking, brute-force, and data theft.
+            Active defences that protect By Marketing Only HRMS from hacking, brute-force, and data theft.
           </p>
           <div className="grid sm:grid-cols-2 gap-2">
             {overview.protections.map(p => (

@@ -34,6 +34,7 @@ import {
   toDateInput, toTimeInput, type AttendanceLogRecord,
 } from './attendance-admin';
 import { serializeNotification, type InAppNotificationRecord } from './notifications/in-app';
+import { getMaintenanceConfig } from './maintenance';
 import { validateLeaveSubmission, validateLeaveApproval } from './leave-rules';
 import { verifyPassword, hashPassword, upgradePasswordIfNeeded } from './password';
 import { buildReport } from './reports';
@@ -219,10 +220,49 @@ export async function registerRoutes(app: Express) {
     });
   });
 
+  /** Public maintenance status (no auth) */
+  app.get('/api/maintenance', (_req, res) => {
+    const cfg = getMaintenanceConfig();
+    res.json({
+      enabled: cfg.enabled,
+      message: cfg.message,
+      allowAdminBypass: cfg.allowAdminBypass,
+      blockClockOut: cfg.blockClockOut,
+    });
+  });
+
   registerGoogleSsoRoutes(app);
 
   app.use('/api', authMiddleware);
   app.use('/api', moduleAccessMiddleware);
+
+  // During maintenance, block employee API access (admins/managers can bypass)
+  app.use('/api', (req: AuthedRequest, res, next) => {
+    const cfg = getMaintenanceConfig();
+    if (!cfg.enabled) return next();
+
+    const path = req.path || '';
+    const allowed = new Set(['/me', '/maintenance', '/auth/logout', '/health']);
+    if (allowed.has(path) || path.startsWith('/auth/')) return next();
+
+    // Admin settings toggle while in maintenance
+    if (path === '/settings' && (req.method === 'GET' || req.method === 'PATCH')) {
+      const u = getUserById(req.userId!);
+      if (u?.role === 'admin') return next();
+    }
+
+    const user = getUserById(req.userId!);
+    if (cfg.allowAdminBypass && (user?.role === 'admin' || user?.role === 'manager')) {
+      return next();
+    }
+
+    return res.status(503).json({
+      error: cfg.message,
+      code: 'MAINTENANCE',
+      maintenance: true,
+      message: cfg.message,
+    });
+  });
 
   app.get('/api/me', (req: AuthedRequest, res) => {
     const user = getUserById(req.userId!);
@@ -343,7 +383,7 @@ export async function registerRoutes(app: Express) {
     void notify({
       triggerId: 'lifecycle.welcome',
       userId: newUser.id,
-      title: 'Welcome to House of Kaala',
+      title: 'Welcome to By Marketing Only',
       message: `Your account is ready.\n\nSign in at: ${loginUrl}\nEmail: ${normalizedEmail}\nTemporary password: ${String(password)}\n\nPlease change your password after first login.`,
       emailContext: {
         name: newUser.name,
@@ -641,7 +681,7 @@ export async function registerRoutes(app: Express) {
     const result = await sendEmail({
       to: req.body.email || admin.email,
       subject: 'HRMS email test',
-      text: 'Email notifications are configured correctly for House of Kaala HRMS.',
+      text: 'Email notifications are configured correctly for By Marketing Only HRMS.',
     }, settings);
     if (!result.ok) return res.status(503).json({ error: result.error || 'Email send failed' });
     res.json({ success: true, message: `Test email sent to ${req.body.email || admin.email}` });
@@ -1051,6 +1091,15 @@ export async function registerRoutes(app: Express) {
     let checkedIn = false;
 
     if (active) {
+      const maint = getMaintenanceConfig();
+      if (maint.enabled && maint.blockClockOut) {
+        return res.status(503).json({
+          error: maint.message,
+          code: 'MAINTENANCE',
+          maintenance: true,
+          message: maint.message,
+        });
+      }
       const ev = evaluateClockOut(active);
       if (!ev.allowed) {
         return res.status(403).json({
@@ -1813,7 +1862,7 @@ export async function registerRoutes(app: Express) {
         const ai = new GoogleGenAI({ apiKey: key });
         const resp = await ai.models.generateContent({
           model: 'gemini-2.0-flash',
-          contents: `You are Kaala HRMS assistant for ${user?.name} at House of Kaala, India. Reply in clear Indian English. Be brief and helpful about HR topics only: ${text}`,
+          contents: `You are the HRMS assistant for ${user?.name} at By Marketing Only LLP, India. Reply in clear Indian English. Be brief and helpful about HR topics only: ${text}`,
         });
         if (resp.text?.trim()) reply = resp.text.trim();
       } catch {
